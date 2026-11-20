@@ -1,0 +1,21 @@
+digraph Packages {
+  graph [rankdir=LR, bgcolor="white", pad=0.25, nodesep=0.35, ranksep=0.65,
+         fontname="Helvetica", fontsize=12];
+  node [shape=box, style="rounded,filled", fillcolor="#f1f5f9", color="#64748b",
+        fontname="Helvetica", fontsize=12, margin="0.18,0.12"];
+  edge [color="#475569", fontname="Helvetica", fontsize=10];
+
+  page [label="pagelayout (planned)\nTemplate handling and validation\nPage selection and flow orchestration",
+        fillcolor="#dbeafe", color="#2563eb"];
+  dom [label="w3c-dom\nStyled HTML tree and CSS properties"];
+  boxes [label="css-box-layout\nBuildLayoutTrees + FixedLayout\nFrame geometry against a page viewport"];
+  type [label="typography / paragraph\nParagraph preparation and continuation"];
+  integration [label="tytui / documentlayout\nBounded single-paragraph LayoutFlow\nIntegration reference", fillcolor="#fff7ed", color="#b45309"];
+
+  page -> dom [label="uses"];
+  page -> boxes [label="uses"];
+  page -> type [label="integration boundary\nto be designed", style=dashed];
+  page -> integration [label="study / reuse decision open", style=dashed];
+
+  { rank=same; dom; boxes; type; integration; }
+}

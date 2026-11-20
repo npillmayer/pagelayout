@@ -52,7 +52,7 @@ the XML template; the two templates would not be used together for one page.
 
 ```css
 .page {
-  position: relative;
+  position: static;
   width: 210mm;
   height: 297mm;
   background: #ffffff;
@@ -63,7 +63,7 @@ the XML template; the two templates would not be used together for one page.
 }
 
 .page > .frame {
-  position: absolute;
+  position: fixed;
   box-sizing: content-box;
   margin: 0;
   padding: 0;
@@ -92,10 +92,11 @@ the XML template; the two templates would not be used together for one page.
 }
 ```
 
-The positioned page establishes the frames' coordinate system. Zero padding and
-borders make the frame widths and heights their available content dimensions,
-as in the XML sketch. The template contains the receiving regions; the content
-example below supplies the material that flows into them.
+The framework uses the page dimensions as the viewport for fixed frame layout.
+Frames must be direct children of the page DIV and use `position: fixed`;
+nested template frames are excluded. The page wrapper remains static. Zero
+padding and borders make frame dimensions their available content dimensions,
+as in the XML sketch. The content example below supplies material to the frames.
 
 ## HTML content and CSS region flows
 
@@ -156,7 +157,7 @@ contains the same two-column layout as above and a chapter-opening variant.
   <title>Page-template collection</title>
   <style>
     .page {
-      position: relative;
+      position: static;
       width: 210mm;
       height: 297mm;
       background: #ffffff;
@@ -167,7 +168,7 @@ contains the same two-column layout as above and a chapter-opening variant.
     }
 
     .page > .frame {
-      position: absolute;
+      position: fixed;
       box-sizing: content-box;
       margin: 0;
       padding: 0;
@@ -232,6 +233,8 @@ inner page and frames, and apply the collection's stylesheet together with the
 supplied content styles. The collection alone displays no pages in a browser;
 a browser preview would also need to instantiate the stored fragments. The
 Regions flow properties still require our framework's layout implementation.
+Fixed frames are resolved against a separate page viewport for each instance;
+the `.page` DIV's ancestry alone does not establish that viewport.
 
 Frame roles use classes rather than IDs so that multiple page instances can
 coexist without duplicating element IDs. Within each instantiated two-column

@@ -1,0 +1,30 @@
+digraph FrameFlows {
+  graph [rankdir=LR, bgcolor="white", pad=0.25, nodesep=0.5, ranksep=0.55,
+         fontname="Helvetica", fontsize=12, compound=true];
+  node [shape=box, style="rounded,filled", fillcolor="#f1f5f9", color="#64748b",
+        fontname="Helvetica", fontsize=12, margin="0.18,0.12"];
+  edge [color="#2563eb", fontname="Helvetica", fontsize=10];
+
+  heading [label="Heading content\nflow-into: heading-flow"];
+  article [label="Article content\nflow-into: article-flow"];
+  { rank=same; article; heading; }
+
+  subgraph cluster_page {
+    label="Page instance\nPage-local viewport";
+    labeljust=l;
+    color="#64748b";
+    style=rounded;
+    margin=20;
+
+    header [label="Heading frame\nposition: fixed\nflow-from: heading-flow", fillcolor="#dbeafe"];
+    left [label="Left body frame\nposition: fixed\nflow-from: article-flow\nUsable content rectangle", fillcolor="#dbeafe"];
+    right [label="Right body frame\nposition: fixed\nflow-from: article-flow\nUsable content rectangle", fillcolor="#dbeafe"];
+    { rank=same; header; left; }
+    left -> right [label="continue in\ndocument order"];
+  }
+
+  heading -> header;
+  article -> left;
+  next [label="If material remains:\nnext-page selection and continuation\nOPEN DESIGN", fillcolor="#fff7ed", color="#b45309"];
+  right -> next [label="unplaced remainder", style=dashed, color="#b45309"];
+}
