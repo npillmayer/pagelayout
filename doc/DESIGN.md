@@ -1,6 +1,6 @@
 # Template-based page layout: revised design discussion
 
-Date: 2026-11-21. Status: design discussion, before implementation.
+Date: 2026-11-21. Status: design discussion; TPL-01 source loading implemented.
 
 ---
 ## REMARKS
@@ -164,6 +164,11 @@ concurrency contracts exist.
 See [TEMPLATE-LOADING.md](TEMPLATE-LOADING.md) for the detailed package/API
 proposal, loading stages, diagnostics, and PR plan across `pagelayout`,
 `w3c-dom` and `css-box-layout`.
+
+Template loading is encapsulated in `pagelayout/template`, including its source
+model and the later styling, validation and compilation stages. The root package
+will consume compiled catalogs for page composition; the template package does
+not depend on the root package.
 
 Parse Templ-Doc once, index unique nonempty template IDs, collect its stylesheets,
 and compile every definition. Publish the catalog only when all definitions

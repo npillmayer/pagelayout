@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" class="collection">
+<head>
+  <meta charset="utf-8">
+  <title>Two page definitions</title>
+  <style>
+    .page { width: 210mm; height: 297mm; }
+    .frame { position: fixed; }
+  </style>
+  <style>.body { flow-from: article-flow; }</style>
+</head>
+<body id="collection" class="print">
+  <template id="widget" data-type="fragment">
+    <span>Ignored inert storage.</span>
+  </template>
+  <template id="two-column-article" data-type="page">
+    <div class="page two-column">
+      <div class="frame heading" id="heading">
+        <!-- An empty receiver may contain formatting whitespace and comments. -->
+      </div>
+      <div class="frame body body-left"></div>
+      <div class="frame body body-right"></div>
+    </div>
+  </template>
+  <template id="chapter-opening" data-type="page">
+    <div class="page chapter-opening">
+      <div class="frame heading" id="heading"></div>
+      <div class="frame body"></div>
+    </div>
+  </template>
+</body>
+</html>

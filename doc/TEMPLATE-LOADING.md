@@ -1,11 +1,18 @@
 # Template loading: package proposal and PR plan
 
-Date: 2026-11-21. Status: proposed implementation plan, before implementation.
+Date: 2026-11-21. Status: TPL-01 implemented; remaining milestones proposed.
 
-This note details the template-loading part of [DESIGN.md](DESIGN.md). It does
-not authorize implementation or change the agreed distinction between template
-definitions, prepared content and page trials. New APIs, profile choices and PR
-boundaries below are proposals for discussion.
+This note details the template-loading part of [DESIGN.md](DESIGN.md). TPL-01
+has been implemented at the author's request. It preserves the distinction
+between template definitions, prepared content and page trials. Later APIs,
+profile choices and PR boundaries below remain proposals for discussion.
+
+The current implementation is private within the `template` subpackage:
+[source parsing](../template/source.go),
+[structural validation](../template/validate.go) and
+[diagnostics](../template/diagnostic.go). It uses Go 1.25.6 and `golang.org/x/net` v0.49.0,
+matching the reviewed sibling baselines. It retains head CSS and inline attributes
+without interpreting them. The public APIs sketched below are not implemented.
 
 ## 1. The first deliverable
 
@@ -28,13 +35,19 @@ content-side phase.
 
 ## 2. Package shape and public boundary
 
-Start with the root package `pagelayout`, in the proposed module
-`github.com/npillmayer/pagelayout`. Keep loading as a cohesive set of files rather
-than immediately creating public parser, CSS adapter and compiler subpackages.
-The root package will eventually coordinate pages as well; its first usable
-feature can be template loading.
+**Decision:** encapsulate template loading in package `template`, imported as
+`github.com/npillmayer/pagelayout/template`. This package owns discovery, source
+identities, styling, profile validation, geometry compilation, diagnostics and
+the eventual compiled catalog. Its tests and fixtures live under `template/`.
 
-An illustrative public surface is:
+The root package `pagelayout` is reserved for broader page composition and will
+consume the compiled catalog. Keep dependencies directed from page composition
+to `template`; the latter must not import the root package. It may depend on the
+appropriate sibling DOM and box-layout services. Keep the loading stages private
+within this one package rather than adding separate public parser, CSS adapter
+or compiler packages.
+
+An illustrative public surface in package `template` is:
 
 ```go
 // PROPOSED API; implementation and final type names remain open.
@@ -42,11 +55,11 @@ type LoadOptions struct {
     SourceName string // Diagnostic label, not a resource-fetching base URL.
 }
 
-func LoadTemplates(r io.Reader, opts LoadOptions) (*TemplateCatalog, error)
-func LoadTemplatesFS(fsys fs.FS, name string) (*TemplateCatalog, error)
+func Load(r io.Reader, opts LoadOptions) (*Catalog, error)
+func LoadFS(fsys fs.FS, name string) (*Catalog, error)
 
-func (c *TemplateCatalog) IDs() []string
-func (c *TemplateCatalog) Lookup(id string) (*Template, bool)
+func (c *Catalog) IDs() []string
+func (c *Catalog) Lookup(id string) (*Template, bool)
 
 func (t *Template) ID() string
 func (t *Template) Page() PageInfo
@@ -54,7 +67,10 @@ func (t *Template) Frames() []FrameInfo
 func (t *Template) FramesForFlow(name string) []FrameInfo
 ```
 
-`TemplateCatalog` and `Template` have private fields and no mutation methods.
+Callers would use `template.Load`, `template.Catalog` and `template.Template`.
+These names remain proposals; the package boundary is decided and implemented.
+
+`Catalog` and `Template` have private fields and no mutation methods.
 Returned slices are copies; descriptions contain value data, not mutable DOM,
 CSSOM or layout-tree pointers. An empty flow lookup returns an empty slice.
 Template lookup is exact and case-sensitive; a missing ID returns `false`.
@@ -88,20 +104,21 @@ sets its source name and delegates to the reader API.
 ### Suggested files
 
 ```text
-doc.go                    package purpose, units and ownership
-templates.go              catalog, template and description accessors
-load.go                   reader/FS entry points and publication boundary
-template_source.go        HTML parsing, discovery, source identities
-template_style.go         active documents, stylesheet registration, cascade
-template_values.go        effective CSS -> typed box and paint values
-template_validate.go      template profile and source-aware diagnostics
-template_compile.go       geometry resolution, frame chains, final catalog
-diagnostic.go             structured load failures
-testdata/templates/       self-contained collections and invalid fixtures
+doc.go                          root package purpose and composition boundary
+template/doc.go                 loading package purpose, units and ownership
+template/catalog.go             catalog, template and description accessors
+template/load.go                reader/FS entry points and publication boundary
+template/source.go              HTML parsing, discovery, source identities
+template/style.go               active documents, stylesheet registration, cascade
+template/values.go              effective CSS -> typed box and paint values
+template/validate.go            template profile and source-aware diagnostics
+template/compile.go             geometry resolution, frame chains, final catalog
+template/diagnostic.go          structured load failures
+template/testdata/templates/    self-contained collections and invalid fixtures
 ```
 
-Tests should live beside the behavior they verify. A separate internal package
-or a shared adapter package can follow when a second real consumer justifies it.
+Tests live beside the behavior they verify in `template/`. Further internal
+packages or a shared adapter can follow when another real consumer justifies them.
 
 ## 3. Loading and compilation stages
 
@@ -303,12 +320,20 @@ checks. The identifiers below are planning labels, not existing PRs.
 
 Repository: `pagelayout`. Dependencies: none.
 
-- Establish the Go module/package and documented loading contract. Align the Go
+**Implemented:** the private source stage and its tests are in `template/`. It validates
+the parsed HTML structure, preserves original nodes and source order, assigns
+collection-local source IDs and template-local frame IDs, and publishes no
+partial model on failure. ID and formatting-whitespace checks use HTML ASCII
+whitespace rules. Element ID uniqueness includes the future html/body context,
+but excludes template storage wrappers and other definitions. CSS validation
+and the public loader remain for later milestones.
+
+- Establish the Go module, `template` package and documented loading contract. Align the Go
   baseline with the sibling modules; record dependency versions used for the work.
 - Implement private HTML parsing, eligible-template discovery, structural
   validation, source paths and deterministic definition order.
 - Introduce the private catalog/description model and diagnostic envelope as
-  needed. Do not expose a `LoadTemplates` stub that cannot compile templates yet.
+  needed. Do not expose a `template.Load` stub that cannot compile templates yet.
 - Test the two-definition skeleton, duplicate/missing IDs, nested marked
   definitions, nonempty receivers, zero-frame pages and parser repair behavior.
 
@@ -416,7 +441,7 @@ Repository: `pagelayout`. Depends on TPL-03 and BOX-01.
 
 - Resolve each page and frame, retain the logical box hierarchy, check bounds
   and overlaps, and build flow chains in source order.
-- Implement `LoadTemplates` and catalog/template accessors, including atomic
+- Implement `template.Load` and catalog/template accessors, including atomic
   publication and deterministic failure aggregation.
 - Verify one invalid definition rejects the whole collection; earlier catalogs
   remain usable. Check copies returned by accessors and repeated selection.
@@ -431,7 +456,7 @@ content preparation or rendering.
 
 Repository: `pagelayout`. Depends on TPL-04.
 
-- Add `LoadTemplatesFS`, a package example and self-contained collection fixtures.
+- Add `template.LoadFS`, a package example and self-contained collection fixtures.
   Demonstrate lookup, page dimensions, receiving rectangles and flow-chain order.
 - Exercise the two templates from SKETCH end to end, including their shorthand
   styles, paint and multiple receivers. Keep content `flow-into` rules with
