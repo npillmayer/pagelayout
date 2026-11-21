@@ -1,0 +1,54 @@
+digraph PreparationPipeline {
+  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.45, ranksep=0.45,
+         fontname="Helvetica", fontsize=13, newrank=true,
+         label="Proposed content pipeline", labelloc=t];
+  node [shape=box, style="rounded,filled", fillcolor="#f1f5f9", color="#64748b",
+        fontname="Helvetica", fontsize=12, margin="0.18,0.12"];
+  edge [color="#475569", fontname="Helvetica", fontsize=10];
+
+  subgraph cluster_loading {
+    label="Loading: once per source / style revision";
+    color="#cbd5e1";
+    style=rounded;
+
+    source [label="Style Cont-Doc\nKeep original source ancestry"];
+    structure [label="Extract flow branches\nNormalize box structure and inline groups"];
+    prepare [label="PREPARATION (new pass)\nVisit all horizontal groups\nInclude nested atomic interiors",
+             fillcolor="#dbeafe", color="#2563eb", penwidth=1.5];
+    prepared [label="Reusable prepared boxes\nRead-only roots + paragraph handles\nAtomic identities; used geometry deferred",
+              fillcolor="#dbeafe", color="#2563eb"];
+
+    source -> structure -> prepare -> prepared;
+  }
+
+  constraints [label="Receiving frame + cursor\nWidth, height budget, accepted prefix",
+               fillcolor="#fff7ed", color="#b45309"];
+
+  subgraph cluster_trial {
+    label="Private trial state";
+    labelloc=b;
+    labeljust=l;
+    color="#d6a15f";
+    style=rounded;
+
+    sizing [label="Resolve used values + intrinsic sizing\nMeasure prepared groups as needed\nChoose auto widths; resolve descendants",
+            fillcolor="#fff7ed", color="#b45309"];
+    atomics [label="Lay out atomic interiors\nUse their prepared groups\nObtain trial-specific dimensions"];
+    paragraphs [label="Lay out receiving paragraphs\nBind current atomic dimensions\nBreak lines and assemble vertical geometry"];
+    fit [label="Fit box fragments and place (proposed)\nCandidate output + exact continuation"];
+
+    sizing -> atomics [label="definite widths"];
+    atomics -> paragraphs [label="realized atomic geometry"];
+    paragraphs -> fit;
+  }
+
+  choose [label="pagelayout coordinator\nAccumulate frame results; choose a page\nCommit all channel advances together",
+          fillcolor="#e0f2fe", color="#0284c7"];
+
+  { rank=same; prepared; constraints; }
+  prepared -> sizing [label="reuse preparation"];
+  constraints -> sizing;
+  fit -> choose;
+  choose -> constraints [label="another candidate / frame / page\nwith the appropriate cursor", style=dashed,
+                         constraint=false];
+}

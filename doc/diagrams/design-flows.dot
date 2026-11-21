@@ -1,30 +1,34 @@
-digraph FrameFlows {
-  graph [rankdir=LR, bgcolor="white", pad=0.25, nodesep=0.5, ranksep=0.55,
-         fontname="Helvetica", fontsize=12, compound=true];
+digraph TrialRegisters {
+  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.5, ranksep=0.5,
+         fontname="Helvetica", fontsize=12];
   node [shape=box, style="rounded,filled", fillcolor="#f1f5f9", color="#64748b",
         fontname="Helvetica", fontsize=12, margin="0.18,0.12"];
-  edge [color="#2563eb", fontname="Helvetica", fontsize=10];
+  edge [color="#475569", fontname="Helvetica", fontsize=10];
 
-  heading [label="Heading content\nflow-into: heading-flow"];
-  article [label="Article content\nflow-into: article-flow"];
-  { rank=same; article; heading; }
-
-  subgraph cluster_page {
-    label="Page instance\nPage-local viewport";
+  committed [label="Committed registers\nheading: [H, ...]     article: [A, B, C, ...]"];
+  snapshot [label="Trial-local cursor snapshot\nShared prepared boxes; source styles unchanged"];
+  subgraph cluster_trial {
+    label="Candidate page";
     labeljust=l;
     color="#64748b";
     style=rounded;
-    margin=20;
-
-    header [label="Heading frame\nposition: fixed\nflow-from: heading-flow", fillcolor="#dbeafe"];
-    left [label="Left body frame\nposition: fixed\nflow-from: article-flow\nUsable content rectangle", fillcolor="#dbeafe"];
-    right [label="Right body frame\nposition: fixed\nflow-from: article-flow\nUsable content rectangle", fillcolor="#dbeafe"];
-    { rank=same; header; left; }
-    left -> right [label="continue in\ndocument order"];
+    margin=18;
+    heading [label="Heading frame\nProvisional H fragment", fillcolor="#dbeafe"];
+    first [label="Article frame 1\nSize at W1; place A + prefix of B", fillcolor="#dbeafe"];
+    second [label="Article frame 2\nContinue B at W2\nRebind / rebreak suffix as needed", fillcolor="#dbeafe"];
+    { rank=same; heading; first; }
+    first -> second [label="exact continuation"];
   }
+  decision [label="Candidate placements + proposed cursors\nNo shared register has advanced yet"];
+  accept [label="ACCEPT atomically\nheading: [...]\narticle: [remaining B, C, ...]\nPublish accepted page", fillcolor="#dbeafe", color="#2563eb"];
+  reject [label="REJECT / FAILURE\nheading: [H, ...]\narticle: [A, B, C, ...]\nDiscard candidate", fillcolor="#fff7ed", color="#b45309"];
 
-  heading -> header;
-  article -> left;
-  next [label="If material remains:\nnext-page selection and continuation\nOPEN DESIGN", fillcolor="#fff7ed", color="#b45309"];
-  right -> next [label="unplaced remainder", style=dashed, color="#b45309"];
+  committed -> snapshot;
+  snapshot -> heading;
+  snapshot -> first;
+  heading -> decision;
+  second -> decision;
+  decision -> accept;
+  decision -> reject [style=dashed];
+  { rank=same; accept; reject; }
 }

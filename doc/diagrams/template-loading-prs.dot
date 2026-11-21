@@ -1,0 +1,33 @@
+digraph TemplateLoadingPRs {
+  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.45, ranksep=0.5,
+         fontname="Helvetica", fontsize=13,
+         label="Proposed PR dependencies\nArrows indicate prerequisites, not an execution schedule", labelloc=t];
+  node [shape=box, style="rounded,filled", fillcolor="#dbeafe", color="#2563eb",
+        fontname="Helvetica", fontsize=12, margin="0.18,0.12"];
+  edge [color="#475569", fontname="Helvetica", fontsize=10];
+
+  tpl1 [label="TPL-01 / pagelayout\nModule + collection discovery"];
+  tpl2 [label="TPL-02 / pagelayout\nIsolated template styling"];
+  tpl3 [label="TPL-03 / pagelayout\nProfile + typed adaptation"];
+  tpl4 [label="TPL-04 / pagelayout\nCompile + publish catalog"];
+  tpl5 [label="TPL-05 / pagelayout\nFS loader + integration proof"];
+
+  dom1 [label="DOM-01 / w3c-dom\nCSS inspection + diagnostics",
+        fillcolor="#f1f5f9", color="#64748b"];
+  dom2 [label="DOM-02 / w3c-dom\nEffective values + defaults",
+        fillcolor="#f1f5f9", color="#64748b"];
+  dom3 [label="DOM-03 / w3c-dom\nSketch shorthand support",
+        fillcolor="#f1f5f9", color="#64748b"];
+
+  box1 [label="BOX-01 / css-box-layout\nGeometry-only fixed resolver",
+        fillcolor="#fff7ed", color="#b45309"];
+
+  { rank=same; tpl1; dom1; box1; }
+  { rank=same; tpl2; dom2; }
+
+  tpl1 -> tpl2 -> tpl3 -> tpl4 -> tpl5;
+  dom1 -> dom2 -> dom3;
+  dom1 -> tpl2;
+  dom3 -> tpl3;
+  box1 -> tpl4;
+}

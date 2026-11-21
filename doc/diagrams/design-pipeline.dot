@@ -1,29 +1,36 @@
 digraph Pipeline {
-  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.45, ranksep=0.35,
+  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.5, ranksep=0.45,
          fontname="Helvetica", fontsize=12];
   node [shape=box, style="rounded,filled", fillcolor="#f1f5f9", color="#64748b",
         fontname="Helvetica", fontsize=12, margin="0.18,0.12"];
   edge [color="#475569", fontname="Helvetica", fontsize=10];
 
-  collection [label="Parse reusable HTML collection\nIndex template IDs; retain source context"];
-  sheets [label="Collect head CSS once\nOrdered, read-only sheets"];
-  instantiate [label="Select and clone one page\nFresh html/head/body context"];
-  style [label="Fresh w3c-dom CSSOM per instance\nRegister sheets at nil scope\nStyle the active document"];
-  validate [label="Validate structure and effective CSS\nDirect fixed frames; definite sizes\nProposed initial profile"];
-  fixed [label="Typed projection + BuildLayoutTrees\nFixedLayout with empty-frame callback\nViewport = resolved page dimensions"];
-  check [label="Check resolved border/content rectangles\nPositive; within page; no overlaps\nProposed initial policy"];
-  compiled [label="Proposed compiled page description\nPage paint; frame/content rectangles\nFlow names; source order; source identities",
-            fillcolor="#dbeafe", color="#2563eb"];
-  content [label="Separate HTML content + CSS\nSource styles and named flows"];
-  flow [label="Flow material into content rectangles\nGeometry stays fixed",
-        fillcolor="#dbeafe", color="#2563eb"];
-  result [label="Placed fragments + completion / remainder\nGeneral pagination remains to be designed"];
+  templates [label="Templ-Doc\nPage templates + their CSS"];
+  content [label="Cont-Doc\nContent + its source CSS"];
+  compile [label="Compile EVERY template\nStyle, box, resolve fixed geometry"];
+  boxes [label="Style in original DOM context\nConstruct source-associated boxes"];
+  route [label="Route named branches\nRetain residual main tree\nDefault channel proposed"];
+  prepare [label="Prepare horizontal material\nKhipus + unsized atomic subtrees"];
+  catalog [label="Reusable template catalog\nSized page/frame trees by ID",
+           fillcolor="#dbeafe", color="#2563eb"];
+  registers [label="Flow registers\nPrepared boxes + committed cursors",
+             fillcolor="#dbeafe", color="#2563eb"];
+  snapshot [label="Snapshot ALL channel cursors"];
+  trial [label="Try candidate page\nLayout attachment; no CSS restyling\nSize, bind atoms, break and fit per frame"];
+  select [shape=diamond, label="Accept candidate?", fillcolor="#fff7ed", color="#b45309"];
+  commit [label="Commit page + all cursor advances\nKeep exact continuations / untouched entries",
+          fillcolor="#dbeafe", color="#2563eb"];
+  pages [label="Accepted page fragments\nCompletion or next page"];
 
-  collection -> instantiate -> style -> validate -> fixed -> check -> compiled;
-  collection -> sheets -> style;
-  { rank=same; instantiate; sheets; }
-  compiled -> flow [label="resolved destinations"];
-  content -> flow [label="material"];
-  flow -> result;
-  { rank=same; compiled; content; }
+  { rank=same; templates; content; }
+  { rank=same; compile; boxes; }
+  { rank=same; catalog; registers; }
+  templates -> compile -> catalog;
+  content -> boxes -> route -> prepare -> registers -> snapshot;
+  catalog -> trial [label="candidate template ID"];
+  snapshot -> trial -> select;
+  select -> trial [label="reject: next candidate\nsame snapshot", style=dashed, constraint=false];
+  select -> commit [label="accept"];
+  commit -> pages;
+  pages -> snapshot [label="material remains\nnew committed state", style=dashed, constraint=false];
 }
