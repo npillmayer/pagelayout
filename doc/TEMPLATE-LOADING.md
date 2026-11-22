@@ -1,9 +1,9 @@
 # Template loading: package proposal and PR plan
 
-Date: 2026-11-22. Status: TPL-01/02 and upstream DOM-01 implemented; remaining milestones proposed.
+Date: 2026-11-22. Status: TPL-01/02 and upstream DOM-01/02 implemented; remaining milestones proposed.
 
 This note details the template-loading part of [DESIGN.md](DESIGN.md). TPL-01/02
-and upstream DOM-01 have been implemented at the author's request. They preserve the distinction
+and upstream DOM-01/02 have been implemented at the author's request. They preserve the distinction
 between template definitions, prepared content and page trials. Later APIs,
 profile choices and PR boundaries below remain proposals for discussion.
 
@@ -379,6 +379,23 @@ scraping log output. Template-specific policy stays in `pagelayout`.
 ### DOM-02 — Effective values and defaults needed by empty page boxes
 
 Repository: `w3c-dom`. Depends on DOM-01.
+
+**Implemented:** the property registry now supplies box-sizing/writing-mode
+metadata and concrete print-UA color defaults (black, transparent and
+currentcolor borders). `style.NormalizeDeclaration` validates supported values
+before duplicate reduction and cascade selection; DOM-01 reports invalid source
+declarations even when they lose or do not match. Existing edge shorthands are
+validated atomically; full border/background shorthand work remains DOM-03.
+
+Checked APIs are `style.ParseBoxLength`, `ParseColorValue`, `ParseFlowName` and
+`ParseBoxKeyword`, with `css.GetBoxLength`, `GetColor`, `GetFlowName`,
+`GetBoxKeyword` and `GetBorder` for styled elements. Absolute lengths use checked
+DU conversion; percentages remain fractional and unclamped, and relative values
+remain unsized. The page-layout adapter must convert DU to CSS pixels. Effective
+borders are zero for none/hidden, including inherited computed widths. See
+[the upstream contract and supported scope](../../w3c-dom/doc/architecture.md#checked-box-values-and-defaults-dom-02).
+Opaque math/substitutions and cascade rollback still require later evaluation;
+typed accessors report them instead of fabricating geometry or colors.
 
 - Complete the relevant metadata/defaults for box sizing, writing mode and paint;
   define the supported initial/current-color behavior instead of leaking renderer

@@ -63,9 +63,14 @@ and `css-box-layout` baselines used for TPL-01. TPL-02 uses `w3c-dom`'s new
 DOM-01 APIs, `cssom.InspectStylesheet` and `InspectInlineStyle`, with
 `NewCSSOM`, `AddStylesForScope` and `Style`.
 
+Upstream DOM-02 now provides checked box lengths, colors, flow names, keywords
+and effective borders, plus value validation before cascade reduction. TPL-03
+will use these APIs to enforce the template geometry/paint profile; TPL-02
+already receives their invalid-value diagnostics through DOM-01 inspection.
+
 Development requires sibling checkouts at `../w3c-dom`, `../tree` and `../schuko`,
 selected by `go.mod` replacements. The reviewed baselines are `w3c-dom` at
-`c326be477fc6` plus this work's DOM-01 changes, `tree` at `167ff46c52db`, and
+`826d43362174` plus this work's DOM-02 changes, `tree` at `167ff46c52db`, and
 `schuko` at `287adb3427da`. The `w3c-dom v0.0.0` requirement is a local development
 placeholder, not a published release. Replace it with a released/pinned version
 when the upstream changes are published. External checksums are in `go.sum`.
