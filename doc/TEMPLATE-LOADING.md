@@ -1,8 +1,8 @@
 # Template loading: package proposal and PR plan
 
-Date: 2026-11-22. Status: TPL-01/02 and upstream DOM-01/02/03 implemented; remaining milestones proposed.
+Date: 2026-11-22. Status: TPL-01/02/03 and upstream DOM-01/02/03 implemented; remaining milestones proposed.
 
-This note details the template-loading part of [DESIGN.md](DESIGN.md). TPL-01/02
+This note details the template-loading part of [DESIGN.md](DESIGN.md). TPL-01/02/03
 and upstream DOM-01/02/03 have been implemented at the author's request. They preserve the distinction
 between template definitions, prepared content and page trials. Later APIs,
 profile choices and PR boundaries below remain proposals for discussion.
@@ -11,7 +11,8 @@ The current implementation is private within the `template` subpackage:
 [source parsing](../template/source.go),
 [structural validation](../template/validate.go) and
 [diagnostics](../template/diagnostic.go), followed by
-[active documents](../template/active.go) and [styling](../template/style.go).
+[active documents](../template/active.go), [styling](../template/style.go),
+[source profile checks](../template/profile.go) and [typed adaptation](../template/adapt.go).
 It uses Go 1.25.6 and `golang.org/x/net` v0.49.0, plus the sibling `w3c-dom` DOM-01
 reporting APIs. See [ReadMe.md](../ReadMe.md) for development dependencies and
 reviewed revisions. The public APIs sketched below are not implemented.
@@ -191,8 +192,8 @@ sheet, retaining its source-ordered rules/declarations and usable `Sheet`.
 cascade; wrapper and ignored-template attributes are excluded. Any inspection
 diagnostic rejects the collection. Unsupported at-rules, non-CSS types,
 conditional media and scoped style elements are reported explicitly. Empty or
-`all` media and empty or `text/css` types are accepted. These checks do not yet
-implement the full property/value profile in TPL-03.
+`all` media and empty or `text/css` types are accepted. TPL-03 adds the
+property/value profile after this private styling stage.
 
 Use `cssom.NewCSSOM`, ordered
 `AddStylesForScope(nil, sheet, cssom.Author)` calls and `Style` as the first
@@ -214,7 +215,7 @@ properties to validate the actual page and frames after cascade/defaulting.
 Use `css.GetProperty` and `css.GetDisplay`; local property maps are not complete
 effective-style snapshots.
 
-Recommend a strict initial profile: unsupported selectors, rules and declarations
+TPL-03 implements a strict initial profile: unsupported selectors, rules and declarations
 in the accepted stylesheet inputs are reported even if they would not match the
 current template. Do not infer successful support from a nonmatching rule or a
 silently discarded declaration. This is a deliberate compiler policy, stricter
@@ -222,11 +223,11 @@ than ordinary browser recovery; permissive loading would be a later explicit
 option. Source validation must use the CSS layer's parsed information rather
 than a second regex-based CSS parser in `pagelayout`.
 
-The initial geometry/paint profile should follow the proposal in DESIGN:
+The initial geometry/paint profile implements the proposal in DESIGN:
 
-| Area | Proposed first supported form |
+| Area | Implemented first supported form |
 | --- | --- |
-| Page | Static block/flow DIV, positive absolute width and height, zero margin/padding/effective border. |
+| Page | Static block/flow DIV, positive absolute width and height, content-box sizing, zero margin/padding/effective border, auto insets. |
 | Frames | Direct fixed block/flow DIVs, content-box sizing and zero margins. No hidden or suppressed receivers. |
 | Sizes/insets | Absolute lengths or valid unitless zero; explicit positive content sizes or opposing-inset stretch. At least one definite inset per axis. |
 | Edges | Nonnegative absolute padding and effective borders; `none`, `hidden` or solid border styles. |
@@ -234,15 +235,57 @@ The initial geometry/paint profile should follow the proposal in DESIGN:
 | Bindings | Each frame has one non-`none` `flow-from` identifier. Decode through CSS value handling; record names case-sensitively. |
 | Additional effects | Transforms, clipping, images, generated content, unsupported min/max sizing and other unsupported geometry/paint effects receive diagnostics. |
 
+The private boundary is `validateTemplateCollection`, taking a successful
+TPL-02 styled collection. Its output owns page sizes, frame `ComputedStyle`
+constraints (with separately allocated `FixedStyle` values), paint and decoded
+flow names. It retains no HTML or styled nodes. Definitions and frames retain
+source order and identities. `auto` remains symbolic; there is no fixed solver
+or content measurement in this stage. A failure returns no partial collection.
+
+The exact first authoring vocabulary is listed in
+[`profileProperties`](../template/profile.go). It includes physical sizes/insets,
+margin/padding and border longhands and shorthands, `background`/`background-color`,
+`color`, box role keywords, and named-flow properties. All other property names
+are rejected, including explicit min/max dimensions, font properties, radii,
+custom properties and image/effect longhands, even if set to a harmless reset.
+The reset-only longhands produced by DOM-03's accepted shorthands are supported
+internally and checked after inheritance; they do not enable authored image or
+layer effects. This keeps grammar/value parsing in `w3c-dom`.
+
+Source values permit absolute units recognized by DOM-02 (`px`, `pt`, `in`,
+`cm`, `mm`, `pc`, `Q`) and unitless zero. Only sizes/insets can be `auto`.
+Margins must be zero; padding and border widths must be nonnegative. Borders
+permit none/hidden/solid. Role keywords allow static/fixed positioning, block/flow
+display, content-box sizing, visible, float none, horizontal-tb and LTR.
+The latter is an explicit initial-profile limit aligned with the current fixed
+solver. `initial`, `inherit` and `unset` are supported; rollback and deferred
+math/variable functions are rejected even in losing or nonmatching declarations.
+Selector syntax and static matching remain owned by DOM-01/CSSOM: interactive
+pseudo-classes accepted there have no active UI state and never match.
+
+Effective validation requires a static page and fixed frames, a positive explicit
+size or opposing-inset stretch per frame axis, and at least one definite inset
+per axis. It checks html/body ancestry for supported, visible static boxes;
+those wrappers provide styling context, not additional geometry or paint.
+Each frame needs a non-none `flow-from`; page/context boxes cannot receive flows.
+The historical sketch's unmatched `flow-into` rules remain valid source metadata,
+but no active template box may supply a content flow. Actual content routing
+belongs to the separate content document.
+
+Source diagnostics retain CSS rule/declaration/line/column locations. Effective
+diagnostics identify the original template/node and property without fabricating
+the location of a winning declaration. Independent failures are sorted by source
+node, then check order. Final stretch dimensions, bounds and overlaps require
+TPL-04/BOX-01; overconstrained and out-of-page inputs remain unresolved here.
+
 Ordinary shorthand forms used by the sketch, including `border: 0` and
 `background: #fff`, should work by completing the relevant `w3c-dom` support.
 Expansion must preserve omitted-component resets, source order and `!important`;
 recognizing a shorthand as an alias for one longhand is insufficient.
 [CSS shorthand semantics](https://www.w3.org/TR/css-cascade-5/#shorthand).
 
-The current property registry is incomplete and includes renderer color
-sentinels. Define the relevant CSS defaults and typed-value behavior upstream;
-do not freeze accidental sentinels into the catalog. `flow-from` already has
+DOM-02 supplies the relevant CSS defaults and checked typed-value behavior;
+the adapter uses these instead of legacy renderer color sentinels. `flow-from` has
 metadata in [the registry](../../w3c-dom/style/defaults.go). Default-channel
 syntax remains a separate decision: the loader should not invent one or require
 a channel named `body`.
@@ -479,6 +522,14 @@ Exit: `pagelayout` can compile empty frames without a paragraph adapter.
 ### TPL-03 — Template CSS profile and typed adaptation
 
 Repository: `pagelayout`. Depends on TPL-02 and DOM-02/03.
+
+**Implemented:** source profile checks and effective validation produce detached
+page/frame inputs in `template/`, using checked `w3c-dom` values and existing
+`css-box-layout` types/default constructors. Tests cover unmatched and losing
+declarations, role/size/flow failures, ancestry, CSS-wide defaults, paint,
+absolute units, source diagnostics, atomic failure and ownership. The original
+collection sketch passes this boundary. See the implemented profile in section C.
+No geometry service or public loading API is introduced.
 
 - Implement source-level profile checks and effective page/frame validation.
 - Adapt values to typed box constraints, paint and flow bindings; initialize

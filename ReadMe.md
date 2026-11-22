@@ -3,7 +3,7 @@
 A Go module for template-based page composition using HTML/CSS page definitions
 and fixed receiving frames. The overall machinery is still being designed.
 
-## Implemented: TPL-01 and TPL-02
+## Implemented: TPL-01 through TPL-03
 
 Template loading lives in the [`template`](template/) subpackage, imported as
 `github.com/npillmayer/pagelayout/template`. Its code, tests and fixtures are
@@ -31,10 +31,17 @@ include the original template/node and CSS location. Conditional head sheets,
 non-CSS sheet types and scoped sheets are rejected. Empty or `all` media and
 empty or `text/css` types are accepted.
 
+TPL-03 checks every source declaration, including losing and unmatched rules,
+against the initial template CSS profile. It validates effective pages, frames
+and their active ancestry, then produces detached page sizes, fixed constraints,
+solid paint and flow bindings. It reuses checked `w3c-dom` values and
+`css-box-layout` default constructors; absolute DU values become CSS pixels and
+auto dimensions/insets remain distinct from zero.
+
 Invalid input returns no partial collection. Source models remain read-only;
-styled working trees own their nodes, attributes and styling state. Public
-loading, the complete geometry/paint CSS profile, geometry compilation and
-immutable compiled catalogs are later milestones.
+styled working trees own their nodes, attributes and styling state. Validated
+inputs retain source identities but no DOM/CSSOM references. Public loading,
+geometry resolution and immutable compiled catalogs are later milestones.
 
 ## Structural input profile
 
@@ -53,8 +60,21 @@ active document. Frame IDs/classes may recur across separate definitions.
 
 HTML parser recovery applies. Source paths refer to the repaired tree, not byte
 positions or source lines. TPL-01 retains CSS without parsing it. TPL-02 adds
-inspection and the cascade; it does not yet validate fixed positioning, used
-sizes, flow bindings or the complete supported property/value profile.
+inspection and the cascade. TPL-03 adds fixed-position/flow validation and the
+[initial CSS profile](doc/TEMPLATE-LOADING.md#c-validate-source-declarations-and-effective-styles):
+absolute lengths, horizontal LTR block/flow boxes, content-box sizing, zero
+margins and solid paint. Page dimensions must be positive; auto frame sizes
+require opposing insets. Percentages, font-relative units, images, transforms,
+clipping, min/max sizing and other effects remain outside this profile.
+Final receiving sizes, bounds and overlap checks belong to geometry compilation.
+
+## CLI scaffold
+
+[`pgtmpl`](pgtmpl/) provides the command-line shell for checking and previewing
+collections, using the same Commando framework as `tytui/tycli`. Run
+`go run ./pgtmpl --help` for usage. Its `load`, `serve` and `find` subcommands
+are placeholders; template checking, browser previews and collection lookup
+are not implemented yet.
 
 ## Dependencies and checks
 
@@ -65,18 +85,20 @@ DOM-01 APIs, `cssom.InspectStylesheet` and `InspectInlineStyle`, with
 
 Upstream DOM-02 now provides checked box lengths, colors, flow names, keywords
 and effective borders, plus value validation before cascade reduction. TPL-03
-will use these APIs to enforce the template geometry/paint profile; TPL-02
+uses these APIs to enforce the template geometry/paint profile; TPL-02
 already receives their invalid-value diagnostics through DOM-01 inspection.
 DOM-03 adds border/side and solid-background shorthands with component resets.
-The original collection from `doc/SKETCH.md` now passes isolated styling tests
+The original collection from `doc/SKETCH.md` now passes styling and adaptation tests
 with `border: 0` and `background: #ffffff` unchanged. Richer shorthand forms
 remain diagnosed as unsupported.
 
-Development requires sibling checkouts at `../w3c-dom`, `../tree` and `../schuko`,
+Development requires sibling checkouts at `../w3c-dom`, `../css-box-layout`,
+`../tree` and `../schuko`,
 selected by `go.mod` replacements. The reviewed baselines are `w3c-dom` at
-`52995d3` plus this work's DOM-03 changes, `tree` at `167ff46c52db`, and
-`schuko` at `287adb3427da`. The `w3c-dom v0.0.0` requirement is a local development
-placeholder, not a published release. Replace it with a released/pinned version
+`ddac155`, `css-box-layout` at `66e420e`, `tree` at `167ff46c52db`, and
+`schuko` at `287adb3427da`. The `w3c-dom` and `css-box-layout` `v0.0.0`
+requirements are local development placeholders, not published releases.
+Replace them with released/pinned versions
 when the upstream changes are published. External checksums are in `go.sum`.
 
 ```sh

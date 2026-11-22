@@ -16,6 +16,7 @@ const (
 	stageStructure loadStage = "structure"
 	stageCSS       loadStage = "css"
 	stageStyling   loadStage = "styling"
+	stageProfile   loadStage = "profile"
 )
 
 type diagnosticCode string
@@ -43,6 +44,11 @@ const (
 	codeStyleAttribute      diagnosticCode = "css.style-attribute"
 	codeStyleRegistration   diagnosticCode = "css.registration"
 	codeStyleFailure        diagnosticCode = "css.styling"
+	codeProfileProperty     diagnosticCode = "profile.property"
+	codeProfileValue        diagnosticCode = "profile.value"
+	codeProfileBox          diagnosticCode = "profile.box"
+	codeProfileSizing       diagnosticCode = "profile.sizing"
+	codeProfileFlow         diagnosticCode = "profile.flow"
 )
 
 // CSS locations refer to the style element's text or style attribute value.
@@ -86,6 +92,8 @@ func (d diagnostic) Error() string {
 			where += fmt.Sprintf(", declaration %d", d.css.declaration)
 		}
 		where += ")"
+	} else if d.css.property != "" {
+		where += fmt.Sprintf(" (CSS property %q)", d.css.property)
 	}
 	message := fmt.Sprintf("%s [%s/%s]: %s", where, d.stage, d.code, d.message)
 	if d.cause != nil {

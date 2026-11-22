@@ -692,8 +692,10 @@ where competing trials spend time. No sibling changes are made by this review.
 ## Template geometry contract retained from the earlier proposal
 
 The changed process moves this work to eager catalog construction. It preserves
-the principle that template geometry is independent of future content. The
-following limits are **proposed initial profile**, not newly agreed requirements:
+the principle that template geometry is independent of future content. TPL-03 now
+implements the initial CSS validation and typed adaptation subset described in
+[TEMPLATE-LOADING.md](TEMPLATE-LOADING.md#c-validate-source-declarations-and-effective-styles).
+The geometry API and final rectangle policies below remain proposals:
 
 | Area | Proposed restriction |
 | --- | --- |
@@ -705,15 +707,13 @@ following limits are **proposed initial profile**, not newly agreed requirements
 | Edges and effects | Nonnegative absolute padding/effective border widths; initially none/hidden or solid borders. Explicit policies required for transforms, min/max sizing, clipping and unsupported effects. |
 | Result checks | Finite positive receiving rectangles; propose rejecting out-of-page border boxes and positive-area overlaps. Touching edges are allowed; tolerance and bleed/overlay exceptions remain open. |
 
-Source input validation is needed in addition to effective-property checks:
-unsupported selectors or declarations may be discarded by styling. In the
-current CSS layer, `margin`, `padding`, `border-width`, `border-style` and
-`border-color` have expansion; the sketch's `border: 0` and `background: #fff`
-do not. Use supported equivalents (`border-width: 0; border-style: none` and
-`background-color`) in an executable fixture, or deliberately add CSS-layer
-support. `box-sizing`/`writing-mode` need explicit absent-value policy because
-the property registry is incomplete. Do not silently interpret unsupported
-syntax as successful layout.
+Source input validation complements effective-property checks: unsupported
+declarations can otherwise be discarded by styling. DOM-02/03 now provide the
+checked values, defaults and selected shorthand support, including the sketch's
+`border: 0` and `background: #fff`. TPL-03 applies the source profile to all
+declarations, then validates effective box roles, paint and content-independent
+sizing prerequisites. Unsupported syntax is diagnosed rather than interpreted
+as successful layout.
 
 Adapt values to CSS pixels using checked conversion, e.g. the allowed absolute
 units through [`dimen.ParseAbsolute`](../../w3c-dom/dimen/dimen.go), then divide

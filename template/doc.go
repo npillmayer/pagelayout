@@ -10,8 +10,10 @@
 // TPL-02 inspects CSS and styles an isolated html/body/page/frame document per
 // definition using w3c-dom. Original source identities and pre-cascade declarations
 // are retained. Unsupported rule forms and syntax failures reject the collection.
-// Geometry and its complete CSS profile are not implemented. The public loading
-// API will be introduced when complete styled, sized catalogs can be returned.
+// TPL-03 checks the initial CSS profile and adapts effective page/frame values
+// into detached paint, flow bindings and css-box-layout constraints in CSS pixels.
+// Geometry resolution is not implemented. The public loading API will be
+// introduced when complete styled, sized catalogs can be returned.
 //
 // The intended compiled catalog is read-only and uses page-local CSS-pixel
 // geometry. Content preparation, page trials and rendering are separate phases.
