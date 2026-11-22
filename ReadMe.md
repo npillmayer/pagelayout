@@ -173,9 +173,14 @@ tolerance; accepted geometry is not snapped or clipped. See
 [`pgtmpl`](pgtmpl/) checks collections using the same Commando framework as
 `tytui/tycli`. Run `go run ./pgtmpl load <html>` to check a local collection with
 `template.LoadFS`. Success summaries and error diagnostics go to stdout; loading
-failures exit with status 1. Run `go run ./pgtmpl --help` for usage. The `serve`
-and `find` subcommands remain placeholders for browser previews and collection
-lookup.
+failures exit with status 1. `go run ./pgtmpl serve <html>` checks the collection
+before starting a local browser preview at `http://127.0.0.1:8080/`. The viewer
+shows one template at a time using compiled geometry and paint, with navigation
+and optional frame outlines colored by flow channel. Invalid collections start
+no server. `go run ./pgtmpl find <name>` uses `template.LoadFile` to search the
+user configuration templates directory and then the current directory, validate
+the collection and print its selected path. Results and errors go to stdout.
+Run `go run ./pgtmpl --help` for usage.
 
 ## Dependencies and checks
 
@@ -222,7 +227,7 @@ TPL-05 also checks the upstream boundaries against these same revisions:
 ```
 
 The loading milestone returns compiled templates. Pagination, content
-preparation/rendering, browser previews and configuration-driven shared repositories
+preparation/rendering and configuration-driven shared repositories
 remain outside it.
 
 See [the loading package and PR plan](doc/TEMPLATE-LOADING.md),

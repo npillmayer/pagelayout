@@ -16,8 +16,8 @@ The CLI registers these commands:
 | Command | Behavior |
 | --- | --- |
 | `pgtmpl load <html>` | Load an HTML collection and report template errors. |
-| `pgtmpl serve <html>` | Placeholder for a browser preview server. |
-| `pgtmpl find <name>` | Placeholder for locating a collection by name. |
+| `pgtmpl serve <html>` | Check a collection and serve its compiled page/frame previews. |
+| `pgtmpl find <name>` | Find and validate a collection, then print its path. |
 
 `load` uses `template.LoadFS` to load and check exactly the specified local file.
 Relative and absolute paths are supported; no repository search is performed.
@@ -33,10 +33,50 @@ go run ./pgtmpl load template/testdata/templates/sketch.html
 go run ./pgtmpl load template/testdata/templates/invalid-overlap.html
 ```
 
-`serve` and `find` remain placeholders: with their required argument, they print
-`not implemented yet` to stderr and exit with status 1.
+`serve` loads the whole collection with `template.LoadFS` before opening a
+listener. Invalid collections print their diagnostics to stdout and exit with
+status 1; no server or partial preview is published. On success, open the printed
+URL in a browser. The default address is `127.0.0.1:8080`; use `--addr` to change
+it (port `0` asks the OS to choose an available port). Ctrl+C stops the server.
+
+```sh
+go run ./pgtmpl serve template/testdata/templates/sketch.html
+go run ./pgtmpl serve template/testdata/templates/sketch.html --addr 127.0.0.1:8081
+```
+
+The viewer shows one template at a time, with previous/next links and a template
+selector. Its SVG uses the catalog's compiled page dimensions, frame border
+rectangles and solid paint; the browser does not resolve the source CSS again.
+The first CSS snippet adds colored outlines to top-level frames without changing
+their geometry. A flow keeps its color across the collection, and a legend names
+the channels. The checked **Show frame borders** control hides these outlines
+and frame numbers when unchecked; authored backgrounds and borders remain.
+Hover over a frame to see its compiled receiving content rectangle in CSS pixels.
+
+The preview scales to fit the available display area. It is a snapshot taken at
+startup; restart the command after editing the collection. It does not render
+flowing content, reload files, launch a browser automatically or serve source
+files from disk. Navigation and the outline toggle work without JavaScript.
+
+`find` uses `template.LoadFile` with the normal host filesystem. Relative names
+are tried in `os.UserConfigDir()/templates`, then in the current directory.
+Absolute paths are used directly; parent-relative paths escaping through `..`
+use only the current directory. Include the file extension: no extension is
+added, and this is not a recursive search or a template-ID lookup.
+
+On success, stdout contains only the selected path and a newline, with exit
+status 0. The path is preserved as reported by the loader; a current-directory
+match can therefore be relative. The collection is fully validated before a
+path is printed. Only a missing file permits fallback: an unreadable or invalid
+collection stops the search. Errors, including all attempted paths when no file
+is found, go to stdout with exit status 1.
+
+```sh
+go run ./pgtmpl find pages.html
+go run ./pgtmpl find template/testdata/templates/sketch.html
+```
 
 Running without arguments displays help. Commando supplies `--help`, per-command
 help and `--version`. As in `tycli`, Commando 1.0.4 prints CLI syntax errors to
 stdout and exits with status 0. This includes a missing `load` argument; file
-loading failures and placeholder actions explicitly exit with status 1.
+loading, search and server failures explicitly exit with status 1.

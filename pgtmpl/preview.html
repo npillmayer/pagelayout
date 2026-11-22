@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.ID}} · pgtmpl</title>
+  <!-- Default frame borders are an overlay: they never change compiled geometry. -->
+  <style id="frame-defaults">
+    .page > .frame > .frame-outline {
+      fill: none;
+      stroke: var(--flow-color);
+      stroke-width: 2;
+      vector-effect: non-scaling-stroke;
+      pointer-events: none;
+    }
+    #show-frames:not(:checked) ~ .workspace .frame-outline,
+    #show-frames:not(:checked) ~ .workspace .frame-label { display: none; }
+  </style>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #25313c; background: #edf0f2; font: 14px/1.5 system-ui, sans-serif; }
+    header { display: flex; align-items: center; gap: 20px; padding: 14px 24px; background: #fff; border-bottom: 1px solid #d6dde2; }
+    header strong { font-size: 18px; letter-spacing: -.5px; }
+    .collection { color: #5b6771; overflow-wrap: anywhere; }
+    .viewer { padding: 16px 24px 24px; }
+    #show-frames { accent-color: #2563b5; }
+    .outline-toggle { margin-left: 4px; font-size: 13px; cursor: pointer; }
+    .workspace { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 24px; margin-top: 16px; }
+    aside { align-self: start; background: #fff; border: 1px solid #d6dde2; border-radius: 10px; padding: 20px; }
+    .eyebrow { margin: 0 0 8px; color: #65727b; font-size: 11px; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; }
+    h1 { margin: 0 0 8px; font-size: 20px; line-height: 1.3; overflow-wrap: anywhere; }
+    .meta { margin: 0; color: #65727b; font-size: 12px; }
+    nav { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 20px 0 14px; }
+    .button, button { border: 1px solid #cdd5dd; border-radius: 5px; background: white; color: #25313c; padding: 6px 10px; font: inherit; font-size: 12px; text-decoration: none; cursor: pointer; }
+    .button:hover, button:hover { background: #f0f5fb; border-color: #2563b5; }
+    .button[aria-disabled="true"] { opacity: .4; cursor: default; }
+    a:focus-visible, button:focus-visible, select:focus-visible { outline: 2px solid #2563b5; outline-offset: 3px; }
+    form label { display: block; font-size: 12px; margin-bottom: 6px; }
+    .select-row { display: flex; gap: 6px; }
+    select { min-width: 0; flex: 1; font: inherit; font-size: 12px; padding: 6px; border: 1px solid #cdd5dd; border-radius: 5px; background: #fff; color: inherit; }
+    .flows { list-style: none; padding: 0; margin: 10px 0 0; }
+    .flows li { display: flex; align-items: center; gap: 8px; margin: 10px 0; font-size: 12px; }
+    .swatch { width: 12px; height: 12px; border: 2px solid var(--flow-color); border-radius: 2px; flex: none; }
+    .flow-name { overflow-wrap: anywhere; }
+    .count { margin-left: auto; color: #65727b; }
+    .section { margin-top: 24px; padding-top: 18px; border-top: 1px solid #e4e9ed; }
+    .note { color: #65727b; font-size: 12px; margin: 18px 0 0; }
+    figure { margin: 0; min-width: 0; text-align: center; }
+    .page { display: block; width: auto; height: auto; max-width: 100%; max-height: calc(100vh - 160px); margin: 0 auto; background: white; box-shadow: 0 2px 12px #24344424, 0 0 0 1px #cbd3da; overflow: visible; }
+    .frame-label { fill: var(--flow-color); font: 12px system-ui, sans-serif; paint-order: stroke; stroke: white; stroke-width: 3px; stroke-linejoin: round; pointer-events: none; }
+    figcaption { margin-top: 14px; color: #65727b; font-size: 12px; }
+    @media (max-width: 720px) {
+      header { padding: 12px 16px; }
+      .viewer { padding: 12px 16px 20px; }
+      .workspace { grid-template-columns: 1fr; gap: 18px; }
+      aside { padding: 16px; }
+      .page { max-height: none; }
+    }
+  </style>
+</head>
+<body>
+  <header><strong>pgtmpl</strong><span class="collection">{{.Collection}}</span></header>
+  <main class="viewer">
+    <input type="checkbox" id="show-frames" checked><label class="outline-toggle" for="show-frames">Show frame borders</label>
+    <div class="workspace">
+      <aside aria-label="Template navigation">
+        <p class="eyebrow">Page template</p>
+        <h1>{{.ID}}</h1>
+        <p class="meta">{{printf "%.2f" .Page.Width}} × {{printf "%.2f" .Page.Height}} CSS px · {{len .Frames}} frames</p>
+        <nav aria-label="Previous and next templates">
+          {{if ge .Prev 0}}<a class="button" rel="prev" href="?page={{.Prev}}">← Previous</a>{{else}}<span class="button" aria-disabled="true">← Previous</span>{{end}}
+          <span class="meta">{{.Number}} / {{len .IDs}}</span>
+          {{if lt .Next (len .IDs)}}<a class="button" rel="next" href="?page={{.Next}}">Next →</a>{{else}}<span class="button" aria-disabled="true">Next →</span>{{end}}
+        </nav>
+        <form method="get" action="/">
+          <label for="template-select">Jump to template</label>
+          <div class="select-row"><select id="template-select" name="page">{{range $i, $id := .IDs}}<option value="{{$i}}" {{if eq $i $.Index}}selected{{end}}>{{$id}}</option>{{end}}</select><button type="submit">Go</button></div>
+        </form>
+        <section class="section" aria-label="Flow channels">
+          <p class="eyebrow">Flow channels</p>
+          <ul class="flows">{{range .Flows}}<li style="{{flowStyle .Color}}"><span class="swatch" aria-hidden="true"></span><span class="flow-name">{{.Name}}</span><span class="count">{{.Count}}</span></li>{{else}}<li>No receiving frames</li>{{end}}</ul>
+        </section>
+        <p class="note">Frame numbers follow document order. Hover over a frame for its receiving rectangle.</p>
+      </aside>
+      <figure>
+        <svg class="page" xmlns="http://www.w3.org/2000/svg" width="{{number .Page.Width}}" height="{{number .Page.Height}}" viewBox="0 0 {{number .Page.Width}} {{number .Page.Height}}" role="img" aria-labelledby="page-title page-description">
+          <title id="page-title">{{.ID}}</title>
+          <desc id="page-description">{{len .Frames}} receiving frames, colored by flow channel. Dimensions are in CSS pixels.</desc>
+          <rect class="page-background" width="{{number .Page.Width}}" height="{{number .Page.Height}}" fill="{{color .Page.Paint.Background}}"/>
+          {{range .Frames}}
+          <g class="frame" data-frame-id="{{.ID}}" data-flow="{{.Flow}}" style="{{flowStyle .Color}}">
+            <title>Frame {{.ID}} · {{.Flow}}
+Content: x={{number .ContentBox.X}}, y={{number .ContentBox.Y}}, width={{number .ContentBox.W}}, height={{number .ContentBox.H}} CSS px</title>
+            <rect class="frame-background" x="{{number .BorderBox.X}}" y="{{number .BorderBox.Y}}" width="{{number .BorderBox.W}}" height="{{number .BorderBox.H}}" fill="{{color .Paint.Background}}"/>
+            {{range .Borders}}<polygon class="frame-border" points="{{.Points}}" fill="{{color .Color}}"/>{{end}}
+            <rect class="frame-outline" x="{{number .BorderBox.X}}" y="{{number .BorderBox.Y}}" width="{{number .BorderBox.W}}" height="{{number .BorderBox.H}}"/>
+            <text class="frame-label" x="{{number .BorderBox.X}}" y="{{number .BorderBox.Y}}" dx="7" dy="17">{{.ID}}</text>
+          </g>
+          {{end}}
+        </svg>
+        <figcaption>Page and frame geometry · scaled to fit · no flowing content</figcaption>
+      </figure>
+    </div>
+  </main>
+</body>
+</html>
