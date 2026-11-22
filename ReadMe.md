@@ -3,7 +3,7 @@
 A Go module for template-based page composition using HTML/CSS page definitions
 and fixed receiving frames. The overall machinery is still being designed.
 
-## Implemented: TPL-01 through TPL-04
+## Implemented: TPL-01 through TPL-04 and file-loading basics
 
 Template loading lives in the [`template`](template/) subpackage, imported as
 `github.com/npillmayer/pagelayout/template`. Its code, tests and fixtures are
@@ -62,7 +62,47 @@ remain available through `errors.Is`/`errors.As`. Catalogs retain no DOM, CSSOM,
 constraints or intermediate state. Lookup returns an independent handle, and
 all returned descriptions/slices can be modified without changing the catalog.
 Read-only catalog access is safe concurrently. `Load` does not close its reader.
-Filesystem loading is planned for TPL-05; content layout and rendering are separate.
+File loading and initial discovery from TPL-05 are implemented below; content
+layout and rendering are separate.
+
+## Finding and loading collection files
+
+```go
+// Search the user's template repository, then the current directory.
+catalog, err := template.LoadFile("pages.html", nil) // nil selects OS I/O
+
+// Load from a specific filesystem, including embed.FS, without discovery.
+catalog, err = template.LoadFS(fsys, "pages.html")
+```
+
+`LoadFile` follows the purpose-made I/O pattern used in sibling `fontfind`:
+
+```go
+type IO interface {
+    UserConfigDir() (string, error)
+    DirFS(string) fs.FS
+}
+```
+
+Supply an implementation to replace host access for tests or application-owned
+storage. The default delegates to `os.UserConfigDir` and `os.DirFS`; there is no
+global I/O override or cached search state. Relative collection names are tried
+in `UserConfigDir()/templates` first, then relative to the current directory.
+An unavailable configuration directory is skipped. Absolute paths are used
+directly, and paths escaping through `..` are resolved from the current directory
+only. Names identify collection files, with no implicit extension or recursive
+search; use `Catalog.Lookup` to select a template inside the loaded collection.
+
+Only a missing file permits fallback. Permission, read, validation and close
+errors are reported, preserving the selected path and original cause through
+`LoadError`. Missing-file diagnostics list candidates in search order. Both file
+loaders close opened files before returning and publish no catalog on failure.
+`LoadFS` uses slash-separated `io/fs` paths; `LoadFile` uses OS path syntax.
+
+Configuration files listing repositories, system-wide shared directories and
+their default locations remain to be designed. These loaders neither create
+directories nor read configuration files; `IO` provides the host-access boundary
+for that later work.
 
 ## Structural input profile
 

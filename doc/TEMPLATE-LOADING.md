@@ -1,6 +1,7 @@
 # Template loading: package proposal and PR plan
 
-Date: 2026-11-22. Status: TPL-01 through TPL-04, DOM-01/02/03 and BOX-01 implemented; remaining milestones proposed.
+Date: 2026-11-22. Status: TPL-01 through TPL-04, DOM-01/02/03 and BOX-01 implemented;
+TPL-05 file loading and initial discovery implemented; remaining work proposed.
 
 This note details the template-loading part of [DESIGN.md](DESIGN.md). TPL-01 through TPL-04
 and upstream DOM-01/02/03 and BOX-01 have been implemented at the author's request. They preserve the distinction
@@ -17,7 +18,8 @@ The `template` subpackage exposes [Load](../template/load.go) and an immutable
 and [geometry compilation](../template/compile.go).
 It uses Go 1.25.6 and `golang.org/x/net` v0.49.0, plus the sibling `w3c-dom` DOM-01
 reporting APIs. See [ReadMe.md](../ReadMe.md) for development dependencies and
-reviewed revisions. The reader/catalog API below is implemented; `LoadFS` remains TPL-05.
+reviewed revisions. The reader/catalog API and the file-loading part of TPL-05
+are implemented, including `LoadFS`, `LoadFile` and the host `IO` boundary.
 
 ## 1. The first deliverable
 
@@ -60,6 +62,13 @@ type LoadOptions struct {
 }
 
 func Load(r io.Reader, opts LoadOptions) (*Catalog, error)
+func LoadFS(fsys fs.FS, name string) (*Catalog, error)
+func LoadFile(name string, hostIO IO) (*Catalog, error)
+
+type IO interface {
+    UserConfigDir() (string, error)
+    DirFS(string) fs.FS
+}
 
 func (c *Catalog) IDs() []string
 func (c *Catalog) Lookup(id string) (*Template, bool)
@@ -71,8 +80,9 @@ func (t *Template) FramesForFlow(name string) []FrameInfo
 ```
 
 Callers use `template.Load`, `template.Catalog` and `template.Template`.
-`LoadFS(fsys fs.FS, name string)` remains proposed for TPL-05. `Load` leaves its
-reader open and returns either the complete catalog or nil with `*LoadError`.
+`Load` leaves its reader open and returns either the complete catalog or nil
+with `*LoadError`. The two file loaders close files they open before returning,
+including on failure. Their search and error policies are described below.
 
 `Catalog` and `Template` have private fields and no mutation methods.
 Returned slices are copies; descriptions contain value data, not mutable DOM,
@@ -106,8 +116,59 @@ groups or preserve a `LayoutNode` solely to represent that hierarchy.
 
 Do not add public intermediate parsed/styled states or a caller-supplied geometry
 engine initially. Keep those boundaries private so sibling API changes do not
-force public migrations. The proposed file-system helper will open only the collection file,
-sets its source name and delegates to the reader API.
+force public migrations. File helpers open only the collection file, set its
+source name and delegate to the reader API.
+
+### File discovery and host I/O
+
+**Direction:** template discovery will eventually resemble font discovery, with
+configured repositories that may be shared system-wide. Configuration files in
+the user configuration directory may list repositories; otherwise defaults will
+apply. The configuration format, shared default locations, repository ordering
+and a more complete resolver API remain open.
+
+**Implemented basics:** a purpose-made `IO` follows the pattern in
+[`fontfind/locate/systemfont`](../../fontfind/locate/systemfont/systemfont.go).
+Passing nil to `LoadFile` selects a private implementation backed by
+`os.UserConfigDir` and `os.DirFS`. Custom I/O controls all host access. Reading
+and closing use the returned `fs.File`, so the interface needs no `ReadAll`
+method. No dependency on `fontfind` or mutable global I/O hook is introduced.
+
+`LoadFile(name, hostIO)` uses OS path syntax and the following initial policy:
+
+1. An absolute pathname is opened directly, without consulting configuration.
+2. A relative path contained within a directory is first tried below
+   `UserConfigDir()/templates`. Nested names are allowed. If `UserConfigDir`
+   returns an error or an empty directory, this candidate is skipped.
+3. If that candidate does not exist, try the supplied path relative to the
+   current directory. A relative path escaping through `..` uses this step only;
+   it is not joined to the template repository.
+4. Only a not-found result from opening a candidate continues the search.
+   Permission errors, directories in place of files, read failures, invalid
+   collections and close failures return errors. An existing broken repository
+   collection must not silently select a different local file.
+
+Names refer to collection files, not stored template IDs. There is no extension
+inference, recursive scanning, directory creation, configuration-file reading
+or search-result cache. Each call sees the current host state. Custom `IO`
+implementations must support concurrent access if shared between callers.
+
+`LoadFS(fsys, name)` is the explicit-filesystem alternative for embedded assets
+and caller-selected roots. It performs no host discovery. Its name follows
+`io/fs` rules and becomes `SourceRef.Name`; `LoadFile` instead records the selected
+candidate's OS path, which remains relative for the current-directory fallback.
+Both return nil on any error, including a close failure after successful
+compilation. Open failures retain `*fs.PathError` and `fs.ErrNotExist`/
+`fs.ErrPermission` through `errors.Is`/`errors.As`. All-missing diagnostics list
+attempted candidates in search order. Close failures follow any parse or
+compilation diagnostics. Errors from unavailable configuration-directory
+discovery are treated as absence; they do not prevent local loading.
+
+Tests use injected `IO`/`fs.FS` implementations for precedence, missing files,
+absolute and nested paths, failure propagation and file ownership. A test of
+the nil/default `IO` confines OS access to temporary configuration and working
+directories. Configuration-driven shared repositories remain a later addition
+behind this host-access boundary.
 
 ### Suggested files
 
@@ -115,7 +176,9 @@ sets its source name and delegates to the reader API.
 doc.go                          root package purpose and composition boundary
 template/doc.go                 loading package purpose, units and ownership
 template/catalog.go             catalog, template and description accessors
-template/load.go                reader/FS entry points and publication boundary
+template/load.go                reader entry point and publication boundary
+template/file.go                filesystem loading and initial discovery policy
+template/io.go                  injectable host I/O and private OS implementation
 template/source.go              HTML parsing, discovery, source identities
 template/active.go              isolated active documents and source mappings
 template/style.go               active documents, stylesheet registration, cascade
@@ -366,8 +429,12 @@ invalid geometry and content-dependent geometry. Include rule/declaration order
 when available; promise line/column positions only when the parser supplies
 reliable locations. `CSSLocation` holds one-based CSS locations/ordinals, with
 zero for unavailable values. `errors.As` can retrieve `*LoadError` or a diagnostic;
-`errors.Is`/`errors.As` reach original reader, CSS and geometry causes. No concrete
+`errors.Is`/`errors.As` reach original filesystem, reader, CSS and geometry causes. No concrete
 DOM type is needed to inspect failures.
+
+File helpers add stage `io` with `input.path`, `input.open` and `input.close`.
+These diagnostics identify the collection path without inventing a node or CSS
+location; failed search candidates are ordered by search priority.
 
 Geometry codes are `geometry.invalid` (invalid page), `geometry.resolve` (solver
 failure), `geometry.content-dependent`, `geometry.position`,
@@ -590,7 +657,8 @@ chains retain source order. Public `LoadError`/`Diagnostic` snapshots preserve
 source context and causes. Tests cover the documented geometry example,
 explicit/stretch equivalence, touching/tolerance, case-sensitive flow chains,
 atomic failure, ownership, repeated/concurrent lookup and the original sketch.
-`LoadFS`, executable examples and CLI integration are separate follow-ups.
+File loading belongs to TPL-05; executable examples and CLI integration are
+separate follow-ups.
 
 - Resolve each page and frame, retain the logical box hierarchy, check bounds
   and overlaps, and build flow chains in source order.
@@ -609,7 +677,14 @@ content preparation or rendering.
 
 Repository: `pagelayout`. Depends on TPL-04.
 
-- Add `template.LoadFS`, a package example and self-contained collection fixtures.
+**Partly implemented:** `LoadFS` loads from an explicit filesystem; `LoadFile`
+uses injectable `IO` for the initial user-repository/current-directory search.
+Tests cover lookup policy, file ownership, errors and the OS default. This is
+the discovery foundation, not a finalized repository-configuration API.
+Executable examples and the remaining integration proof are still pending.
+
+- Add `template.LoadFS` and `LoadFile` with host `IO` (implemented), a package
+  example and self-contained collection fixtures.
   Demonstrate lookup, page dimensions, receiving rectangles and flow-chain order.
 - Exercise the two templates from SKETCH end to end, including their shorthand
   styles, paint and multiple receivers. Keep content `flow-into` rules with

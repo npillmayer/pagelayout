@@ -11,6 +11,7 @@ import (
 type loadStage string
 
 const (
+	stageIO        loadStage = "io"
 	stageParse     loadStage = "parse"
 	stageDiscovery loadStage = "discovery"
 	stageStructure loadStage = "structure"
@@ -23,6 +24,9 @@ const (
 type diagnosticCode string
 
 const (
+	codeInputPath           diagnosticCode = "input.path"
+	codeInputOpen           diagnosticCode = "input.open"
+	codeInputClose          diagnosticCode = "input.close"
 	codeNilInput            diagnosticCode = "input.nil"
 	codeParseFailure        diagnosticCode = "input.parse"
 	codeDocumentStructure   diagnosticCode = "collection.document-structure"
@@ -146,7 +150,8 @@ func (d Diagnostic) Error() string {
 		css:    cssLocation{rule: d.CSS.Rule, declaration: d.CSS.Declaration, line: d.CSS.Line, column: d.CSS.Column, property: d.CSS.Property, inline: d.CSS.Inline}, message: d.Message, cause: d.cause}).Error()
 }
 
-// Unwrap returns the original parser, reader, styling or geometry error, if any.
+// Unwrap returns the original filesystem, parser, reader, styling or geometry
+// error, if any.
 func (d Diagnostic) Unwrap() error { return d.cause }
 
 // LoadError owns an ordered diagnostic snapshot. Use errors.As to inspect it;
@@ -160,7 +165,7 @@ func newLoadError(items []diagnostic) *LoadError {
 	return &LoadError{items: slices.Clone(items)}
 }
 
-// Error formats all diagnostics in source order.
+// Error formats diagnostics in source order, or search order for file lookup.
 func (e *LoadError) Error() string {
 	messages := make([]string, len(e.items))
 	for i, d := range e.items {
@@ -171,7 +176,8 @@ func (e *LoadError) Error() string {
 
 func (e *LoadError) diagnostics() []diagnostic { return slices.Clone(e.items) }
 
-// Diagnostics returns independent value snapshots in deterministic source order.
+// Diagnostics returns independent value snapshots in deterministic source order,
+// or search order for file lookup. A close failure follows any load diagnostics.
 func (e *LoadError) Diagnostics() []Diagnostic {
 	ds := make([]Diagnostic, len(e.items))
 	for i, d := range e.items {
