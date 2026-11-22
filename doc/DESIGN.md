@@ -1,6 +1,7 @@
 # Template-based page layout: revised design discussion
 
-Date: 2026-11-22. Status: design discussion; TPL-01/02 source loading and isolated styling implemented.
+Date: 2026-11-22. Status: TPL-01 through TPL-05 template loading implemented;
+content preparation and page composition remain design discussion.
 
 ---
 ## REMARKS
@@ -161,14 +162,17 @@ concurrency contracts exist.
 
 ### 1. Compile the entire template collection
 
-See [TEMPLATE-LOADING.md](TEMPLATE-LOADING.md) for the detailed package/API
-proposal, loading stages, diagnostics, and PR plan across `pagelayout`,
+See [TEMPLATE-LOADING.md](TEMPLATE-LOADING.md) for the implemented package/API,
+loading stages, diagnostics, and completed PR plan across `pagelayout`,
 `w3c-dom` and `css-box-layout`.
 
 Template loading is encapsulated in `pagelayout/template`, including its source
-model and the later styling, validation and compilation stages. The root package
+model, styling, validation and compilation stages. The root package
 will consume compiled catalogs for page composition; the template package does
-not depend on the root package.
+not depend on the root package. TPL-05 completes reader/filesystem loading and
+initial repository discovery, with executable examples and integration tests.
+Configuration-driven shared repositories, CLI actions and page trials remain
+separate work.
 
 Parse Templ-Doc once, index unique nonempty template IDs, collect its stylesheets,
 and compile every definition. Publish the catalog only when all definitions
@@ -177,35 +181,36 @@ selection. A source/style revision requires a new catalog; a trial never restyle
 or resizes its template.
 
 For each definition, clone the inner page/frame tree into a fresh styling
-document, preserving source order and copied attributes. The proposed context is
+document, preserving source order and copied attributes. The implemented context is
 `html > body > .page > .frame`, with the collection's `html`/`body` attributes.
 The storage `<template>` is absent from that ancestry. Use correct HTML tag atoms
 when constructing nodes programmatically. This happens once per definition,
 not once per trial or output page.
 
-The following is a route through the existing `w3c-dom` CSSOM API. A reusable
+The implementation uses the following `w3c-dom` CSSOM route. A reusable
 stylesheet program and isolated styling sessions, proposed below, could replace
 the repeated setup without changing each template's styling context:
 
-1. Extract accepted collection sheets in order with
-   [`ExtractStyleElementsWithError`](../../w3c-dom/style/cssom/douceuradapter/douceuradapter.go).
-   Proposed first policy: direct head styles and inline declarations, with external
-   sheets, conditional rules and template-local sheets deferred. Scan accepted
-   style elements explicitly; recursive whole-document extraction crosses stored
-   template boundaries. Extraction failure rejects the catalog.
+1. Inspect accepted direct head styles in order with `cssom.InspectStylesheet`
+   and active nodes' inline declarations with `InspectInlineStyle`. Retain source
+   declarations and reject reported errors before styling. External sheets,
+   conditional rules and template-local sheets are outside the initial profile.
+   Scan accepted style elements explicitly; recursive whole-document extraction
+   would cross stored template boundaries.
 2. Create a fresh `cssom.NewCSSOM(nil)` per definition. Register each sheet with
    `AddStylesForScope(nil, sheet, cssom.Author)` and call `Style(activeDocument)`.
    Inline declarations are collected by the engine. Nil scope also styles the
    `html`/`body` context needed for inheritance. Do not register sheets twice.
-3. Read inherited/defaulted properties through `css.GetProperty` and normalized
-   display through `css.GetDisplay`. Keep the styled context alive until all
+3. Validate source declarations against the template profile, including losing
+   and unmatched declarations. Adapt effective values through the checked
+   `css.GetBoxLength`, `GetColor`, `GetFlowName`, `GetBoxKeyword` and `GetBorder`
+   APIs, with `GetDisplay` for display. Keep the styled context alive until all
    required properties have been adapted. Local `Styles()` maps are not complete
-   computed-style snapshots. `dom.NodeFromTreeNode` supplies the DOM wrapper if
-   needed; raw HTML identities link styled nodes back to the cloned definitions.
+   computed-style snapshots; HTML identities link styled nodes back to source.
 4. Validate structure and CSS, construct the page/frame box description, resolve
    fixed geometry, then publish the compiled template tree.
 
-The published result should preserve the meaningful box hierarchy even if the
+The published result preserves the meaningful box hierarchy even though the
 geometry service needs only typed constraints. Conceptually it is the remarks'
 page render-tree; it need not be exactly a `css-box-layout.LayoutNode` tree.
 Keep page paint, frame border/content rectangles, channel names, source order and
@@ -215,7 +220,7 @@ fallback implementation are not part of its public meaning.
 The preferred `ResolveFixedGeometry` operation, implemented in BOX-01, fits this phase.
 It sizes each fixed frame; it does **not** substitute for constructing the
 template's box description. The existing `BuildLayoutTrees` / `FixedLayout`
-route remains a fallback. Their contracts and the proposed CSS profile are
+route remains a fallback. Their contracts and the initial CSS profile are
 summarized below.
 
 ### 2. Style, box and route the content document
@@ -227,8 +232,8 @@ this pipeline, not a capability of the HTML parser alone. `w3c-dom` supplies the
 styled tree; a content adapter and `css-box-layout` supply boxing.
 
 Template CSS is not applied to Cont-Doc. Any shared stylesheet must explicitly
-be an input to each document. In the existing collection sketch, `.story` and
-`.page-heading` source-flow rules should therefore accompany Cont-Doc; frame
+be an input to each document. The executable collection sketch now puts `.story`
+and `.page-heading` source-flow rules in its separate Cont-Doc fixture; frame
 geometry and `flow-from` rules belong to Templ-Doc. Neither trial attachment nor
 the output tree triggers another CSS cascade.
 
@@ -803,8 +808,9 @@ inputs explicitly (`1px = 0.75bp`), and convert results back at the adapter boun
 
 ## Proposed first experiments, after design agreement
 
-1. Compile two templates at load time, including chains with different frame
-   widths. Verify source IDs, fixed geometry and bindings once; trials reuse them.
+1. **Template-loading part implemented in TPL-05:** compile two templates at load
+   time, including chains with different frame widths. Verify source IDs, fixed
+   geometry, paint and bindings. Reuse in actual page trials remains future work.
 2. Style and box Cont-Doc with two non-nested named branches and residual main
    content. Verify channel order, exclusive ownership, and unchanged source styles.
    Exercise the proposed default-channel mode without silently dropping material.
@@ -825,8 +831,9 @@ inputs explicitly (`1px = 0.75bp`), and convert results back at the adapter boun
 
 For upstream work, compare geometry-only results to `FixedLayout` and retain its
 existing regression behavior. For preparation/trials, reuse existing paragraph
-and khipu ownership/checkpoint tests as contract references. None of these planned
-experiments has been implemented by this documentation revision.
+and khipu ownership/checkpoint tests as contract references. The template-loading
+experiment is implemented; the content/preparation/trial experiments remain
+proposals.
 
 ## Diagram sources
 

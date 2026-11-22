@@ -21,8 +21,10 @@ The initial scaffold registers these commands:
 
 All three commands are placeholders: with their required argument, they print
 `not implemented yet` to stderr and exit with status 1. No files are read, no
-server is started, and no collection search is performed. Loading will use the
-`template` package once its public API is available.
+server is started, and no collection search is performed. The `template` package
+now provides the complete loading API; wiring it into these commands is a
+separate follow-up. For executable API examples, run
+`go test ./template -run '^Example' -v` from the module root.
 
 Running without arguments displays help. Commando supplies `--help`, per-command
 help and `--version`. As in `tycli`, Commando 1.0.4 prints CLI syntax errors to

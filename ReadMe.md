@@ -3,12 +3,12 @@
 A Go module for template-based page composition using HTML/CSS page definitions
 and fixed receiving frames. The overall machinery is still being designed.
 
-## Implemented: TPL-01 through TPL-04 and file-loading basics
+## Implemented: TPL-01 through TPL-05
 
 Template loading lives in the [`template`](template/) subpackage, imported as
 `github.com/npillmayer/pagelayout/template`. Its code, tests and fixtures are
 encapsulated there; the root package is reserved for broader page composition.
-Styling also lives there, and later compilation stages will use the same boundary.
+Discovery, styling, validation and geometry compilation share this boundary.
 
 The first slice provides private HTML collection parsing, definition discovery,
 structural validation and a source model for later styling. It retains:
@@ -62,8 +62,44 @@ remain available through `errors.Is`/`errors.As`. Catalogs retain no DOM, CSSOM,
 constraints or intermediate state. Lookup returns an independent handle, and
 all returned descriptions/slices can be modified without changing the catalog.
 Read-only catalog access is safe concurrently. `Load` does not close its reader.
-File loading and initial discovery from TPL-05 are implemented below; content
-layout and rendering are separate.
+TPL-05 completes file loading, initial discovery, executable examples and
+integration tests. Content layout and rendering remain separate work.
+
+## Executable examples
+
+Run the Go examples from the module root:
+
+```sh
+go test ./template -run '^Example' -count=1 -v
+```
+
+[`example_test.go`](template/example_test.go) demonstrates:
+
+- `Load`: compile a reader and inspect a receiving rectangle in CSS pixels.
+- `LoadFS`: load the embedded two-template sketch, select both definitions and
+  inspect their page sizes and source-ordered article frames.
+- `LoadFile`: inject `IO` to locate a collection in a repository.
+- `LoadError`: inspect structured diagnostics when one bad definition rejects
+  an entire collection.
+
+Each example has checked output and runs without host configuration or network
+access. The full collection is in
+[`sketch.html`](template/testdata/templates/sketch.html), synchronized by a test
+with [SKETCH.md](doc/SKETCH.md). Its A4 pages compile to approximately
+793.70 × 1122.52 CSS pixels. The two-column template has one heading frame and
+two article frames; the chapter-opening template has one of each.
+
+The companion [content document](template/testdata/content/article.html) owns
+the `flow-into` rules. It illustrates future content input and is not passed to
+the template loader. Template `flow-from` bindings and content styles stay in
+separate documents and cascades; these examples do not lay out article content.
+
+[`integration_test.go`](template/integration_test.go) verifies both definitions
+through all three loaders, including geometry, shorthand paint, flow chains and
+source references. Reload tests change styles and frame order, reject a later
+invalid collection, disable source access and inspect both earlier catalogs
+concurrently. Selection reads compiled values; it does not parse, style or resolve
+geometry again.
 
 ## Finding and loading collection files
 
@@ -152,8 +188,9 @@ and effective borders, plus value validation before cascade reduction. TPL-03
 uses these APIs to enforce the template geometry/paint profile; TPL-02
 already receives their invalid-value diagnostics through DOM-01 inspection.
 DOM-03 adds border/side and solid-background shorthands with component resets.
-The original collection from `doc/SKETCH.md` now passes styling and adaptation tests
-with `border: 0` and `background: #ffffff` unchanged. Richer shorthand forms
+The collection from `doc/SKETCH.md` passes the complete loader with `border: 0`
+and `background: #ffffff`. Integration tests also exercise nonzero padding and
+solid colored borders/backgrounds on reloaded frames. Richer shorthand forms
 remain diagnosed as unsupported.
 
 BOX-01 provides `layout.ResolveFixedGeometry` in `css-box-layout`. A boundary
@@ -162,7 +199,7 @@ content callbacks. TPL-04 uses that service for catalog compilation.
 
 Development requires sibling checkouts at `../w3c-dom`, `../css-box-layout`,
 `../tree` and `../schuko`,
-selected by `go.mod` replacements. The reviewed baselines are `w3c-dom` at
+selected by `go.mod` replacements. The baselines checked for TPL-05 are `w3c-dom` at
 `ddac155`, `css-box-layout` at `edbd6e6`, `tree` at `167ff46c52db`, and
 `schuko` at `287adb3427da`. The `w3c-dom` and `css-box-layout` `v0.0.0`
 requirements are local development placeholders, not published releases.
@@ -175,6 +212,17 @@ go vet ./...
 go test -race ./...
 go test ./template -run '^$' -fuzz '^FuzzTemplateCollection$' -fuzztime=10s -parallel=2
 ```
+
+TPL-05 also checks the upstream boundaries against these same revisions:
+
+```sh
+(cd ../w3c-dom && go test ./... -count=1)
+(cd ../css-box-layout && go test ./layout/... -count=1)
+```
+
+The loading milestone returns compiled templates. Pagination, content
+preparation/rendering, CLI actions and configuration-driven shared repositories
+remain outside it.
 
 See [the loading package and PR plan](doc/TEMPLATE-LOADING.md),
 [the broader design](doc/DESIGN.md), and

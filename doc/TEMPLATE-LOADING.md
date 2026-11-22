@@ -1,12 +1,12 @@
 # Template loading: package proposal and PR plan
 
-Date: 2026-11-22. Status: TPL-01 through TPL-04, DOM-01/02/03 and BOX-01 implemented;
-TPL-05 file loading and initial discovery implemented; remaining work proposed.
+Date: 2026-11-22. Status: TPL-01 through TPL-05, DOM-01/02/03 and BOX-01 implemented.
+The first template-loading milestone is complete; later extensions remain proposed.
 
-This note details the template-loading part of [DESIGN.md](DESIGN.md). TPL-01 through TPL-04
+This note details the template-loading part of [DESIGN.md](DESIGN.md). TPL-01 through TPL-05
 and upstream DOM-01/02/03 and BOX-01 have been implemented at the author's request. They preserve the distinction
 between template definitions, prepared content and page trials. Later APIs,
-profile choices and PR boundaries below remain proposals for discussion.
+profile extensions and follow-up PR boundaries remain proposals for discussion.
 
 The `template` subpackage exposes [Load](../template/load.go) and an immutable
 [catalog](../template/catalog.go), with private loading stages:
@@ -18,8 +18,9 @@ The `template` subpackage exposes [Load](../template/load.go) and an immutable
 and [geometry compilation](../template/compile.go).
 It uses Go 1.25.6 and `golang.org/x/net` v0.49.0, plus the sibling `w3c-dom` DOM-01
 reporting APIs. See [ReadMe.md](../ReadMe.md) for development dependencies and
-reviewed revisions. The reader/catalog API and the file-loading part of TPL-05
-are implemented, including `LoadFS`, `LoadFile` and the host `IO` boundary.
+reviewed revisions. The reader/catalog API, `LoadFS`, `LoadFile` and the host `IO`
+boundary are implemented. [Executable examples](../template/example_test.go)
+and [integration tests](../template/integration_test.go) exercise the public API.
 
 ## 1. The first deliverable
 
@@ -29,10 +30,10 @@ geometry, paint and flow bindings. Compile all definitions before publishing
 the catalog; a bad definition makes the load fail even if no caller has selected
 that template yet.
 
-The loading milestone is complete when a small Go client can load the two-template
+The loading milestone is complete: executable Go examples load the two-template
 collection from [SKETCH.md](SKETCH.md), inspect either template and obtain each
 flow's receiving frames in document order. Selection and repeated inspection
-must require no parsing, CSS cascade or geometry calculation.
+require no parsing, CSS cascade or geometry calculation.
 
 Content loading, paragraph preparation, frame fitting, page scheduling and
 rendering remain separate consumers. In particular, this milestone needs no
@@ -454,11 +455,11 @@ storage. Tests should mutate returned descriptions and confirm the catalog is
 unchanged. Repeated page instances must be able to share a template safely while
 keeping placement, content and cursors elsewhere.
 
-## 5. Proposed PR sequence
+## 5. Completed loading PR sequence
 
-There are **five pagelayout PRs and four upstream PRs**. Each PR should carry its
-own focused tests; the final integration PR does not postpone basic correctness
-checks. The identifiers below are planning labels, not existing PRs.
+The plan comprises **five pagelayout slices and four upstream slices**, all now
+implemented with focused tests. The identifiers below are planning labels, not
+links to hosted pull requests. The original task lists describe each slice's scope.
 
 ![Dependencies between the proposed template-loading PRs](diagrams/template-loading-prs.svg)
 
@@ -657,8 +658,8 @@ chains retain source order. Public `LoadError`/`Diagnostic` snapshots preserve
 source context and causes. Tests cover the documented geometry example,
 explicit/stretch equivalence, touching/tolerance, case-sensitive flow chains,
 atomic failure, ownership, repeated/concurrent lookup and the original sketch.
-File loading belongs to TPL-05; executable examples and CLI integration are
-separate follow-ups.
+File loading and executable examples are completed in TPL-05. CLI integration
+remains a separate follow-up.
 
 - Resolve each page and frame, retain the logical box hierarchy, check bounds
   and overlaps, and build flow chains in source order.
@@ -677,13 +678,38 @@ content preparation or rendering.
 
 Repository: `pagelayout`. Depends on TPL-04.
 
-**Partly implemented:** `LoadFS` loads from an explicit filesystem; `LoadFile`
+**Implemented:** `LoadFS` loads from an explicit filesystem; `LoadFile`
 uses injectable `IO` for the initial user-repository/current-directory search.
 Tests cover lookup policy, file ownership, errors and the OS default. This is
 the discovery foundation, not a finalized repository-configuration API.
-Executable examples and the remaining integration proof are still pending.
+Executable examples cover `Load`, `LoadFS`, `LoadFile` and `LoadError`, with
+checked output and embedded self-contained collections. Run them from the
+module root:
 
-- Add `template.LoadFS` and `LoadFile` with host `IO` (implemented), a package
+```sh
+go test ./template -run '^(Example|TestIntegration)' -count=1 -v
+```
+
+The integration tests verify both SKETCH templates through all three loaders:
+page dimensions, every border/content rectangle, shorthand paint, source
+identities and per-channel frame order. A changed collection reuses the same
+filename and IDs with different paint, geometry and reversed article frames;
+an invalid subsequent collection is rejected atomically. Both earlier catalogs
+remain usable concurrently with source access disabled and accessor copies
+modified. The catalog retains only compiled descriptions and indices, so
+selection has no styling or geometry service to invoke.
+
+`testdata/templates/sketch.html` is synchronized with the HTML in SKETCH.md.
+`invalid-overlap.html` supplies an independent failure fixture. The companion
+`testdata/content/article.html` owns content `flow-into` rules and is deliberately
+outside the loader's template-collection input. Frame `flow-from` rules remain
+in the collection; template and content cascades are separate.
+
+Validation includes package examples, integration/unit tests, the race detector,
+vet/build, `w3c-dom`'s full regression suite and `css-box-layout/layout`'s suite.
+The tested upstream revisions are recorded in [ReadMe.md](../ReadMe.md).
+
+- Add `template.LoadFS` and `LoadFile` with host `IO`, a package
   example and self-contained collection fixtures.
   Demonstrate lookup, page dimensions, receiving rectangles and flow-chain order.
 - Exercise the two templates from SKETCH end to end, including their shorthand
@@ -696,8 +722,9 @@ Executable examples and the remaining integration proof are still pending.
   Run package tests/vet and the relevant sibling regression suites against the
   recorded dependency revisions.
 
-Exit: a documented, usable loading milestone. No public API should claim page
-pagination or content rendering as a result of these PRs.
+Exit achieved: a documented, usable loading milestone. Pagination, content
+preparation/rendering, CLI actions and configured shared repositories remain
+separate work.
 
 ### Dependencies and review order
 
@@ -724,10 +751,10 @@ workspace paths are development plumbing, not part of the public loader API.
   prepared content model; define page identity, placements and register commits
   in that separate milestone.
 
-Before implementation, review the public naming and description values, the
-strict collection/CSS profile, zero-frame page handling, overlap policy and
-diagnostic granularity. These are proposed choices; current sibling limitations
-must not settle them accidentally.
+The initial naming, descriptions, strict CSS profile, zero-frame handling,
+overlap policy and diagnostics are implemented as documented above. Revisit
+extensions deliberately as new examples require them; current sibling
+limitations must not settle future choices accidentally.
 
 ## Diagram source
 

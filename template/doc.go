@@ -22,6 +22,11 @@
 // opened directly. Both close their files and preserve the selected source name.
 // System-wide repository configuration remains a future extension.
 //
+// The examples for Load, LoadFS, LoadFile and LoadError are executable. They
+// cover reader input, embedded collections, injected repository I/O and atomic
+// failure diagnostics. Content flow-into rules belong to a separate document;
+// template flow-from bindings identify receivers without styling that content.
+//
 // Catalog descriptions use page-local CSS-pixel geometry and resolved solid
 // paint. Accessors return copies; selection requires no parsing, styling or
 // geometry work. Load retains no DOM/CSSOM or mutable intermediate inputs.

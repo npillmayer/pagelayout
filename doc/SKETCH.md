@@ -194,10 +194,6 @@ contains the same two-column layout as above and a chapter-opening variant.
       left: 20mm; top: 70mm; width: 170mm; height: 207mm;
     }
 
-    /* Content supplied separately, as in the preceding HTML example. */
-    .page-heading { flow-into: heading-flow; }
-    .story        { flow-into: article-flow; }
-
     /* Both templates accept the same named flows. */
     .page > .heading { flow-from: heading-flow; }
     .page > .body    { flow-from: article-flow; }
@@ -228,13 +224,32 @@ DIV, and selectors such as `.page.two-column` address the instantiated page.
 Selectors such as `template .frame` do not reach into the stored fragment.
 [HTML template semantics](https://html.spec.whatwg.org/multipage/scripting.html#the-template-element)
 
-The proposed framework operation is to select a template by ID, instantiate its
-inner page and frames, and apply the collection's stylesheet together with the
-supplied content styles. The collection alone displays no pages in a browser;
-a browser preview would also need to instantiate the stored fragments. The
-Regions flow properties still require our framework's layout implementation.
-Fixed frames are resolved against a separate page viewport for each instance;
-the `.page` DIV's ancestry alone does not establish that viewport.
+The loader compiles every definition in isolation, applying the collection's
+stylesheet to its active page and frame DIVs. Fixed frames are resolved against
+the page's own viewport; the `.page` DIV's ancestry alone does not establish that
+viewport. The resulting catalog supports selection by template ID without
+restyling or recalculating geometry. The collection alone displays no pages in a
+browser; a preview would also need to instantiate the stored fragments.
+
+Content belongs to a separate document (Cont-Doc), styled in its own ancestry.
+The content's stylesheet supplies its routing rules:
+
+```css
+.page-heading { flow-into: heading-flow; }
+.story        { flow-into: article-flow; }
+```
+
+These rules accompany the heading and article HTML from the earlier example;
+they do not belong in the template collection. Frame `flow-from` values identify
+the receiving channels. Later content preparation and page trials will connect
+those channels without merging the two CSS cascades or reparenting the content
+DOM. Content layout and continuation remain future work.
+
+The collection above is kept in sync with the executable fixture
+[`sketch.html`](../template/testdata/templates/sketch.html). A separate
+[`article.html`](../template/testdata/content/article.html) illustrates Cont-Doc;
+it is not an input to `template.Load`. Run the catalog examples from the module
+root with `go test ./template -run '^Example' -v`.
 
 Frame roles use classes rather than IDs so that multiple page instances can
 coexist without duplicating element IDs. Within each instantiated two-column
