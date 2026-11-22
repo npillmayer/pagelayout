@@ -92,10 +92,15 @@ The original collection from `doc/SKETCH.md` now passes styling and adaptation t
 with `border: 0` and `background: #ffffff` unchanged. Richer shorthand forms
 remain diagnosed as unsupported.
 
+BOX-01 provides `layout.ResolveFixedGeometry` in `css-box-layout`. A boundary
+test resolves TPL-03's typed inputs directly, without tree construction or
+content callbacks. Catalog compilation, bounds/overlap checks and public loading
+remain TPL-04 work.
+
 Development requires sibling checkouts at `../w3c-dom`, `../css-box-layout`,
 `../tree` and `../schuko`,
 selected by `go.mod` replacements. The reviewed baselines are `w3c-dom` at
-`ddac155`, `css-box-layout` at `66e420e`, `tree` at `167ff46c52db`, and
+`ddac155`, `css-box-layout` at `66e420e` plus BOX-01, `tree` at `167ff46c52db`, and
 `schuko` at `287adb3427da`. The `w3c-dom` and `css-box-layout` `v0.0.0`
 requirements are local development placeholders, not published releases.
 Replace them with released/pinned versions

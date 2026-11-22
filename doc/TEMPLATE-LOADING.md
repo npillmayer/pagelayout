@@ -1,9 +1,9 @@
 # Template loading: package proposal and PR plan
 
-Date: 2026-11-22. Status: TPL-01/02/03 and upstream DOM-01/02/03 implemented; remaining milestones proposed.
+Date: 2026-11-22. Status: TPL-01/02/03, DOM-01/02/03 and BOX-01 implemented; remaining milestones proposed.
 
 This note details the template-loading part of [DESIGN.md](DESIGN.md). TPL-01/02/03
-and upstream DOM-01/02/03 have been implemented at the author's request. They preserve the distinction
+and upstream DOM-01/02/03 and BOX-01 have been implemented at the author's request. They preserve the distinction
 between template definitions, prepared content and page trials. Later APIs,
 profile choices and PR boundaries below remain proposals for discussion.
 
@@ -276,7 +276,7 @@ Source diagnostics retain CSS rule/declaration/line/column locations. Effective
 diagnostics identify the original template/node and property without fabricating
 the location of a winning declaration. Independent failures are sorted by source
 node, then check order. Final stretch dimensions, bounds and overlaps require
-TPL-04/BOX-01; overconstrained and out-of-page inputs remain unresolved here.
+TPL-04 using BOX-01; overconstrained and out-of-page inputs remain unresolved here.
 
 Ordinary shorthand forms used by the sketch, including `border: 0` and
 `background: #fff`, should work by completing the relevant `w3c-dom` support.
@@ -301,15 +301,15 @@ Construct typed box constraints using the core's default constructors; zero-valu
 lengths are not equivalent to `auto`. Resolve the positive page size first, then
 each frame against the page's zero-origin viewport.
 
-The preferred route is the proposed `ResolveFixedGeometry` service in
-`css-box-layout`. It must share the existing fixed-axis equations and return
+The preferred route is the implemented BOX-01 `ResolveFixedGeometry` service in
+`css-box-layout`. It shares the existing fixed-axis equations and returns
 border and content rectangles without DOM nodes, normalized trees, inline
 callbacks or intrinsic measurement. Content-dependent sizing is an explicit
 failure. Its signature and existing-API fallback remain described in
-[DESIGN.md](DESIGN.md#preferred-service-proposed-geometry-only-api).
+[DESIGN.md](DESIGN.md#preferred-service-geometry-only-api).
 
 Keep `BuildLayoutTrees` / `FixedLayout` with a checked empty-group adapter as a
-documented fallback if the upstream change is delayed. Do not implement both
+documented alternative for integrations requiring the tree path. Do not implement both
 production routes speculatively, and never use empty content to recover from a
 content-dependency error. No new fixed-position equations belong in `pagelayout`.
 
@@ -507,6 +507,17 @@ source provenance. No fixed geometry is published yet.
 ### BOX-01 — Geometry-only fixed-box resolution
 
 Repository: `css-box-layout`. Dependencies: none of the loading PRs.
+
+**Implemented:** `layout.ResolveFixedGeometry` accepts a `ComputedStyle`, viewport
+and `FixedLayoutOptions`, returning detached border/content rectangles. It shares
+typed constraint preparation, axis equations and rectangle construction with
+`FixedLayout`, without requiring tree construction or content callbacks.
+`ErrInvalidFixedGeometry`, `ErrUnsupportedPosition` and
+`ErrFixedContentDependency` distinguish failure categories. Existing tree-path
+content sizing and callback order are preserved. Tests cover geometry, numeric
+limits, parity, ownership, replay/concurrency and a public example. The downstream
+test in `template/geometry_input_test.go` passes TPL-03 inputs directly to this API;
+catalog compilation and policy checks remain TPL-04.
 
 - Extract a shared typed fixed-sizing kernel and expose the proposed direct
   geometry service. Preserve the existing `FixedLayout` path and behavior.

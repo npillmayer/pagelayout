@@ -212,7 +212,7 @@ Keep page paint, frame border/content rectangles, channel names, source order an
 identities alongside that structure. Normalized empty inline groups from a
 fallback implementation are not part of its public meaning.
 
-The preferred proposed `ResolveFixedGeometry` operation still fits this phase.
+The preferred `ResolveFixedGeometry` operation, implemented in BOX-01, fits this phase.
 It sizes each fixed frame; it does **not** substitute for constructing the
 template's box description. The existing `BuildLayoutTrees` / `FixedLayout`
 route remains a fallback. Their contracts and the proposed CSS profile are
@@ -452,7 +452,7 @@ under the design-freedom principle above.
 | Package | Existing capability | Work still proposed here |
 | --- | --- | --- |
 | [`w3c-dom`](../../w3c-dom/doc/architecture.md) | Styled HTML trees, CSSOM registration, defaulted property lookup; property maps can depend on ancestors. | Template collection policy, separate source/style contexts, strict profile diagnostics and routing metadata. |
-| [`css-box-layout`](../../css-box-layout/layout/README.md) | Unsized normalized boxes via builders; used-value resolution, ordinary layout and fixed layout. Typed styles and structural nodes are separate from output geometry. | Source-aware flow extraction integration, a geometry-only frame resolver, and a resumable block-fragment sizing boundary. |
+| [`css-box-layout`](../../css-box-layout/layout/README.md) | Unsized normalized boxes via builders; used-value resolution, ordinary/fixed layout and the BOX-01 geometry-only resolver. Typed styles and structural nodes are separate from output geometry. | Source-aware flow extraction integration and a resumable block-fragment sizing boundary. |
 | [`khipu`](../../khipu/doc/PREPARED_PARAGRAPHS.md) | `PrepareParagraph` yields immutable `Khipu` plus `Discovery`; `BindParagraph` supplies atomic advances; immutable `Tikray` trials, `Checkpoint`, first-fit continuation and `Freeze`. | No page scheduler, channel register or vertical box fragmentation is supplied by these operations. |
 | [`typography/glyphing/paragraph`](../../typography/glyphing/paragraph/README.md) | `Prepare`, independent `Prepared.Trial` / `Trial.Assemble`, checkpoints, and `StartFlow` / `Continuation.Fit`; source styles and bidi context remain stable. | Compose these paragraph operations with block continuation and trial-specific atomic interiors across a page/register transaction. |
 | [`tytui/documentlayout`](../../tytui/documentlayout/preparation.go) | Source extraction, font itemization and invocation-local prepared groups demonstrate the adapters. `LayoutFlow` serves a finite frame list for one paragraph group. | Reuse appropriate contracts; its invocation lifetime and bounded flow result are not a persistent register implementation. |
@@ -628,10 +628,10 @@ declared profile and give unsupported partitions source diagnostics.
 
 ### 5. Keep direct fixed geometry, and share the integration adapter
 
-The proposed `ResolveFixedGeometry` remains a worthwhile small addition. It
+BOX-01 implements `ResolveFixedGeometry`. It
 removes normalization scaffolding, synthetic empty-inline callbacks and fixed-root
-identity matching from template compilation. Share its equations with ordinary
-fixed layout; preserve the fallback below until the new operation exists.
+identity matching from template compilation. It shares typed constraint setup,
+axis equations and rectangle construction with ordinary fixed layout.
 Typed `box-sizing` and additional definite length forms could remove authoring
 limits without making frame geometry depend on content.
 
@@ -722,13 +722,11 @@ identities and useful diagnostics. Initialize `ComputedStyle` and `FixedStyle`
 with their default constructors; their zero values mean explicit zero sizes or
 insets rather than `auto`.
 
-### Preferred service: proposed geometry-only API
+### Preferred service: geometry-only API
 
-There is **no public `ResolveFixedGeometry` API in the reviewed checkout**. The
-preferred upstream addition remains this illustrative signature:
+**Implemented in BOX-01:** the public `css-box-layout/layout` service is:
 
 ```go
-// PROPOSED addition to css-box-layout/layout, not an existing operation.
 func ResolveFixedGeometry(
     style ComputedStyle,
     viewport Rect,
@@ -736,20 +734,22 @@ func ResolveFixedGeometry(
 ) (LayoutGeometry, error)
 ```
 
-It would resolve one non-replaced fixed box without a DOM/layout tree, BoxID,
-inline callback or intrinsic measurer. Return complete viewport-local border
-and content rectangles, `RelativeTo == 0`, without mutating inputs. Accept only
-constraints resolvable without content; distinguish a content-dependency error
-from invalid values and unsupported static-position fallback. The intended typed
-service can handle definite viewport percentages and `em` with supplied font size
+It resolves one non-replaced fixed box without a DOM/layout tree, BoxID,
+inline callback or intrinsic measurer. It returns complete viewport-local border
+and content rectangles, `RelativeTo == 0`, without mutating inputs. Both axes
+must have a definite size or opposing-inset stretch. `ErrFixedContentDependency`
+reports content-dependent sizing, `ErrInvalidFixedGeometry` reports invalid input
+or arithmetic overflow, and `ErrUnsupportedPosition` reports non-fixed positioning
+or both-auto static-position fallback. Errors return zero geometry.
+The typed service handles definite viewport percentages and `em` with supplied font size
 even if our initial authoring profile is smaller.
 
-Share the equations in [`fixed_sizing.go`](../../css-box-layout/layout/fixed_sizing.go)
+It shares the typed kernel and equations in [`fixed_sizing.go`](../../css-box-layout/layout/fixed_sizing.go)
 and rectangle construction in
-[`fixed_layout.go`](../../css-box-layout/layout/fixed_layout.go) with existing
-`FixedLayout`. Merely exporting the current sizing helper would still require a
-normalized tree and allow pending/content-dependent sizes. The refactor must
-preserve the full operation's measurement, interior-layout and ownership behavior.
+[`fixed_geometry.go`](../../css-box-layout/layout/fixed_geometry.go) with existing
+`FixedLayout`. The tree path retains its measurement, interior-layout and ownership
+behavior. Zero sizes and finite overflow outside the viewport remain valid core
+results; positive receiving sizes, bounds and overlaps are TPL-04 policy.
 Typed `box-sizing` support would be a separate possible upstream improvement.
 
 ### Fallback using existing APIs
