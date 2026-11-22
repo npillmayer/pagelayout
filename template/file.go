@@ -12,11 +12,19 @@ import (
 // Open, read, compilation and close failures return nil with a *LoadError;
 // errors.Is/As preserve the underlying filesystem errors.
 func LoadFS(fsys fs.FS, name string) (*Catalog, error) {
+	return LoadFSWithOptions(fsys, name, LoadOptions{})
+}
+
+// LoadFSWithOptions is LoadFS with additional loading options. The filesystem
+// path supplies the collection's source name, overriding opts.SourceName.
+// Additional stylesheet texts are supplied by the caller; they are not fetched
+// from fsys. Their own SourceName labels are preserved in diagnostics.
+func LoadFSWithOptions(fsys fs.FS, name string, opts LoadOptions) (*Catalog, error) {
 	file, err := openCollection(fsys, name, name)
 	if err != nil {
 		return nil, newLoadError([]diagnostic{*err})
 	}
-	return loadOpenedCollection(file, name)
+	return loadOpenedCollection(file, name, opts)
 }
 
 // LoadFile locates and compiles a collection using host I/O. A nil hostIO uses
@@ -33,6 +41,14 @@ func LoadFS(fsys fs.FS, name string) (*Catalog, error) {
 // list the attempted paths in search order. No directories are created, and no
 // configuration files or system-wide repository settings are read yet.
 func LoadFile(name string, hostIO IO) (*Catalog, error) {
+	return LoadFileWithOptions(name, hostIO, LoadOptions{})
+}
+
+// LoadFileWithOptions is LoadFile with additional loading options. Search and
+// fallback behavior are unchanged, including stopping on stylesheet failures.
+// The selected collection path overrides opts.SourceName; additional sheets
+// retain their own labels and are supplied as text, without repository lookup.
+func LoadFileWithOptions(name string, hostIO IO, opts LoadOptions) (*Catalog, error) {
 	if name == "" || filepath.Base(name) == "." || filepath.Base(name) == ".." ||
 		(filepath.VolumeName(name) != "" && !filepath.IsAbs(name)) {
 		return nil, newLoadError([]diagnostic{fileDiagnostic(codeInputPath, name, "invalid collection path",
@@ -49,7 +65,7 @@ func LoadFile(name string, hostIO IO) (*Catalog, error) {
 			source := filepath.Join(dir, name)
 			file, failure := openCollection(hostIO.DirFS(dir), filepath.ToSlash(name), source)
 			if failure == nil {
-				return loadOpenedCollection(file, source)
+				return loadOpenedCollection(file, source, opts)
 			}
 			if !errors.Is(failure.cause, fs.ErrNotExist) {
 				return nil, newLoadError([]diagnostic{*failure})
@@ -68,7 +84,7 @@ func LoadFile(name string, hostIO IO) (*Catalog, error) {
 		}
 		return nil, newLoadError(append(missing, *failure))
 	}
-	return loadOpenedCollection(file, name)
+	return loadOpenedCollection(file, name, opts)
 }
 
 func openCollection(fsys fs.FS, name, source string) (fs.File, *diagnostic) {
@@ -85,8 +101,9 @@ func openCollection(fsys fs.FS, name, source string) (fs.File, *diagnostic) {
 	return file, nil
 }
 
-func loadOpenedCollection(file fs.File, source string) (*Catalog, error) {
-	catalog, err := Load(file, LoadOptions{SourceName: source})
+func loadOpenedCollection(file fs.File, source string, opts LoadOptions) (*Catalog, error) {
+	opts.SourceName = source
+	catalog, err := Load(file, opts)
 	if closeErr := file.Close(); closeErr != nil {
 		var ds []diagnostic
 		if err != nil {

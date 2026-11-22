@@ -21,26 +21,33 @@ func main() {
 		registry.PrintHelp(root)
 	})
 
-	registry.Register("load").
+	loadCmd := registry.Register("load").
 		SetShortDescription("Load an HTML page-template collection and report errors.").
 		SetDescription("Load and check a local HTML page-template collection. Reports go to stdout; loading failures exit with status 1.").
 		AddArgument("html", "Local HTML collection file", "").
-		SetAction(func(args map[string]commando.ArgValue, _ map[string]commando.FlagValue) {
-			os.Exit(runLoad(args["html"].Value, os.Stdout))
+		AddFlag("css", "Additional local author stylesheet (after collection styles)", commando.String, "").
+		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
+			cssPath, _ := flags["css"].GetString()
+			os.Exit(runLoad(args["html"].Value, cssPath, os.Stdout))
 		})
+	// Commando treats an empty string default as required unless cleared.
+	loadCmd.Flags["css"].IsRequired = false
 
-	registry.Register("serve").
+	serveCmd := registry.Register("serve").
 		SetShortDescription("Preview page templates in a browser.").
 		SetDescription("Check a local collection, then serve its compiled geometry. Open the printed URL in a browser; Ctrl+C stops the server. Errors go to stdout.").
 		AddArgument("html", "Local HTML collection file", "").
 		AddFlag("addr", "HTTP listen address", commando.String, "127.0.0.1:8080").
+		AddFlag("css", "Additional local author stylesheet (after collection styles)", commando.String, "").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			addr, _ := flags["addr"].GetString()
+			cssPath, _ := flags["css"].GetString()
 			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-			status := runServe(ctx, args["html"].Value, addr, os.Stdout)
+			status := runServe(ctx, args["html"].Value, addr, cssPath, os.Stdout)
 			stop()
 			os.Exit(status)
 		})
+	serveCmd.Flags["css"].IsRequired = false
 
 	registry.Register("find").
 		SetShortDescription("Locate a page-template collection by name.").

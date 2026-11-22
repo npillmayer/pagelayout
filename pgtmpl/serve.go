@@ -12,8 +12,8 @@ import (
 	"time"
 )
 
-func runServe(ctx context.Context, name, addr string, stdout io.Writer) int {
-	catalog, err := loadCollection(name)
+func runServe(ctx context.Context, name, addr, cssPath string, stdout io.Writer) int {
+	catalog, err := loadCollection(name, cssPath)
 	if err != nil {
 		fmt.Fprintf(stdout, "pgtmpl: load %q failed:\n%v\n", name, err)
 		return 1

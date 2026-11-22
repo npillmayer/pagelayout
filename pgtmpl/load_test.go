@@ -30,7 +30,7 @@ func TestLoadPaths(t *testing.T) {
 	} {
 		t.Run(path, func(t *testing.T) {
 			var report bytes.Buffer
-			if status := runLoad(path, &report); status != 0 {
+			if status := runLoad(path, "", &report); status != 0 {
 				t.Fatalf("exit %d: %s", status, report.String())
 			}
 			if !strings.Contains(report.String(), "(2 templates)") || !strings.Contains(report.String(), path) {
@@ -63,7 +63,7 @@ func TestLoadFailures(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var report bytes.Buffer
-			if status := runLoad(tc.path, &report); status != 1 {
+			if status := runLoad(tc.path, "", &report); status != 1 {
 				t.Fatalf("exit %d, want 1: %s", status, report.String())
 			}
 			text := report.String()

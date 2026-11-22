@@ -1,0 +1,23 @@
+/* Apply after 03-magazine.html; the downloaded collection stays unchanged.
+   Matching specificity lets these later author rules win without !important. */
+.page {
+  background: #ffffff;
+}
+
+.opening > .heading {
+  background: #f2f2f2;
+  border-bottom: 1px solid #555555;
+}
+
+.opening > .notes {
+  background: #fff4dd;
+  border-color: #886633;
+  /* The original 220px border-box width is preserved:
+     184px content + 2 × 16px padding + 2 × 2px border. */
+  width: 184px;
+  padding: 16px;
+}
+
+.continuation > .heading {
+  border-bottom-color: #555555;
+}

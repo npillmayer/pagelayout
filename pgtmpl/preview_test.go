@@ -18,7 +18,7 @@ import (
 )
 
 func TestPreviewCatalogGeometryAndNavigation(t *testing.T) {
-	catalog, err := loadCollection("../template/testdata/templates/sketch.html")
+	catalog, err := loadCollection("../template/testdata/templates/sketch.html", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +135,7 @@ func TestPreviewSnapshotAndHTTP(t *testing.T) {
 	if err := os.WriteFile(name, []byte(`<body><template id="empty" data-type="page"><div style="width:200px;height:100px"></div></template></body>`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	catalog, err := loadCollection(name)
+	catalog, err := loadCollection(name, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,19 +176,23 @@ func TestPreviewSnapshotAndHTTP(t *testing.T) {
 
 func TestServeRejectsCollectionBeforeListening(t *testing.T) {
 	var report bytes.Buffer
-	status := runServe(context.Background(), "../template/testdata/templates/invalid-overlap.html", "invalid-listen-address", &report)
+	status := runServe(context.Background(), "../template/testdata/templates/invalid-overlap.html", "invalid-listen-address", "", &report)
 	if status != 1 || !strings.Contains(report.String(), "geometry.overlap") || strings.Contains(report.String(), "pgtmpl: serve") {
 		t.Fatalf("invalid collection must fail before listening: exit %d, %s", status, report.String())
 	}
 }
 
 func TestServeLifecycle(t *testing.T) {
+	cssPath := filepath.Join(t.TempDir(), "custom.css")
+	if err := os.WriteFile(cssPath, []byte(`.page {background:#abcdef}`), 0600); err != nil {
+		t.Fatal(err)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	output := make(serveTestOutput, 8)
 	result := make(chan int, 1)
 	go func() {
-		result <- runServe(ctx, "../template/testdata/templates/sketch.html", "127.0.0.1:0", output)
+		result <- runServe(ctx, "../template/testdata/templates/sketch.html", "127.0.0.1:0", cssPath, output)
 	}()
 	select {
 	case message := <-output:
@@ -210,6 +214,9 @@ func TestServeLifecycle(t *testing.T) {
 		response.Body.Close()
 		if err != nil || response.StatusCode != 200 || !bytes.Contains(body, []byte("<h1>chapter-opening</h1>")) {
 			t.Fatalf("server returned unexpected preview: status=%d err=%v", response.StatusCode, err)
+		}
+		if !bytes.Contains(body, []byte(`fill="rgba(171,205,239,1)"`)) {
+			t.Fatal("served preview did not use the override's compiled paint")
 		}
 	case status := <-result:
 		t.Fatalf("server exited before startup: %d", status)

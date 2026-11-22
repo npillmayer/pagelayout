@@ -140,6 +140,28 @@ their default locations remain to be designed. These loaders neither create
 directories nor read configuration files; `IO` provides the host-access boundary
 for that later work.
 
+## Additional stylesheets
+
+Additional author CSS can be supplied as text without modifying the collection:
+
+```go
+opts := template.LoadOptions{Stylesheets: []template.Stylesheet{
+    {SourceName: "custom.css", CSS: `.page {background:#ffffff}`},
+}}
+catalog, err := template.LoadFSWithOptions(fsys, "pages.html", opts)
+// Also available: Load(reader, opts), LoadFileWithOptions(name, hostIO, opts).
+```
+
+Sheets are appended in slice order after embedded head CSS. Normal specificity,
+inline-style and `!important` precedence apply. Both original and additional
+declarations must satisfy the CSS profile, including losing/nonmatching rules.
+Overrides participate before geometry compilation; invalid effective geometry
+rejects the whole collection. Additional CSS diagnostics name their stylesheet
+and CSS location; geometry diagnostics retain the affected HTML source identity.
+The file-loader variants preserve the selected collection path regardless of
+`opts.SourceName`, and never search for or fetch the supplied stylesheet texts.
+Existing `LoadFS` and `LoadFile` calls retain their behavior with no extra sheets.
+
 ## Structural input profile
 
 Page definitions are direct body children named
@@ -176,7 +198,7 @@ with expected diagnostics and CLI commands.
 
 [`pgtmpl`](pgtmpl/) checks collections using the same Commando framework as
 `tytui/tycli`. Run `go run ./pgtmpl load <html>` to check a local collection with
-`template.LoadFS`. Success summaries and error diagnostics go to stdout; loading
+`template.LoadFSWithOptions`. Success summaries and error diagnostics go to stdout; loading
 failures exit with status 1. `go run ./pgtmpl serve <html>` checks the collection
 before starting a local browser preview at `http://127.0.0.1:8080/`. The viewer
 shows one template at a time using compiled geometry and paint, with navigation
@@ -184,6 +206,9 @@ and optional frame outlines colored by flow channel. Invalid collections start
 no server. `go run ./pgtmpl find <name>` uses `template.LoadFile` to search the
 user configuration templates directory and then the current directory, validate
 the collection and print its selected path. Results and errors go to stdout.
+`load` and `serve` accept `--css FILE` for one additional author stylesheet, with
+the CSS path relative to the current working directory. Try
+`go run ./pgtmpl serve examples/03-magazine.html --css examples/magazine-override.css`.
 Run `go run ./pgtmpl --help` for usage.
 
 ## Dependencies and checks

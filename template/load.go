@@ -2,11 +2,24 @@ package template
 
 import "io"
 
+// Stylesheet is an additional author stylesheet. CSS is its text; SourceName
+// labels diagnostics (for example, a local filename), not a URL to fetch.
+// An empty SourceName receives a generated label. No external resources load.
+type Stylesheet struct {
+	SourceName string
+	CSS        string
+}
+
 // LoadOptions supplies collection loading context. The zero value is valid.
 type LoadOptions struct {
 	// SourceName labels diagnostics and source references. It does not enable
 	// external resource loading or define a stylesheet base URL.
 	SourceName string
+	// Stylesheets are applied in order after the collection's head stylesheets.
+	// Normal author cascade rules, including specificity, inline styles and
+	// !important, apply. Every declaration is checked against the CSS profile,
+	// including nonmatching/losing declarations. Geometry is compiled afterward.
+	Stylesheets []Stylesheet
 }
 
 // Load reads an HTML page-template collection, styles each definition in
@@ -24,7 +37,7 @@ func Load(r io.Reader, opts LoadOptions) (*Catalog, error) {
 	if err != nil {
 		return nil, err
 	}
-	styled, err := styleTemplateCollection(source)
+	styled, err := styleTemplateCollection(source, opts.Stylesheets...)
 	if err != nil {
 		return nil, err
 	}

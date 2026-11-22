@@ -63,7 +63,7 @@ const (
 	codeGeometryOverlap     diagnosticCode = "geometry.overlap"
 )
 
-// CSS locations refer to the style element's text or style attribute value.
+// CSS locations refer to a stylesheet's text or style attribute value.
 // HTML locations remain source paths; rule/declaration ordinals are one-based.
 type cssLocation struct {
 	rule, declaration, line, column int
@@ -116,8 +116,8 @@ func (d diagnostic) Error() string {
 
 func (d diagnostic) Unwrap() error { return d.cause }
 
-// CSSLocation refers to a style element's text or a style attribute. Rule and
-// Declaration are one-based ordinals; zero means unavailable/not applicable.
+// CSSLocation refers to stylesheet text (embedded or additional) or a style
+// attribute. Rule and Declaration are one-based ordinals; zero means unavailable/not applicable.
 // Line/Column are CSS locations, not enclosing HTML locations. Effective-style
 // and geometry diagnostics identify a node/property without inventing positions.
 type CSSLocation struct {

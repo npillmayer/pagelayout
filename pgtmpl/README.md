@@ -19,7 +19,7 @@ The CLI registers these commands:
 | `pgtmpl serve <html>` | Check a collection and serve its compiled page/frame previews. |
 | `pgtmpl find <name>` | Find and validate a collection, then print its path. |
 
-`load` uses `template.LoadFS` to load and check exactly the specified local file.
+`load` uses `template.LoadFSWithOptions` to load and check the specified local file.
 Relative and absolute paths are supported; no repository search is performed.
 A successful load prints the file name and template count to stdout and exits
 with status 0. Failures print all returned diagnostics to stdout and exit with
@@ -33,7 +33,7 @@ go run ./pgtmpl load template/testdata/templates/sketch.html
 go run ./pgtmpl load template/testdata/templates/invalid-overlap.html
 ```
 
-`serve` loads the whole collection with `template.LoadFS` before opening a
+`serve` loads the whole collection with `template.LoadFSWithOptions` before opening a
 listener. Invalid collections print their diagnostics to stdout and exit with
 status 1; no server or partial preview is published. On success, open the printed
 URL in a browser. The default address is `127.0.0.1:8080`; use `--addr` to change
@@ -58,6 +58,28 @@ The preview scales to fit the available display area. It is a snapshot taken at
 startup; restart the command after editing the collection. It does not render
 flowing content, reload files, launch a browser automatically or serve source
 files from disk. Navigation and the outline toggle work without JavaScript.
+
+Both `load` and `serve` accept an optional `--css FILE` for one additional local
+author stylesheet. Relative CSS paths resolve from the current working directory,
+independently of the HTML path; absolute paths are also accepted. No stylesheet
+discovery, URL fetching, linked CSS or `@import` loading is performed.
+
+```sh
+go run ./pgtmpl load examples/03-magazine.html --css examples/magazine-override.css
+go run ./pgtmpl serve examples/03-magazine.html --css examples/magazine-override.css
+```
+
+Additional CSS follows the collection's head stylesheets in the normal author
+cascade. Later declarations win only when importance and specificity tie;
+inline styles and `!important` keep their normal precedence. The override must
+use the same supported CSS profile. Syntax/profile diagnostics name the CSS file
+and its CSS location; effective geometry diagnostics identify the affected HTML
+node. Losing or nonmatching invalid declarations in either source still reject
+the collection. Missing CSS files and invalid overrides report errors to stdout
+and exit with status 1; `serve` starts no listener. Geometry and paint are compiled
+with the override before preview generation, leaving the source HTML unchanged.
+Restart `serve` after editing either file. The viewer's colored frame outlines
+remain a separate display overlay.
 
 `find` uses `template.LoadFile` with the normal host filesystem. Relative names
 are tried in `os.UserConfigDir()/templates`, then in the current directory.

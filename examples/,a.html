@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>A4 letterhead</title>
+  <style>
+    .page { width:210mm; height:297mm; background:#ffffff; }
+    .frame { position:fixed; }
+
+    /* Opposing horizontal insets resolve the auto width from the page.
+       The three frames receive three independent content channels. */
+	.placeholder {
+	    background: repeating-linear-gradient(
+		to bottom,
+		#c5c5c5 0px,
+		#c5c5c5 5px,
+		transparent 5px,
+		transparent 17px
+	    );
+	}
+    .masthead {
+      left:20mm; right:20mm; top:18mm; height:26mm;
+      flow-from:letterhead;
+      background:#edf3f8;
+      border-bottom:1px solid #335b78;
+    }
+    .body {
+      left:20mm; right:20mm; top:56mm; bottom:32mm;
+      flow-from:main;
+    }
+    .footer {
+      left:20mm; right:20mm; bottom:16mm; height:8mm;
+      flow-from:footer;
+    }
+  </style>
+</head>
+<body>
+  <template id="letter" data-type="page">
+    <div class="page">
+      <div class="frame masthead"></div>
+      <div class="frame body placeholder"></div>
+      <div class="frame footer"></div>
+    </div>
+  </template>
+</body>
+</html>

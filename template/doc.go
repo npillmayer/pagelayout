@@ -21,6 +21,10 @@
 // UserConfigDir()/templates before the current directory; absolute paths are
 // opened directly. Both close their files and preserve the selected source name.
 // System-wide repository configuration remains a future extension.
+// LoadOptions.Stylesheets supplies additional author CSS after collection sheets;
+// LoadFSWithOptions and LoadFileWithOptions expose the same options for files.
+// Normal cascade rules apply. Additional CSS is inspected and profile-checked
+// with its own source labels before geometry compilation; no resources are fetched.
 //
 // The examples for Load, LoadFS, LoadFile and LoadError are executable. They
 // cover reader input, embedded collections, injected repository I/O and atomic

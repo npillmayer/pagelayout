@@ -19,6 +19,8 @@ type FrameID uint64
 // SourceRef identifies a node in the parsed collection, including HTML repairs.
 // NodeID is collection-local; Path is a node path, not a byte or line location.
 // Name is the diagnostic label passed to Load, never a resource base URL.
+// For additional stylesheet diagnostics, Name labels the sheet and Path,
+// TemplateID and NodeID are empty/zero because there is no source HTML node.
 type SourceRef struct {
 	Name, TemplateID, Path string
 	NodeID                 uint64

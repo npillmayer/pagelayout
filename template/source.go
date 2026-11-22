@@ -21,6 +21,7 @@ type sourceRef struct {
 	templateID string
 	nodeID     sourceNodeID
 	path       string
+	stylesheet int // Additional sheet order (one-based); zero for HTML sources.
 }
 
 type frameID uint64

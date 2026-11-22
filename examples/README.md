@@ -29,6 +29,24 @@ flow article content. The notes frame also demonstrates the difference between
 its content rectangle and its larger border rectangle. Toggle **Show frame
 borders** to distinguish the viewer's diagnostic outlines from authored paint.
 
+## Override a collection without editing it
+
+[`magazine-override.css`](magazine-override.css) customizes `03-magazine.html`:
+white pages, gray headings with thinner borders, and a warmer notes frame with
+more padding. Its notes content width shrinks from 192px to 184px while its outer
+width stays 220px. This exercises recompilation of the receiving rectangle.
+
+```sh
+go run ./pgtmpl load examples/03-magazine.html --css examples/magazine-override.css
+go run ./pgtmpl serve examples/03-magazine.html --css examples/magazine-override.css
+```
+
+The extra stylesheet follows the original styles in the ordinary CSS cascade.
+These rules match the original specificity, so no `!important` is needed.
+The HTML stays unchanged; omit `--css` to see the original. Paths to both files
+are relative to the current working directory. The diagnostic frame outlines
+remain independent: uncheck **Show frame borders** to inspect authored paint.
+
 ## Deliberately invalid examples
 
 Names end in `_err.html`. Each file includes a comment explaining the defect

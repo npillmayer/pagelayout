@@ -67,6 +67,24 @@ func ExampleLoadFS() {
 	//   article frame 2: x=75.59 y=264.57 w=642.52 h=782.36
 }
 
+func ExampleLoadFSWithOptions() {
+	opts := template.LoadOptions{Stylesheets: []template.Stylesheet{
+		{SourceName: "custom.css", CSS: `.page {background:#eeeeee} .page > .heading {height:20mm}`},
+	}}
+	catalog, err := template.LoadFSWithOptions(exampleCollections, "testdata/templates/sketch.html", opts)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	page, _ := catalog.Lookup("two-column-article")
+	fmt.Printf("background: %v\n", page.Page().Paint.Background)
+	// The original .page.two-column > .heading has greater specificity.
+	fmt.Printf("heading height: %.2f CSS px\n", page.FramesForFlow("heading-flow")[0].ContentBox.H)
+	// Output:
+	// background: {238 238 238 255}
+	// heading height: 68.03 CSS px
+}
+
 // exampleIO substitutes an embedded repository for host access. Applications
 // using the normal user-config/current-directory search can pass nil instead.
 type exampleIO struct{ repository fs.FS }

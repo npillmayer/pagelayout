@@ -60,11 +60,19 @@ The implemented public surface in package `template` is:
 ```go
 type LoadOptions struct {
     SourceName string // Diagnostic label, not a resource-fetching base URL.
+    Stylesheets []Stylesheet // Additional author sheets, in cascade order.
+}
+
+type Stylesheet struct {
+    SourceName string // Diagnostic label; empty generates <stylesheet N>.
+    CSS string       // Caller-supplied text; no resource fetching.
 }
 
 func Load(r io.Reader, opts LoadOptions) (*Catalog, error)
 func LoadFS(fsys fs.FS, name string) (*Catalog, error)
 func LoadFile(name string, hostIO IO) (*Catalog, error)
+func LoadFSWithOptions(fsys fs.FS, name string, opts LoadOptions) (*Catalog, error)
+func LoadFileWithOptions(name string, hostIO IO, opts LoadOptions) (*Catalog, error)
 
 type IO interface {
     UserConfigDir() (string, error)
@@ -119,6 +127,30 @@ Do not add public intermediate parsed/styled states or a caller-supplied geometr
 engine initially. Keep those boundaries private so sibling API changes do not
 force public migrations. File helpers open only the collection file, set its
 source name and delegate to the reader API.
+
+### Additional author stylesheets
+
+`LoadOptions.Stylesheets` supplies CSS texts with diagnostic source labels.
+They are inspected once, retain all declarations, and are registered in slice
+order after collection head sheets in each isolated active document. The normal
+author cascade applies, including specificity, inline styles and `!important`.
+Additional sheets can target page/frame classes and copied html/body attributes;
+storage template wrappers remain absent from selector ancestry.
+
+Both source sets undergo CSS/profile validation, including losing or unmatched
+declarations. Effective geometry is compiled after the combined cascade, so an
+override can repair or introduce a geometry failure. No partial catalog escapes.
+Diagnostics for additional declarations carry their sheet label and CSS location,
+with no fabricated HTML node identity. HTML diagnostics precede additional-sheet
+diagnostics, which follow supplied sheet order; close errors remain last.
+Effective-style/geometry diagnostics still identify the original HTML nodes.
+
+`LoadFSWithOptions` and `LoadFileWithOptions` retain the original file APIs'
+search and closure behavior. The selected collection path overrides
+`opts.SourceName`, while each stylesheet retains its own label. Callers supply
+CSS text explicitly: these APIs do not open linked stylesheets or fetch imports.
+`pgtmpl load` and `serve` expose one local stylesheet via `--css FILE`, read from
+the working directory (or an absolute path) before loading the collection.
 
 ### File discovery and host I/O
 
@@ -745,7 +777,7 @@ workspace paths are development plumbing, not part of the public loader API.
 - **Richer definite geometry:** percentages, font-relative lengths, border-box
   sizing and explicit font-context inputs, coordinated with the CSS adapter and
   geometry solver.
-- **Additional resource/profile policies:** external stylesheets, conditional
+- **Additional resource/profile policies:** automatically linked/imported stylesheets, conditional
   rules, template-local sheets, bleed, overlap and decorative unbound boxes.
 - **Page instantiation and trials:** consume immutable templates alongside the
   prepared content model; define page identity, placements and register commits

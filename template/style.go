@@ -2,6 +2,7 @@ package template
 
 import (
 	"cmp"
+	"fmt"
 	"slices"
 	"strings"
 
@@ -39,8 +40,8 @@ type styledTemplate struct {
 // styleTemplateCollection is the private TPL-02 boundary. Its input must be a
 // successfully parsed collection. No partial styled collection escapes a failure.
 // CSS values remain unsized; geometry/profile adaptation belongs to TPL-03.
-func styleTemplateCollection(source *templateCollection) (*styledCollection, error) {
-	styles, err := collectStyles(source)
+func styleTemplateCollection(source *templateCollection, extra ...Stylesheet) (*styledCollection, error) {
+	styles, err := collectStyles(source, extra...)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +83,7 @@ func styleTemplateCollection(source *templateCollection) (*styledCollection, err
 	return result, nil
 }
 
-func collectStyles(c *templateCollection) (*collectionStyles, error) {
+func collectStyles(c *templateCollection, extra ...Stylesheet) (*collectionStyles, error) {
 	result := &collectionStyles{inline: make(map[sourceNodeID][]cssom.SourceDeclaration)}
 	var diagnostics []diagnostic
 	for _, node := range c.styles {
@@ -114,6 +115,20 @@ func collectStyles(c *templateCollection) (*collectionStyles, error) {
 		result.sheets = append(result.sheets, sourceSheet{source: c.sources[node], inspection: inspection})
 		for _, d := range inspection.Diagnostics {
 			diagnostics = append(diagnostics, cssDiagnostic(c.sources[node], d, false))
+		}
+	}
+	for i, sheet := range extra {
+		name := sheet.SourceName
+		if name == "" {
+			name = fmt.Sprintf("<stylesheet %d>", i+1)
+		}
+		// Additional CSS has no HTML node identity. Keep its ordering separately
+		// so diagnostics follow collection diagnostics, then supplied sheet order.
+		ref := sourceRef{name: name, stylesheet: i + 1}
+		inspection := cssom.InspectStylesheet(sheet.CSS)
+		result.sheets = append(result.sheets, sourceSheet{source: ref, inspection: inspection})
+		for _, d := range inspection.Diagnostics {
+			diagnostics = append(diagnostics, cssDiagnostic(ref, d, false))
 		}
 	}
 	// Validate shared context once, followed by each definition's active elements.
@@ -148,6 +163,11 @@ func cssDiagnostic(source sourceRef, d cssom.Diagnostic, inline bool) diagnostic
 }
 
 func orderedStyleError(ds []diagnostic) error {
-	slices.SortStableFunc(ds, func(a, b diagnostic) int { return cmp.Compare(a.source.nodeID, b.source.nodeID) })
+	slices.SortStableFunc(ds, func(a, b diagnostic) int {
+		if order := cmp.Compare(a.source.stylesheet, b.source.stylesheet); order != 0 {
+			return order
+		}
+		return cmp.Compare(a.source.nodeID, b.source.nodeID)
+	})
 	return newLoadError(ds)
 }
