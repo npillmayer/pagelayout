@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Page-template collection</title>
+  <style>
+    .page {
+      position: static;
+      width: 210mm;
+      height: 297mm;
+      background: #ffffff;
+      box-sizing: content-box;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .page > .frame {
+      position: fixed;
+      box-sizing: content-box;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    /* The two-column page. */
+    .page.two-column > .heading {
+      left: 20mm; top: 20mm; width: 170mm; height: 18mm;
+    }
+    .page.two-column > .body-left {
+      left: 20mm; top: 46mm; width: 80mm; height: 231mm;
+    }
+    .page.two-column > .body-right {
+      left: 110mm; top: 46mm; width: 80mm; height: 231mm;
+    }
+
+    /* A larger heading followed by a single wide body frame. */
+    .page.chapter-opening > .heading {
+      left: 20mm; top: 20mm; width: 170mm; height: 38mm;
+    }
+    .page.chapter-opening > .body {
+      left: 20mm; top: 70mm; width: 170mm; height: 207mm;
+    }
+
+    /* Content supplied separately, as in the preceding HTML example. */
+    .page-heading { flow-into: heading-flow; }
+    .story        { flow-into: article-flow; }
+
+    /* Both templates accept the same named flows. */
+    .page > .heading { flow-from: heading-flow; }
+    .page > .body    { flow-from: article-flow; }
+  </style>
+</head>
+<body>
+  <template id="two-column-article" data-type="page">
+    <div class="page two-column">
+      <div class="frame heading"></div>
+      <div class="frame body body-left"></div>
+      <div class="frame body body-right"></div>
+    </div>
+  </template>
+
+  <template id="chapter-opening" data-type="page">
+    <div class="page chapter-opening">
+      <div class="frame heading"></div>
+      <div class="frame body"></div>
+    </div>
+  </template>
+</body>
+</html>

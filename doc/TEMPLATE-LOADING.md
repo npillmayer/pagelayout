@@ -1,9 +1,9 @@
 # Template loading: package proposal and PR plan
 
-Date: 2026-11-22. Status: TPL-01/02 and upstream DOM-01/02 implemented; remaining milestones proposed.
+Date: 2026-11-22. Status: TPL-01/02 and upstream DOM-01/02/03 implemented; remaining milestones proposed.
 
 This note details the template-loading part of [DESIGN.md](DESIGN.md). TPL-01/02
-and upstream DOM-01/02 have been implemented at the author's request. They preserve the distinction
+and upstream DOM-01/02/03 have been implemented at the author's request. They preserve the distinction
 between template definitions, prepared content and page trials. Later APIs,
 profile choices and PR boundaries below remain proposals for discussion.
 
@@ -385,7 +385,7 @@ metadata and concrete print-UA color defaults (black, transparent and
 currentcolor borders). `style.NormalizeDeclaration` validates supported values
 before duplicate reduction and cascade selection; DOM-01 reports invalid source
 declarations even when they lose or do not match. Existing edge shorthands are
-validated atomically; full border/background shorthand work remains DOM-03.
+validated atomically; the selected border/background forms are supplied by DOM-03.
 
 Checked APIs are `style.ParseBoxLength`, `ParseColorValue`, `ParseFlowName` and
 `ParseBoxKeyword`, with `css.GetBoxLength`, `GetColor`, `GetFlowName`,
@@ -415,6 +415,17 @@ This is not a demand to implement all of CSS before page loading.
 ### DOM-03 — Complete the sketch's shorthand forms
 
 Repository: `w3c-dom`. Depends on DOM-02.
+
+**Implemented:** `border` and physical side shorthands accept the checked
+width/style/color components in any order. Solid `background` accepts one color,
+optional `none`, or `none` alone. Omitted components reset to initial values;
+`border` includes the border-image reset-only properties. CSS-wide keywords and
+importance propagate to every subproperty. Richer forms and deferred functions
+are diagnosed before duplicate/cascade reduction, without partial expansion.
+See [the upstream scope](../../w3c-dom/doc/architecture.md#border-and-solid-background-shorthands-dom-03).
+Tests cover all three styling routes, cascade/reset interactions and source
+diagnostics. The collection example from `SKETCH.md` is also an isolated-styling
+regression in `template/sketch_test.go`; geometry compilation remains separate.
 
 - Support the selected `border` and solid-background shorthand grammar, using
   correct reset semantics for their other components. Keep richer unsupported

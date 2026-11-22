@@ -67,10 +67,14 @@ Upstream DOM-02 now provides checked box lengths, colors, flow names, keywords
 and effective borders, plus value validation before cascade reduction. TPL-03
 will use these APIs to enforce the template geometry/paint profile; TPL-02
 already receives their invalid-value diagnostics through DOM-01 inspection.
+DOM-03 adds border/side and solid-background shorthands with component resets.
+The original collection from `doc/SKETCH.md` now passes isolated styling tests
+with `border: 0` and `background: #ffffff` unchanged. Richer shorthand forms
+remain diagnosed as unsupported.
 
 Development requires sibling checkouts at `../w3c-dom`, `../tree` and `../schuko`,
 selected by `go.mod` replacements. The reviewed baselines are `w3c-dom` at
-`826d43362174` plus this work's DOM-02 changes, `tree` at `167ff46c52db`, and
+`52995d3` plus this work's DOM-03 changes, `tree` at `167ff46c52db`, and
 `schuko` at `287adb3427da`. The `w3c-dom v0.0.0` requirement is a local development
 placeholder, not a published release. Replace it with a released/pinned version
 when the upstream changes are published. External checksums are in `go.sum`.
