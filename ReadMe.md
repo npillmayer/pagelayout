@@ -268,7 +268,10 @@ and initial profile are adopted. [Acceptance fixtures and expected results](cont
 are included. CONT-01 implements private UTF-8 source parsing, CSS inspection
 and original-document styling, with inert/resource boundaries and structured
 diagnostics. Run `go test ./content` for these checks. Public material loading,
-full profile validation, routing and the planned sibling services remain pending.
+full profile validation and routing remain pending. DOM-CONT-01 adds the shared
+`w3c-dom/style/textstyle` source snapshots, and TY-CONT-01 migrates tytui's
+compatibility facade. Source-font border helpers and box/register changes remain
+pending; CONT-02 will consume the shared snapshots in `content`.
 Floats, preparation and page trials remain later work.
 
 See [the loading package and PR plan](doc/TEMPLATE-LOADING.md),

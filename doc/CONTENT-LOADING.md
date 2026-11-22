@@ -1,8 +1,9 @@
 # Content loading and routing implementation plan
 
 Date: 2026-11-22. Status: CONT-00 adopted and complete; CONT-01 private source
-parsing, inspection and styling implemented. The public material loader,
-normalization/routing and DOM-CONT/TY-CONT/BOX-CONT work remain pending.
+parsing, inspection and styling implemented. DOM-CONT-01's shared text-style
+service and TY-CONT-01's tytui migration are implemented. The public material
+loader, normalization/routing, DOM-CONT-02 and BOX-CONT work remain pending.
 Floats remain explicitly deferred.
 
 This plan develops the content-input phase of [DESIGN.md](DESIGN.md), following
@@ -24,7 +25,7 @@ CONT-00 adopts concrete `content.Box` handles as payloads and a generic conversi
 of those existing queues, preserving their persistent behavior.
 
 Section 11 records the adopted decisions separately from later open questions.
-CONT-02 onward and the DOM-CONT, TY-CONT and BOX-CONT items remain implementation
+CONT-02 onward, DOM-CONT-02 and the BOX-CONT items remain implementation
 work. References describe checked-out implementations; code sketches describe
 the adopted target API unless explicitly identified as implemented.
 
@@ -51,8 +52,8 @@ ordinary hyperlink/canonical-link destinations are never fetched or executed.
 This uses the implemented sibling `CSSOM.StyleWithOptions` traversal boundary,
 which preserves original selector ancestry and sibling positions. The styler
 also now applies declarations to every included element, without a layout-tag
-allowlist. These narrow CSSOM changes do not implement DOM-CONT-01's computed
-text-style service or DOM-CONT-02's font-aware border helper.
+allowlist. DOM-CONT-01's separate computed text-style service is now implemented;
+its content projection and DOM-CONT-02's font-aware border helper remain pending.
 
 Tests cover the fixtures' source/style assertions, reader ownership/failures,
 UTF-8, CSS diagnostics and causes, inert boundaries, source immutability and
@@ -584,17 +585,17 @@ their files and preserve read/close errors without partial publication.
 
 ## 8. Required sibling work and optional improvements
 
-### DOM-CONT-01 — Shared checked source text-style resolution
+### DOM-CONT-01 — Shared checked source text-style resolution (implemented)
 
-**Required by CONT-00.** `w3c-dom` already supplies CSS
+**Required by CONT-00; implemented.** `w3c-dom` supplies CSS
 inspection, cascade, typed display, checked box values/colors and decoded flow
-names. It does not currently provide the complete detached text-style resolution
-performed in `tytui/htmlinput.ResolvedStyles`.
+names, and now the detached text-style resolution previously performed in
+`tytui/htmlinput.ResolvedStyles`.
 
 CONT-01's `StyleWithOptions` traversal boundary and removal of the styler's
 element allowlist are implemented prerequisites, not completion of this service.
 
-Add `w3c-dom/style/textstyle`, a checked source text-style snapshot service with
+Implemented `w3c-dom/style/textstyle`, a checked source text-style snapshot service with
 explicit parent/root context. It must resolve source font sizes, relative weights,
 foreground color and language/direction context without selecting fonts or
 requiring containing geometry. Define its supported whitespace, line-height,
@@ -614,8 +615,36 @@ fixtures. Retain whole source ancestry during directionality scans; routing must
 not change the result. Stage any deliberately unsupported cases explicitly.
 
 The previously proposed separate integration-package alternative is superseded
-by CONT-00's DOM-side ownership decision. Both tytui and pagelayout use this
-service; neither maintains a separate implementation of the moved semantics.
+by CONT-00's DOM-side ownership decision. Tytui now uses this service and
+pagelayout will consume it in CONT-02; neither should maintain a separate
+implementation of the moved semantics.
+
+The implemented API is `Resolve(nodes ...*styledtree.StyNode) ([]Style, error)`:
+results follow input order and contain no DOM/font pointers. It computes original
+ancestors once per call and does not visit unrelated branches. A failure returns
+no partial slice. `ResolveWithContext(node, Context{Parent, RootFontSize})` and
+`ResolveFontSize(value, parent, root)` expose explicit computed source context.
+The `Error` type carries the original HTML node, property, value and wrapped
+cause for adapter-owned diagnostics; errors, unlike successful styles, retain
+that node. Read-only source calls can run concurrently without a shared cache.
+
+The snapshot retains checked family/size/weight/slant, foreground spelling and
+NRGBA, canonical language, resolved direction, whitespace/bidi, line-height and
+hyphens. A line-height is normal, a unitless factor, or a computed DOM-DU length;
+percentages/em/rem compute at the declaring element and inherit as lengths,
+whereas factors inherit without multiplication. No source text is transformed.
+The fixed print defaults match section 6; arbitrary CSSOM UA overrides are not
+part of this text profile. Known whitespace/bidi modes and non-normal line-height
+can be represented even when an application's layout profile rejects them.
+Deferred math/substitutions, metric/viewport font units, fractional weights and
+CSS cascade rollback remain explicitly unsupported. Full supported values and
+HTML scan boundaries are documented in the sibling
+[textstyle README](../../w3c-dom/style/textstyle/README.md).
+
+CONT-02 will consume these snapshots in `content`; CONT-01 does not yet project
+computed typography. Tests cover relative/root sizes, CSS-wide keywords,
+currentcolor, weights, HTML/CSS precedence, source-context direction scans,
+line-height/hyphenation, failure identity and detached/concurrent snapshots.
 
 ### DOM-CONT-02 — Checked font-relative border resolution
 
@@ -631,14 +660,26 @@ none/hidden and currentcolor. The acceptance fixture's relative border must
 resolve without frame geometry or local border parsing. The precise helper
 signature is an implementation detail, not a reason to narrow the agreed units.
 
-### TY-CONT-01 — Migrate tytui to the shared resolver
+### TY-CONT-01 — Migrate tytui to the shared resolver (implemented)
 
-**Required companion work to DOM-CONT-01.** Preserve
+**Required companion work to DOM-CONT-01; implemented.** Preserves
 `htmlinput.ResolvedStyles` as a compatibility facade returning its current
 typography values. Replace moved parsing with the common implementation and
 retain tytui's application profile checks. Run its typography/style, extraction,
 display and document integration regressions before pagelayout relies on the
 new shared service.
+
+The facade still returns `map[int]typography/style.Style` for the selection and
+its ancestors. It selects nodes, calls the shared resolver, maps source errors
+to existing DOM paths, and explicitly converts DOM DU and direction values.
+The moved parsing/HTML semantics are no longer implemented in tytui. Its layout
+profile and whitespace/source/isolate extraction remain application-owned;
+line-height/hyphens are separate from the compatibility typography struct.
+
+Regression integration also aligns tytui with the DOM's current black initial
+foreground and automatic minimum-size defaults. Checked invalid box/paint
+declarations now fail before permissive cascade reduction can discard them;
+the existing permissive display fallback remains deliberate application policy.
 
 No change to tytui's CLI, image markers, font discovery, preparation lifetime,
 single-group flow API or rendering is required for chunk 1. Moving the entire
@@ -731,11 +772,10 @@ malformed CSS and invalid UTF-8. A parse fuzz target checks source-index invaria
 No public partial source model escapes. Full profile and routing errors remain
 separate from syntax/resource inspection as described in the boundary above.
 
-### DOM-CONT-01 + TY-CONT-01 — Shared text-style snapshot service
+### DOM-CONT-01 + TY-CONT-01 — Shared text-style snapshot service (implemented)
 
-Implement and regression-test the agreed common resolver, migrate the tytui
-facade, and document conversions and ownership. This can proceed independently
-of private content parsing once the required context contract is agreed.
+The common resolver and tytui facade are implemented and regression-tested, with
+conversions and ownership documented in section 8 and the sibling README.
 
 Exit: both consumers can obtain the same supported source typography without
 font services; inherited values do not depend on later layout ancestry.
