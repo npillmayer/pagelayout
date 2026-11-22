@@ -1,6 +1,6 @@
 # Template-based page layout: revised design discussion
 
-Date: 2026-11-21. Status: design discussion; TPL-01 source loading implemented.
+Date: 2026-11-22. Status: design discussion; TPL-01/02 source loading and isolated styling implemented.
 
 ---
 ## REMARKS

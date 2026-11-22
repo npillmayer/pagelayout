@@ -1,18 +1,20 @@
 # Template loading: package proposal and PR plan
 
-Date: 2026-11-21. Status: TPL-01 implemented; remaining milestones proposed.
+Date: 2026-11-22. Status: TPL-01/02 and upstream DOM-01 implemented; remaining milestones proposed.
 
-This note details the template-loading part of [DESIGN.md](DESIGN.md). TPL-01
-has been implemented at the author's request. It preserves the distinction
+This note details the template-loading part of [DESIGN.md](DESIGN.md). TPL-01/02
+and upstream DOM-01 have been implemented at the author's request. They preserve the distinction
 between template definitions, prepared content and page trials. Later APIs,
 profile choices and PR boundaries below remain proposals for discussion.
 
 The current implementation is private within the `template` subpackage:
 [source parsing](../template/source.go),
 [structural validation](../template/validate.go) and
-[diagnostics](../template/diagnostic.go). It uses Go 1.25.6 and `golang.org/x/net` v0.49.0,
-matching the reviewed sibling baselines. It retains head CSS and inline attributes
-without interpreting them. The public APIs sketched below are not implemented.
+[diagnostics](../template/diagnostic.go), followed by
+[active documents](../template/active.go) and [styling](../template/style.go).
+It uses Go 1.25.6 and `golang.org/x/net` v0.49.0, plus the sibling `w3c-dom` DOM-01
+reporting APIs. See [ReadMe.md](../ReadMe.md) for development dependencies and
+reviewed revisions. The public APIs sketched below are not implemented.
 
 ## 1. The first deliverable
 
@@ -109,6 +111,7 @@ template/doc.go                 loading package purpose, units and ownership
 template/catalog.go             catalog, template and description accessors
 template/load.go                reader/FS entry points and publication boundary
 template/source.go              HTML parsing, discovery, source identities
+template/active.go              isolated active documents and source mappings
 template/style.go               active documents, stylesheet registration, cascade
 template/values.go              effective CSS -> typed box and paint values
 template/validate.go            template profile and source-aware diagnostics
@@ -182,12 +185,22 @@ a map from cloned nodes to original source identities. Structural selectors are
 evaluated independently in this context for every definition. A selector such
 as `template .frame` has no storage ancestor to match.
 
-Use the current `cssom.NewCSSOM`, ordered
+The implemented path first calls `cssom.InspectStylesheet` once per accepted head
+sheet, retaining its source-ordered rules/declarations and usable `Sheet`.
+`InspectInlineStyle` checks the active html/body/page/frame attributes before the
+cascade; wrapper and ignored-template attributes are excluded. Any inspection
+diagnostic rejects the collection. Unsupported at-rules, non-CSS types,
+conditional media and scoped style elements are reported explicitly. Empty or
+`all` media and empty or `text/css` types are accepted. These checks do not yet
+implement the full property/value profile in TPL-03.
+
+Use `cssom.NewCSSOM`, ordered
 `AddStylesForScope(nil, sheet, cssom.Author)` calls and `Style` as the first
 integration route. Create a fresh CSSOM per definition because styling registers
 node-specific inline declarations. Parsed sheets may be reused as read-only
 inputs; neither sessions nor their mutable caches should leak across templates.
-See [the current CSSOM](../../w3c-dom/style/cssom/cssom.go).
+See [the current CSSOM](../../w3c-dom/style/cssom/cssom.go) and
+[DOM-01 inspection](../../w3c-dom/style/cssom/inspect.go).
 
 The preferred future API separates a reusable compiled stylesheet program from
 per-document styling sessions. That optimization should preserve this exact
@@ -325,8 +338,8 @@ the parsed HTML structure, preserves original nodes and source order, assigns
 collection-local source IDs and template-local frame IDs, and publishes no
 partial model on failure. ID and formatting-whitespace checks use HTML ASCII
 whitespace rules. Element ID uniqueness includes the future html/body context,
-but excludes template storage wrappers and other definitions. CSS validation
-and the public loader remain for later milestones.
+but excludes template storage wrappers and other definitions. TPL-02 adds CSS
+inspection/styling; the public loader remains for a later milestone.
 
 - Establish the Go module, `template` package and documented loading contract. Align the Go
   baseline with the sibling modules; record dependency versions used for the work.
@@ -343,6 +356,14 @@ there is no claim of styled or sized templates.
 ### DOM-01 — CSS inspection and diagnostic reporting
 
 Repository: `w3c-dom`. Dependencies: none; can proceed alongside TPL-01.
+
+**Implemented:** `cssom.InspectStylesheet` and `InspectInlineStyle` provide source
+inspection, diagnostic codes, rule/declaration ordinals, CSS line/column locations
+and wrapped parser causes. The stylesheet result includes an engine-compatible
+sheet and retains duplicate/invalid declarations before reduction. Unsupported
+at-rule text is retained as an opaque rule and reported. Inspection checks syntax
+and the existing `display` grammar, not all property value grammars. Inline
+styling shares the inspected declaration handling; legacy callers remain permissive.
 
 - Expose source-ordered rules/declarations and sufficient provenance before
   invalid or losing declarations disappear from effective-property views.
@@ -392,6 +413,13 @@ has its own correctness obligations.
 ### TPL-02 — Isolated styling of each template definition
 
 Repository: `pagelayout`. Depends on TPL-01 and DOM-01.
+
+**Implemented:** each definition has an independently styled page/frame tree with
+cloned html/body context, original source identities, fresh CSSOM state and shared
+read-only inspected sheets. Failures return no partial styled collection. Tests
+cover inheritance, specificity, source order, importance, structural selectors,
+invalid/nonmatching selectors, source preservation and mutation isolation.
+Working models remain private; no fixed geometry or public loader is published.
 
 - Collect accepted head sheets once, then create a fresh active document and
   CSSOM per definition. Preserve source mappings and collection html/body context.

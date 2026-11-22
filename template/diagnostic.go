@@ -14,6 +14,8 @@ const (
 	stageParse     loadStage = "parse"
 	stageDiscovery loadStage = "discovery"
 	stageStructure loadStage = "structure"
+	stageCSS       loadStage = "css"
+	stageStyling   loadStage = "styling"
 )
 
 type diagnosticCode string
@@ -38,12 +40,24 @@ const (
 	codeFrameContent        diagnosticCode = "frame.content"
 	codeInvalidElementID    diagnosticCode = "element.id-invalid"
 	codeDuplicateElementID  diagnosticCode = "element.id-duplicate"
+	codeStyleAttribute      diagnosticCode = "css.style-attribute"
+	codeStyleRegistration   diagnosticCode = "css.registration"
+	codeStyleFailure        diagnosticCode = "css.styling"
 )
+
+// CSS locations refer to the style element's text or style attribute value.
+// HTML locations remain source paths; rule/declaration ordinals are one-based.
+type cssLocation struct {
+	rule, declaration, line, column int
+	property                        string
+	inline                          bool
+}
 
 type diagnostic struct {
 	stage   loadStage
 	code    diagnosticCode
 	source  sourceRef
+	css     cssLocation
 	message string
 	cause   error
 }
@@ -59,6 +73,19 @@ func (d diagnostic) Error() string {
 	}
 	if d.source.templateID != "" {
 		where += fmt.Sprintf(" (template %q)", d.source.templateID)
+	}
+	if d.css.line != 0 {
+		where += fmt.Sprintf(" (CSS %d:%d", d.css.line, d.css.column)
+		if d.css.inline {
+			where += ", inline style"
+		}
+		if d.css.rule != 0 {
+			where += fmt.Sprintf(", rule %d", d.css.rule)
+		}
+		if d.css.declaration != 0 {
+			where += fmt.Sprintf(", declaration %d", d.css.declaration)
+		}
+		where += ")"
 	}
 	message := fmt.Sprintf("%s [%s/%s]: %s", where, d.stage, d.code, d.message)
 	if d.cause != nil {

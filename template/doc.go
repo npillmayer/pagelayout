@@ -5,10 +5,12 @@
 // direct DIV children are empty receiving frames. Source order determines
 // definition and frame order; classes are authoring conventions, not role markers.
 //
-// The implemented TPL-01 stage privately parses and validates collection
-// structure, retaining source identities for subsequent styling. HTML parser
-// recovery applies: this stage validates the resulting tree, not HTML syntax
-// conformance. It neither parses CSS nor computes geometry. The public loading
+// TPL-01 privately parses and validates collection structure. HTML parser
+// recovery applies: it validates the resulting tree, not HTML syntax conformance.
+// TPL-02 inspects CSS and styles an isolated html/body/page/frame document per
+// definition using w3c-dom. Original source identities and pre-cascade declarations
+// are retained. Unsupported rule forms and syntax failures reject the collection.
+// Geometry and its complete CSS profile are not implemented. The public loading
 // API will be introduced when complete styled, sized catalogs can be returned.
 //
 // The intended compiled catalog is read-only and uses page-local CSS-pixel
