@@ -2,21 +2,26 @@
 
 Date: 2026-11-22. Status: adopted acceptance contract. These files accompany
 [CONTENT-LOADING.md](../../doc/CONTENT-LOADING.md). CONT-01's private source
-parser/inspector/styler is implemented and tests the source/style assertions.
-The full results below remain requirements for CONT-02 through CONT-05, not
+parser/inspector/styler and CONT-02's typed projection/profile are implemented.
+Tests cover source styles, typography, paint, typed lengths, decoded text ranges,
+unsized atomics and participation classifications. The full normalized/routed
+results below remain requirements for CONT-03 through CONT-05, not
 captured output from a public material loader. These are content documents,
 not template collections accepted by `pgtmpl`.
 
-Run `go test ./content` from the module root for the current source-stage checks.
-The private stage retains both `_err` files as styled source: their profile and
-routing failures belong to later phases. No channel/group/register assertions
-are claimed implemented by CONT-01.
+Run `go test ./content` from the module root for source and projection checks.
+`loadSource` retains both `_err` files as styled source. `loadProjection` rejects
+`float_err.html` with the expected authored profile diagnostic; nested-flow
+ownership remains a CONT-03 check. No channel/register publication is implemented.
+Route-free builder contract tests verify anonymous-owner font context; the
+production loader does not yet normalize or index horizontal groups.
 
 DOM-CONT-02 adds a focused integration check in `content/border_fonts_test.go`:
 the shared text-style snapshots and border getter resolve story-b's `.1em`
 border to 98304 DU (2px), or 117965 DU (approximately 2.4px) with the override.
 Currentcolor follows each source cascade. This check uses no frame or font
-services and does not implement the full CONT-02 content projection.
+services. CONT-02's projection tests now also verify these effective edges and
+paint alongside the remaining source constraints and snapshots.
 
 Load each HTML file as a complete body with its embedded CSS. Supply the override
 CSS only in the explicitly named variant. No template catalog, receiver size,

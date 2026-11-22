@@ -267,13 +267,16 @@ API, concrete box handles in generic registers, shared style-service ownership
 and initial profile are adopted. [Acceptance fixtures and expected results](content/testdata/README.md)
 are included. CONT-01 implements private UTF-8 source parsing, CSS inspection
 and original-document styling, with inert/resource boundaries and structured
-diagnostics. Run `go test ./content` for these checks. Public material loading,
-full profile validation and routing remain pending. DOM-CONT-01 adds the shared
+diagnostics. CONT-02 adds private authored/effective profile validation and a
+detached, typed unsized projection with source typography, paint, edges, text
+ranges and suppression classifications. Run `go test ./content` for these checks.
+Public material loading, normalization and routing remain pending. DOM-CONT-01
+adds the shared
 `w3c-dom/style/textstyle` source snapshots, and TY-CONT-01 migrates tytui's
 compatibility facade. DOM-CONT-02 adds checked source-font border resolution,
 including inherited em/rem widths, with an acceptance-fixture integration test.
-Box/register changes remain pending; CONT-02 will consume these sibling services
-in the content projection.
+CONT-02 consumes these sibling services and preserves inherited source lengths
+and unresolved percentages. Box/register changes remain pending.
 Floats, preparation and page trials remain later work.
 
 See [the loading package and PR plan](doc/TEMPLATE-LOADING.md),

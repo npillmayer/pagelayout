@@ -1,7 +1,8 @@
 # Content loading and routing implementation plan
 
 Date: 2026-11-22. Status: CONT-00 adopted and complete; CONT-01 private source
-parsing, inspection and styling implemented. DOM-CONT-01's shared text-style
+parsing, inspection and styling and CONT-02 typed projection/effective profile
+are implemented. DOM-CONT-01's shared text-style
 service, TY-CONT-01's tytui migration and DOM-CONT-02's source-font border helper
 are implemented. The public material loader, normalization/routing and BOX-CONT
 work remain pending.
@@ -26,7 +27,7 @@ CONT-00 adopts concrete `content.Box` handles as payloads and a generic conversi
 of those existing queues, preserving their persistent behavior.
 
 Section 11 records the adopted decisions separately from later open questions.
-CONT-02 onward and the BOX-CONT items remain implementation
+CONT-03 onward and the BOX-CONT items remain implementation
 work. References describe checked-out implementations; code sketches describe
 the adopted target API unless explicitly identified as implemented.
 
@@ -53,16 +54,44 @@ ordinary hyperlink/canonical-link destinations are never fetched or executed.
 This uses the implemented sibling `CSSOM.StyleWithOptions` traversal boundary,
 which preserves original selector ancestry and sibling positions. The styler
 also now applies declarations to every included element, without a layout-tag
-allowlist. DOM-CONT-01's computed text-style service and DOM-CONT-02's font-aware
-border helper are implemented; their content projection remains CONT-02.
+allowlist. CONT-02 consumes DOM-CONT-01's computed text-style service and
+DOM-CONT-02's font-aware border helper in the projection described below.
 
 Tests cover the fixtures' source/style assertions, reader ownership/failures,
 UTF-8, CSS diagnostics and causes, inert boundaries, source immutability and
 independent concurrent loads. No boxes, channel registers, fonts or used geometry
-are created. Full authored/effective profile checking (including float, CSS
-paint-resource/effect and typography restrictions) remains CONT-02; nested route
-validation remains CONT-03. Thus the two `_err` fixtures currently load as private
-styled source and still must fail when those later phases are implemented.
+are created. The two `_err` fixtures still load through `loadSource`: profile
+checking belongs to CONT-02 and nested route validation belongs to CONT-03.
+
+### Implemented CONT-02 boundary
+
+Private [`loadProjection` / `projectSource`](../content/project.go) audit the
+authored CSS profile, classify participation, resolve source typography and
+produce detached source records plus typed, unsized `layout.RenderNode`s.
+[`profile.go`](../content/profile.go) checks losing, nonmatching and suppressed
+declarations as well as the cascade winners. Section 6 records the exact
+property/element profile. Unsupported values return source-associated diagnostics
+and no partial projection; the original DOM and CSSOM remain unchanged.
+
+The copied ledger retains every source node, original ancestry, attributes and
+decoded text, including inert, metadata and display-suppressed sources. Active
+element records retain text-style snapshots, checked flow names, typed box
+constraints and paint. Render descriptors have no original DOM/CSSOM pointers;
+all element styles are explicit, including empty paragraph owners and unsized
+inline-block interiors. TextRefs cover each active text node's decoded UTF-8
+bytes without whitespace or soft-hyphen transformation. A wholly suppressed
+body has a nil render root and a complete source ledger.
+
+Absolute values convert explicitly to CSS pixels; em/rem use source fonts and
+percentages remain fractions. Explicitly inherited lengths retain their parent's
+computed value across font changes. No receiving geometry or font service is
+consulted. Tests cover fixture typography/edges/paint/text, nested atomics,
+suppression, source detachment, diagnostics and independent concurrent loads.
+Route-free builder contract tests verify anonymous-owner font context, but the
+production projection does not normalize boxes. Routing/partitioning remain
+CONT-03 and public material publication remains CONT-04. `float_err.html` now
+fails projection's authored profile check; `nested-flow_err.html` still projects
+successfully for CONT-03 to reject its route ownership.
 
 ## 1. Deliverable and boundaries
 
@@ -306,8 +335,9 @@ consider a bulk constructor only if realistic collection sizes justify it.
 
 The canonical inputs and assertion tables now live alongside the content package
 in [content/testdata](../content/testdata/README.md). They specify required future
-material-loader results. CONT-01 tests exercise their source/style portions;
-channel, box, group and publication assertions await the subsequent phases.
+material-loader results. CONT-01/02 tests exercise source/style, typed projection,
+text ranges and participation classification. Channel, normalized box/group and
+publication assertions await the subsequent phases.
 
 | Fixture | Acceptance purpose |
 | --- | --- |
@@ -510,8 +540,8 @@ from the serialized-use contract of future prepared paragraph handles.
 ## 6. Adopted initial profile
 
 These choices were adopted in CONT-00. They are staged scope, not permanent
-restrictions inferred from sibling code. The property-by-property implementation
-audit in CONT-02 must follow this profile and checked sibling parsers.
+restrictions inferred from sibling code. CONT-02 implements the audit below with
+checked sibling parsers; routing restrictions remain CONT-03.
 
 | Concern | Adopted first slice | Later extension or decision |
 | --- | --- | --- |
@@ -560,6 +590,55 @@ Do not silently lock hyphenation to NoHyphenation because `tytui` does. Preserve
 the authored/effective policy and U+00AD source bytes, then let the preparation
 profile choose or diagnose supported behavior. The shared DOM textstyle snapshot
 carries these policies; no typography engine change is needed for chunk 1.
+
+### Implemented CONT-02 property and element audit
+
+The following authoring vocabulary is explicit. Properties outside it are errors,
+even when they would currently have no visible effect. Supported shorthands are
+expanded by `w3c-dom`, including their resets. CSS-wide `initial`, `inherit` and
+`unset` retain ordinary cascade semantics; rollback keywords are unsupported.
+
+| Properties | Accepted authored/effective values |
+| --- | --- |
+| `display` | `none`, or block/inline outer display with flow/flow-root inner display, including `inline-block`; no list-item flag. Body must be block flow/flow-root unless suppressed. |
+| `position`, `float`, `visibility`, `box-sizing`, `writing-mode` | `static`, `none`, `visible`, `content-box`, `horizontal-tb`, respectively. |
+| `flow-into`, `flow-from` | Checked decoded names or none for `flow-into`; only none for `flow-from`. Named-root eligibility is checked in CONT-03. |
+| `width` | Auto, absolute lengths, percentages, em/rem. |
+| `margin` and four physical sides | Auto or signed absolute/percentage/em/rem lengths. |
+| `padding` and four physical sides | Nonnegative absolute/percentage/em/rem lengths. |
+| `height`, `min-width`, `min-height`, four physical insets | Auto only. |
+| `max-width`, `max-height` | None only. |
+| `border`, four side shorthands, `border-width/style/color`, twelve side longhands | Checked absolute/em/rem widths; none/hidden/solid styles; checked colors. None/hidden have zero effective width. |
+| `color`, `background`, `background-color` | Checked sRGB colors/currentcolor; background shorthand is solid-color only. Foreground and background resolve in source context. |
+| `font-family`, `font-size`, `font-weight`, `font-style` | Shared textstyle grammar, including source-relative sizes and weights. Computed font size must be positive. No font selection occurs. |
+| `direction`, `unicode-bidi`, `hyphens` | LTR/RTL; normal/isolate; none/manual/auto, respectively. HTML language/direction/emphasis semantics come from the shared resolver. |
+| `white-space`, `line-height`, `word-spacing`, `letter-spacing`, `word-break`, `overflow-wrap` | Normal only. |
+
+Background and border-image reset longhands introduced by supported shorthands
+must remain at initial values. They are not independently accepted authoring
+properties. Ordinary inline flow boxes must have zero effective margins, padding
+and borders; blocks and inline-blocks retain their edges. Length conversion checks
+finite float32 representation, including overflow and nonzero underflow. Explicit
+inheritance copies computed source-parent lengths before detachment; inherited
+percentages stay percentages. Font-relative borders use the shared checked
+font-context helper, including its DU rounding.
+
+Active supported HTML elements are `html`, `body`, `div`, `p`, `address`,
+`article`, `section`, `aside`, `main`, `header`, `footer`, `nav`, `blockquote`,
+`h1`–`h6`, `hgroup`, `figure`, `figcaption`, `pre`, `a`, `abbr`, `b`, `bdi`,
+`cite`, `code`, `data`, `del`, `dfn`, `em`, `i`, `ins`, `kbd`, `mark`, `q`,
+`s`, `samp`, `small`, `span`, `strong`, `sub`, `sup`, `time`, `u` and `var`.
+This list grants container/text participation, not automatic browser decorations,
+generated quotes or superscript sizing. Active unknown/custom/foreign elements,
+replaced content, lists, tables, forms, `br` and `hr` require later explicit
+contracts. `pre` needs author `white-space:normal` to override its HTML hint.
+An active `hidden` attribute requires explicit `display:none` in this slice.
+
+Display suppression skips effective box/element/text-style checks for the whole
+subtree, retaining its provenance. It does not bypass authored CSS auditing or
+CONT-01's earlier resource checks. Inert/metadata source records retain their own
+classification. HTML is a source-style context; body is the render root. No
+browser UA stylesheet is added.
 
 ## 7. Diagnostics and identity
 
@@ -618,8 +697,8 @@ fixtures. Retain whole source ancestry during directionality scans; routing must
 not change the result. Stage any deliberately unsupported cases explicitly.
 
 The previously proposed separate integration-package alternative is superseded
-by CONT-00's DOM-side ownership decision. Tytui now uses this service and
-pagelayout will consume it in CONT-02; neither should maintain a separate
+by CONT-00's DOM-side ownership decision. Tytui and pagelayout's CONT-02 projection
+now use this service; neither should maintain a separate
 implementation of the moved semantics.
 
 The implemented API is `Resolve(nodes ...*styledtree.StyNode) ([]Style, error)`:
@@ -644,8 +723,13 @@ CSS cascade rollback remain explicitly unsupported. Full supported values and
 HTML scan boundaries are documented in the sibling
 [textstyle README](../../w3c-dom/style/textstyle/README.md).
 
-CONT-02 will consume these snapshots in `content`; CONT-01 does not yet project
-computed typography. Tests cover relative/root sizes, CSS-wide keywords,
+CONT-02 consumes these snapshots in `content`; CONT-01 remains the source/cascade
+boundary. The shared `ValidateDeclaration(property, value)` and
+`ParseKeyword(property, value)` helpers support CONT-02's pre-cascade authored
+audit without copying text CSS parsing into pagelayout. Declaration validation
+does not invent font context for relative values; effective resolution still
+checks their computed range. Applications impose their own narrower profile.
+Tests cover relative/root sizes, CSS-wide keywords,
 currentcolor, weights, HTML/CSS precedence, source-context direction scans,
 line-height/hyphenation, failure identity and detached/concurrent snapshots.
 
@@ -676,8 +760,8 @@ invalid input/context, range/rounding, source preservation and concurrent reads.
 The integration test in [content/border_fonts_test.go](../content/border_fonts_test.go)
 checks the actual acceptance fixture: story-b's border is 98304 DU (2px), or
 117965 DU (approximately 2.4px) with the override sheet and its changed currentcolor.
-It needs no frame geometry or local CSS parser. CONT-02 will integrate this into
-the content projection; no public material loader is introduced by this step.
+It needs no frame geometry or local CSS parser. CONT-02 integrates this into the
+typed content projection; no public material loader is introduced by this step.
 
 ### TY-CONT-01 — Migrate tytui to the shared resolver (implemented)
 
@@ -806,16 +890,20 @@ acceptance-fixture integration check are implemented as described in section 8.
 Content can project em/rem border widths from source styles without used values,
 frame fonts or its own CSS parser. This CONT-02 prerequisite is complete.
 
-### CONT-02 — Typed projection and effective profile
+### CONT-02 — Typed projection and effective profile (implemented)
 
-Adapt styled nodes into detached source/style records and typed unsized
-`RenderNode`s. Use checked getters and default constructors; retain block paint,
-edges, explicit font context and original text ranges. Validate participation,
-positioning and the initial content profile. Record suppressed/inert nodes.
+Private `loadProjection`/`projectSource` in content's projection/profile files
+produce detached source/style records and typed unsized `RenderNode`s. Checked
+DOM getters and default constructors retain paint, edges, explicit source font
+context and decoded text ranges. Authored and effective profile checks, element
+participation and suppressed/inert/metadata classifications are implemented.
+No source DOM/CSSOM pointers escape in successful values.
 
-Exit: projection matches source context, includes nested unsized atomics, and
-does not need any frame/catalog/used-value input. Absolute-unit conversions,
-percentage preservation and anonymous-owner context have concrete assertions.
+Exit satisfied: fixture assertions cover source context, nested unsized atomics,
+absolute-unit conversion, source-font em/rem and inherited computed lengths,
+percentage preservation, paint, decoded UTF-8 ranges and anonymous-owner context.
+Independent concurrent projections and no-partial-result diagnostics are tested.
+No frame/catalog/used-value input, normalization or route partition is introduced.
 
 ### CONT-03 — Route ownership and partition projections
 
