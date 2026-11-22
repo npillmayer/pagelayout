@@ -12,17 +12,24 @@ func main() {
 	registry := commando.NewCommandRegistry().
 		SetExecutableName("pgtmpl").
 		SetVersion("0.1.0").
-		SetDescription("Check, preview and locate HTML/CSS page-template collections. Subcommands are not implemented yet.")
+		SetDescription("Check, preview and locate HTML/CSS page-template collections. Preview and lookup are not implemented yet.")
 
 	root := registry.Register(nil)
 	root.SetAction(func(_ map[string]commando.ArgValue, _ map[string]commando.FlagValue) {
 		registry.PrintHelp(root)
 	})
 
+	registry.Register("load").
+		SetShortDescription("Load an HTML page-template collection and report errors.").
+		SetDescription("Load and check a local HTML page-template collection. Reports go to stdout; loading failures exit with status 1.").
+		AddArgument("html", "Local HTML collection file", "").
+		SetAction(func(args map[string]commando.ArgValue, _ map[string]commando.FlagValue) {
+			os.Exit(runLoad(args["html"].Value, os.Stdout))
+		})
+
 	for _, command := range []struct {
 		name, description, argument, argumentDescription string
 	}{
-		{"load", "Load an HTML page-template collection and report errors.", "html", "Local HTML collection file"},
 		{"serve", "Start a web server to preview page templates in a browser.", "html", "Local HTML collection file"},
 		{"find", "Locate a page-template collection by name.", "name", "Collection name"},
 	} {

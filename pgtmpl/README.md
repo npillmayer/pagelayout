@@ -11,21 +11,32 @@ go run ./pgtmpl load --help
 go build -o /tmp/pgtmpl ./pgtmpl
 ```
 
-The initial scaffold registers these commands:
+The CLI registers these commands:
 
-| Command | Intended behavior |
+| Command | Behavior |
 | --- | --- |
 | `pgtmpl load <html>` | Load an HTML collection and report template errors. |
-| `pgtmpl serve <html>` | Start a web server to preview the collection in a browser. |
-| `pgtmpl find <name>` | Locate a collection by name. |
+| `pgtmpl serve <html>` | Placeholder for a browser preview server. |
+| `pgtmpl find <name>` | Placeholder for locating a collection by name. |
 
-All three commands are placeholders: with their required argument, they print
-`not implemented yet` to stderr and exit with status 1. No files are read, no
-server is started, and no collection search is performed. The `template` package
-now provides the complete loading API; wiring it into these commands is a
-separate follow-up. For executable API examples, run
-`go test ./template -run '^Example' -v` from the module root.
+`load` uses `template.LoadFS` to load and check exactly the specified local file.
+Relative and absolute paths are supported; no repository search is performed.
+A successful load prints the file name and template count to stdout and exits
+with status 0. Failures print all returned diagnostics to stdout and exit with
+status 1. Reports retain the loader's source-node paths, template identities,
+CSS locations, diagnostic codes and underlying causes. CSS line/column locations
+refer to CSS text, not HTML file lines. The report heading includes the input
+path; diagnostic source names are relative to the containing directory.
+
+```sh
+go run ./pgtmpl load template/testdata/templates/sketch.html
+go run ./pgtmpl load template/testdata/templates/invalid-overlap.html
+```
+
+`serve` and `find` remain placeholders: with their required argument, they print
+`not implemented yet` to stderr and exit with status 1.
 
 Running without arguments displays help. Commando supplies `--help`, per-command
 help and `--version`. As in `tycli`, Commando 1.0.4 prints CLI syntax errors to
-stdout and exits with status 0; placeholder actions explicitly exit with status 1.
+stdout and exits with status 0. This includes a missing `load` argument; file
+loading failures and placeholder actions explicitly exit with status 1.

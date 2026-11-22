@@ -168,13 +168,14 @@ border-box overlaps. Touching edges are allowed within a documented precision
 tolerance; accepted geometry is not snapped or clipped. See
 [the comparison policy](doc/TEMPLATE-LOADING.md#d-resolve-fixed-geometry-and-build-the-compiled-tree).
 
-## CLI scaffold
+## Template-checking CLI
 
-[`pgtmpl`](pgtmpl/) provides the command-line shell for checking and previewing
-collections, using the same Commando framework as `tytui/tycli`. Run
-`go run ./pgtmpl --help` for usage. Its `load`, `serve` and `find` subcommands
-are placeholders; template checking, browser previews and collection lookup
-are not implemented yet.
+[`pgtmpl`](pgtmpl/) checks collections using the same Commando framework as
+`tytui/tycli`. Run `go run ./pgtmpl load <html>` to check a local collection with
+`template.LoadFS`. Success summaries and error diagnostics go to stdout; loading
+failures exit with status 1. Run `go run ./pgtmpl --help` for usage. The `serve`
+and `find` subcommands remain placeholders for browser previews and collection
+lookup.
 
 ## Dependencies and checks
 
@@ -221,7 +222,7 @@ TPL-05 also checks the upstream boundaries against these same revisions:
 ```
 
 The loading milestone returns compiled templates. Pagination, content
-preparation/rendering, CLI actions and configuration-driven shared repositories
+preparation/rendering, browser previews and configuration-driven shared repositories
 remain outside it.
 
 See [the loading package and PR plan](doc/TEMPLATE-LOADING.md),
