@@ -9,6 +9,12 @@ APIs or implemented capabilities. The sibling modules are under our control;
 their current limitations identify integration work rather than permanent limits
 on this design.
 
+The preceding content-input phase is planned in
+[CONTENT-LOADING.md](CONTENT-LOADING.md): source styling, named-branch routing,
+residual preservation and normalized group indexing. Its output is unsized box
+material with source context, not prepared paragraphs. Both plans remain
+proposals at this boundary.
+
 ## Recommendation
 
 Add a preparation callback alongside the existing typography callbacks, and

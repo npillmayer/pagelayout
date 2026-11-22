@@ -225,6 +225,10 @@ summarized below.
 
 ### 2. Style, box and route the content document
 
+The proposed implementation sequence, sibling changes and unresolved choices for
+this phase are detailed in [CONTENT-LOADING.md](CONTENT-LOADING.md). That plan is
+not an implemented content API or a settled profile.
+
 Parse and style **all of Cont-Doc in its original context**, then construct
 source-associated box material with computed style inputs but no final widths,
 heights, line breaks or page positions. “Parsing produces a box tree” describes
