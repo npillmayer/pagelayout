@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>CONT-00: source classification</title>
+  <style>
+    #suppressed { display: none; flow-into: hidden; }
+    #suppressed-child { flow-into: nested; }
+  </style>
+</head>
+<body>
+  <p id="visible">Visible residual text.</p>
+  <div id="suppressed"><article id="suppressed-child">Suppressed source text.</article></div>
+  <template id="inert"><article id="stored" style="flow-into: inert">Stored source text.</article></template>
+  <script id="metadata" type="application/json">{"label":"Non-content metadata"}</script>
+</body>
+</html>

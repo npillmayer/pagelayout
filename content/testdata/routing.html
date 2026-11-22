@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>CONT-00: named branches and source context</title>
+  <style>
+    html { font-size: 16px; }
+    body { font-size: 16px; color: #203040; }
+    .source { font-size: 20px; }
+    .source > .story { flow-into: article; }
+    .source > .note { flow-into: notes; }
+    .story + .note { color: #884400; }
+    .story > p { margin: 0; }
+    .story .tag { display: inline-block; width: auto; }
+    #story-b {
+      width: 75%;
+      margin-left: 1em;
+      padding-left: 0.5rem;
+      border-left: 0.1em solid currentcolor;
+    }
+  </style>
+</head>
+<body>
+  <p id="intro">Residual café &amp; introduction.</p>
+  <section id="source" class="source">
+    <article id="story-a" class="story" style="color: #224466">
+      <p id="paragraph-a">First article with an <span id="tag" class="tag">atomic interior</span>.</p>
+    </article>
+    <aside id="note" class="note">A source-styled note.</aside>
+    <article id="story-b" class="story" style="color: #203040"><p id="paragraph-b">Second&nbsp;article with a soft&shy;hyphen.</p></article>
+    <p id="ending">Residual section ending.</p>
+  </section>
+</body>
+</html>

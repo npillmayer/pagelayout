@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>CONT-00: nested route must fail</title>
+  <style>
+    .story { flow-into: article; }
+    .note { flow-into: notes; }
+  </style>
+</head>
+<body>
+  <article id="earlier" class="story">An earlier valid branch must not escape the failed load.</article>
+  <article id="outer" class="story"><aside id="inner" class="note">Conflicting nested branch.</aside></article>
+</body>
+</html>

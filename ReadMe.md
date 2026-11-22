@@ -259,11 +259,14 @@ The loading milestone returns compiled templates. Pagination, content
 preparation/rendering and configuration-driven shared repositories
 remain outside it.
 
-The next content-side milestone is proposed in
+The next content-side milestone is planned in
 [Content loading and routing](doc/CONTENT-LOADING.md). It describes how to reuse
 the tytui integration's source/style/projection contracts, partition named flows
-before normalization, and preserve residual content. Its sibling changes, APIs
-and initial profile remain proposals; content loading is not implemented yet.
+before normalization, and preserve residual content. CONT-00's reader/inspection
+API, concrete box handles in generic registers, shared style-service ownership
+and initial profile are adopted. [Acceptance fixtures and expected results](content/testdata/README.md)
+are included; content loading and sibling changes are not implemented yet.
+Floats, preparation and page trials remain later work.
 
 See [the loading package and PR plan](doc/TEMPLATE-LOADING.md),
 [the broader design](doc/DESIGN.md), and

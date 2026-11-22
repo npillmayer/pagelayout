@@ -225,9 +225,10 @@ summarized below.
 
 ### 2. Style, box and route the content document
 
-The proposed implementation sequence, sibling changes and unresolved choices for
-this phase are detailed in [CONTENT-LOADING.md](CONTENT-LOADING.md). That plan is
-not an implemented content API or a settled profile.
+The implementation sequence, sibling changes and later open questions for this
+phase are detailed in [CONTENT-LOADING.md](CONTENT-LOADING.md). CONT-00's loading
+contract and initial profile are adopted, with acceptance fixtures and expected
+results. Content loading and the required sibling changes are not implemented.
 
 Parse and style **all of Cont-Doc in its original context**, then construct
 source-associated box material with computed style inputs but no final widths,
@@ -269,11 +270,55 @@ starting point, but there is no existing named-flow extraction API. Prefer a
 source-aware boxing hook if needed over trying to recover ownership from anonymous
 boxes after the fact. Source identity must survive any normalization or rebuild.
 
-**Initial-profile proposal:** extract non-nested block branches only. Reject
-nested `flow-into` roots, inline source extraction, and unsupported out-of-flow
+**Adopted initial loading profile (CONT-00):** extract non-nested block branches
+only. Reject nested `flow-into` roots, inline source extraction, and unsupported out-of-flow
 content with source diagnostics. These are tractability limits, not a claim
 about the Regions model. In particular, no text or branch may disappear merely
 because it has no selected receiver yet.
+
+#### Deferred direction: floats into designated template frames
+
+Author direction (2026-11-22): content authors should eventually be able to
+author images and tables as CSS floats in their HTML document. In paged output,
+the template designer may provide frames intended for particular kinds of flow
+material, such as illustrations or tables. A floated item could then flow into
+an appropriate frame, with the template determining its page placement. Float
+support is explicitly postponed; this records the intended use case, not a
+settled routing API or an implemented feature.
+
+For example, a page design may have a narrow body-text area and a wide outer
+margin. An illustration frame can extend beyond the body-text area's horizontal
+bounds into that margin. The content author expresses the illustration's float
+intent in Cont-Doc; the template designer supplies the receiving frame's
+position and extent in Templ-Doc. The illustration keeps its source styles and
+identity while its receiving constraints come from the frame. It need not be
+confined to the body-text frame's rectangle.
+
+This extends the channel/register idea to material with a placement purpose.
+It does not yet decide that every CSS float is extracted, that element names
+alone select receivers, or that authors must add an explicit `flow-into` name.
+Those are future authoring and routing choices. In particular, distinguish
+ordinary local float layout from floats assigned to page-template frames.
+
+Questions for that later design work:
+
+- How does float intent, material kind or an explicit channel select eligible
+  frames, and what happens when no suitable frame is available?
+- How is the source anchor retained so placement respects reading order and
+  proximity to the referring text, including deferral to a later page?
+- How do image sizing, captions, table layout and possible table fragmentation
+  interact with the receiving frame and its fit policy?
+- If illustration and text areas geometrically overlap, how are text exclusion,
+  clearance and paint order represented? Extending into a margin does not by
+  itself require overlap, but the current template profile rejects overlapping
+  frame border boxes; any exception needs an explicit future design.
+- How do placement and deferred items participate in register trial/commit
+  behavior without duplicating or losing material?
+
+For now, the content-loading milestone retains its no-floats scope. This use case
+also does not introduce image/table loading, new frame-kind metadata or changes
+to template overlap validation. Revisit those contracts together when float
+support is designed; source styling must remain independent of frame placement.
 
 ### 3. Decide how residual main content participates
 
@@ -800,6 +845,10 @@ inputs explicitly (`1px = 0.75bp`), and convert results back at the adapter boun
   hook should be shared, and where does the fragment continuation contract live?
 - **Fragmentation:** container edges, margins at frame boundaries, kept blocks,
   widows/orphans, forced breaks, tables and floats need explicit supported policies.
+- **Float placement (deferred):** route authored image/table floats into frames
+  intended for their material kind, including illustrations extending into wide
+  margins. Matching, anchors, exclusion and deferral remain open; see the
+  [deferred float direction](#deferred-direction-floats-into-designated-template-frames).
 - **Trials:** caller-driven candidate order versus scoring; look-ahead limits,
   page-to-page backtracking, first/facing-page rules, and required-channel progress.
   The initial proposal locks committed pages and does not backtrack across them.

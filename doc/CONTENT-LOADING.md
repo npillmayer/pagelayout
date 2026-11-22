@@ -1,6 +1,8 @@
 # Content loading and routing implementation plan
 
-Date: 2026-11-22. Status: proposal for chunk 1; not implemented or approved API.
+Date: 2026-11-22. Status: CONT-00 adopted and completed (design, fixtures and
+expected results). Content loading and the required sibling changes are not
+implemented. Floats remain explicitly deferred.
 
 This plan develops the content-input phase of [DESIGN.md](DESIGN.md), following
 the completed [template-loading milestone](TEMPLATE-LOADING.md). It ends with
@@ -8,7 +10,7 @@ source-associated, normalized, unsized box material partitioned into named
 channels and residual content. [PREPARATION.md](PREPARATION.md) starts from those
 groups and establishes reusable typography. Page trials come afterward.
 
-The recommendation is to reuse the architecture demonstrated by sibling
+The adopted approach reuses the architecture demonstrated by sibling
 `tytui/htmlinput` and `tytui/documentlayout`, while moving shared CSS semantics
 to reusable sibling services and keeping channel ownership in `pagelayout`.
 Do not make the application module `tytui` a production dependency or copy its
@@ -17,11 +19,14 @@ complete document pipeline into this module.
 Use the existing sibling [`registers`](../../css-box-layout/registers/doc.go)
 package for channel material storage. `Register` and `RegisterBank` already
 provide persistent queues and bank versions; they are not future APIs to invent.
-The source routing and concrete material payload contracts remain proposed.
+CONT-00 adopts concrete `content.Box` handles as payloads and a generic conversion
+of those existing queues, preserving their persistent behavior.
 
-All CONT, DOM-CONT and BOX-CONT items below are proposed work. References describe
-the checked-out implementations, not a promise that the whole proposed process
-already exists. This plan authorizes no sibling edits by itself.
+Section 11 records the adopted decisions separately from later open questions.
+CONT-01 onward and the DOM-CONT, TY-CONT and BOX-CONT items remain implementation
+work. References describe checked-out implementations; code sketches describe
+the adopted target API, not APIs already available. This CONT-00 change adds no
+production Go code or sibling implementation changes.
 
 ## 1. Deliverable and boundaries
 
@@ -31,7 +36,7 @@ snapshot containing:
 - Source node identities, ancestry, decoded text and diagnostic locators.
 - Effective source typography, box constraints and paint, independent of frames.
 - Ordered named channels, each owning an ordered sequence of extracted branches.
-- An initial `registers.RegisterBank` containing read-only branch material for
+- An initial `registers.RegisterBank[Box]` containing read-only branch material for
   those channels, built only after all branches normalize successfully.
 - A residual source-associated tree, explicitly separate from named channels.
 - Normalized trees and an index of their actual horizontal groups, including
@@ -102,7 +107,7 @@ channels, whole-page transactions or general block fragmentation.
 
 ## 3. Ownership and package boundary
 
-**Proposed package:** `github.com/npillmayer/pagelayout/content`, parallel to
+**Adopted package:** `github.com/npillmayer/pagelayout/content`, parallel to
 `template`. Keep source, styling, projection, routing, normalization and
 diagnostic working types private. Root `pagelayout` later coordinates the two
 loaded products; neither loader imports the root or the other loader.
@@ -113,39 +118,60 @@ The intended dependency direction is:
 page composition
   ├─ template catalog
   └─ content material
-       ├─ w3c-dom: parsing/style access and checked source values
-       ├─ css-box-layout: typed constraints, normalization and text references
-       └─ typography/style: shared value vocabulary, when adopted
+       ├─ w3c-dom: parsing, checked values and style/textstyle snapshots
+       └─ css-box-layout: typed constraints, normalization, text references
+                         and registers.RegisterBank[content.Box]
 ```
 
-Depending on typography style values does not require opening fonts or invoking
-paragraph preparation. Inspect its module dependency cost before adoption; a
-DOM-owned value snapshot mapped into typography at the preparation boundary is
-an alternative. Avoid recreating typography's style semantics in a local type.
+Keep computed text-style values in the new `w3c-dom/style/textstyle` service,
+without typography/font-engine dependencies. It owns source CSS and HTML hint
+semantics, including metadata absent from the current typography style type.
+Map its values into `typography/style.Style` at the preparation boundary, with
+explicit unit conversion. Do not add typography to the loader just for a style
+record or create a second resolver in `pagelayout`.
 
-A small candidate reader API is:
+The adopted reader and inspection API is:
 
 ```go
-// PROPOSED names and signatures; settle in CONT-00.
+// Adopted target API; implemented in CONT-01 through CONT-04.
 func Load(r io.Reader, opts LoadOptions) (*Document, error)
+
+type Stylesheet struct {
+    SourceName string
+    CSS        string
+}
 
 type LoadOptions struct {
     SourceName  string
     Stylesheets []Stylesheet // Named, caller-supplied author CSS texts.
 }
 
-func (d *Document) Bank() registers.RegisterBank        // Persistent value, immutable payloads.
+func (d *Document) Bank() registers.RegisterBank[Box]    // Persistent value, immutable payloads.
 func (d *Document) Channels() []string                  // First occurrence order.
 func (d *Document) Branches(channel string) []BranchInfo // Source order.
 func (d *Document) Residual() TreeInfo                  // Separate from channels.
 func (d *Document) Groups(tree TreeID) []GroupInfo       // Normalized group order.
+func (d *Document) NodeSource(id layout.NodeID) (SourceInfo, bool)
+func (d *Document) TextSource(id text.TextSourceID) (TextInfo, bool)
 ```
 
-`BranchInfo` identifies a routed root and its `TreeID`; `GroupInfo` identifies
-its tree-local group and owner boxes and source paragraph context. These are
-inspection values, not mutable box pointers. Avoid publishing all of the
-internal graph merely to demonstrate routing. The exact source/text inspection
-accessors should be driven by the acceptance example.
+Here `layout` and `text` refer to sibling `css-box-layout` packages. Inspection
+records expose the following information; slices and nested records are copied:
+
+| Record | Required inspection values |
+| --- | --- |
+| `BranchInfo` | Root `Box`, `TreeID`, source root locator and branch source order. |
+| `TreeInfo` | Tree identity and root handle; the residual tree is separate from all channel branches. |
+| `GroupInfo` | Group and nearest block-owner `Box` handles, source paragraph context and nested atomic associations. |
+| `SourceInfo` | Source name, NodeID, parent identity, repaired-DOM path, element/text kind, effective text style and ownership/classification. |
+| `TextInfo` | Source node identity and immutable decoded UTF-8 text referenced by `text.TextRef`; offsets are decoded bytes. |
+
+Ownership/classification distinguishes named-branch material, residual material,
+display suppression, inert contents and non-content metadata. Anonymous boxes
+have no fabricated source node; their paragraph context comes from their owner.
+Unknown source/text IDs return `false`. IDs passed to a Document are local to
+that snapshot. Stable persisted numbering and a general public tree traversal
+API are outside this surface.
 
 Keep normalized trees private initially. The later preparation bridge can live
 in `content` and invoke a box-owned preparation driver without exposing writable
@@ -176,38 +202,62 @@ derive a candidate bank, and publish the chosen candidate only after success.
 That checkpoint mechanism already exists; no additional whole-item cursor layer
 is required just to advance or reject a trial.
 
-The current payload interface is `FlowMaterial { GetBoxID() layout.BoxID }`.
-**Author clarification (2026-11-22): this definition is provisional and has no
-other client dependencies.** Its purpose was to leave the concrete item type
-open; the working expectation is now that register items will always be boxes.
-Do not treat GetBoxID or interface-based storage as a compatibility requirement.
-Sibling changes, including changes to the register types, are allowed and
-encouraged when useful to the page-layout design.
+The current sibling payload interface is
+`FlowMaterial { GetBoxID() layout.BoxID }`. The author confirms that it is
+provisional and has no other client dependencies. **CONT-00 decision:** remove
+that interface and convert the existing storage to `Register[T any]` and
+`RegisterBank[T any]` in BOX-CONT-02. Keep the queue/bank algorithms and persistence
+semantics; the queue does not inspect payloads or deduplicate box identities.
 
-Choose the box/material representation before introducing an adapter solely to
-satisfy FlowMaterial. Evaluate direct box storage or a box-oriented handle that
-retains the source/material owner, tree identity and future preparation/result
-associations. A raw mutable LayoutNode pointer is not automatically the right
-answer: persistent bank versions still need safe shared ownership, and BoxIDs
-remain tree-scoped. The current bank neither deduplicates nor interprets box IDs.
+The content loader instantiates that storage exclusively with concrete `Box`
+values. One item is the root box of an entire routed branch, including its
+subtree, not one item per paragraph. The handle is adopted as:
+
+```go
+// In content. All fields remain private.
+type Box struct {
+    owner *snapshot
+    tree  TreeID
+    id    layout.BoxID
+}
+
+func (b Box) Valid() bool
+func (b Box) Info() (BoxInfo, bool)
+```
+
+`snapshot` retains normalized trees, source text, styles and provenance. A Box
+keeps that material alive independently of the public Document variable. The
+handle is comparable and qualifies its tree-local BoxID with tree and snapshot
+ownership. Its zero value is invalid. `BoxInfo` returns copied kind, formatting
+context, typed constraints, paint and source references; it exposes no mutable
+`LayoutNode`, style pointer or child slice. An invalid handle returns `false`.
+
+The generic queue avoids a dependency from `css-box-layout` into `pagelayout`;
+`RegisterBank[Box]` statically fixes this consumer's payload type. The handle
+protects source lifetime and read-only tree access rather than merely adapting
+an existing GetBoxID interface. Mutable raw node pointers and bare BoxIDs do not
+provide those guarantees.
 
 Append box branches under `RegisterID(flowName)` in source order after
 normalization. Chunk 1's items are unset box material, not shaped paragraphs.
-Preparation later supplies reusable associations or a new bank of prepared box
-handles without mutating an earlier bank's items. The exact payload API and any
-necessary sibling changes are part of CONT-00, not fixed by this plan.
+Preparation later associates reusable prepared groups with these boxes without
+mutating them. Register payloads do not mix boxes with arbitrary paragraph or
+engine objects. Within-box remainder/continuation representation belongs to the
+page-trial milestone and is not a field to invent in this loading handle.
 
 The bank has no channel enumeration/order API, and removes exhausted registers.
 Retain a separate channel/source inventory for deterministic inspection; it is
-metadata, not another queue implementation. The bank accepts every string ID and
-nil payloads, but the content adapter should publish only validated flow names and
-non-nil branch items. Keep residual content separate until its binding policy is
+metadata, not another queue implementation. The generic bank keeps its permissive
+string IDs and payload values; empty First/Take results return the zero value of
+T with `false`. The content loader publishes only validated nonempty flow names
+and valid Box handles. Keep residual content separate until its binding policy is
 agreed; the bank's acceptance of an empty ID does not settle that policy.
 
-Later fragmentation can Take a whole item and Prepend a new immutable remainder
-to the candidate bank. The bank does not measure or split material, validate
-continuation identity, or make mutable payloads safe. Queue versions can be
-derived concurrently, but typography preparation may still require serialized
+Take/Prepend already support whole-item consumption and restoration. Applying
+them to a partially consumed box requires a later continuation contract; do not
+claim that a Box alone records a remainder. The bank does not measure or split
+material, validate continuation identity, or make mutable payloads safe.
+Versions can be derived concurrently, but typography preparation may still require serialized
 operations. Publishing a shared current bank remains the coordinator's job.
 Tests/examples of these existing mechanics are in
 [`registers/example_test.go`](../../css-box-layout/registers/example_test.go).
@@ -216,59 +266,33 @@ Repeated Append copies each remaining queue, so bulk loading a large channel has
 quadratic copying cost. Start with the existing API for the small milestone;
 consider a bulk constructor only if realistic collection sizes justify it.
 
-## 4. First executable input
+## 4. Acceptance fixtures and expected results
 
-The principal fixture should resemble this complete content document:
+The canonical inputs and assertion tables now live alongside the future package
+in [content/testdata](../content/testdata/README.md). They specify required future
+loader results; no content loader or executable content test exists in CONT-00.
 
-```html
-<!doctype html>
-<html lang="en">
-<head>
-  <style>
-    body { font-size:16px; color:#203040; }
-    .source { font-size:20px; }
-    .source > .story { flow-into:article; }
-    .source > .note { flow-into:notes; }
-    .story + .note { color:#884400; }
-    .story > p { margin:0; }
-    .story .tag { display:inline-block; width:auto; }
-  </style>
-</head>
-<body>
-  <p>Residual introduction.</p>
-  <section class="source">
-    <article class="story">
-      <p>First article with an <span class="tag">atomic interior</span>.</p>
-    </article>
-    <aside class="note">A source-styled note.</aside>
-    <article class="story"><p>Second article.</p></article>
-    <p>Residual section ending.</p>
-  </section>
-</body>
-</html>
-```
-
-Expected result:
-
-| Destination | Owned material |
+| Fixture | Acceptance purpose |
 | --- | --- |
-| `article` | First article branch, then second article branch; not their common section ancestor. |
-| `notes` | The aside branch, still with the color selected by its original preceding sibling. |
-| Residual | Body and section structure containing the introduction and section ending, with the routed branches excluded. |
+| [routing.html](../content/testdata/routing.html) | Two `article` branches, one `notes` branch, residual material, original sibling/ancestor styles and an independent inline-block interior. |
+| [routing-override.css](../content/testdata/routing-override.css) | The same HTML with changed channel names, source font sizes and paint; normal specificity, inline and importance precedence. |
+| [residual-inline.html](../content/testdata/residual-inline.html) | Extraction joins residual inline runs before normalization; a decorated emptied ancestor remains. |
+| [suppression.html](../content/testdata/suppression.html) | Display-suppressed, inert and metadata source remain classified without entering channels or groups. |
+| [empty.html](../content/testdata/empty.html) | Empty body is valid; an empty group still has its owner's default context. |
+| [nested-flow_err.html](../content/testdata/nested-flow_err.html) | Nested named roots fail atomically and identify both roots. |
+| [float_err.html](../content/testdata/float_err.html) | Floats are diagnosed as outside the first profile. |
 
-The article and note retain the 20px source font context. The sibling selector
-is evaluated before partitioning. The inline-block's interior is a separate
-normalized group, without a chosen width or height. Channel order is `article`,
-then `notes`; branch IDs are assigned by root source order independently of
-channel grouping. The residual tree has its own identity.
+The expectation document pins source-root and channel order, ownership, group
+owners, effective styles, retained constraints, raw decoded text and register
+persistence. HTML IDs label source nodes for review; they do not replace NodeIDs
+or freeze numeric TreeIDs/BoxIDs. Future tests must identify anonymous groups
+through their source owners and qualified handles rather than hard-coded IDs.
 
-Add a second fixture with unadorned inline text around an extracted block inside
-a block container. After extraction the residual inline runs may normalize into
-one group. This demonstrates why routing must precede final normalization.
 Also reuse the [existing content sketch](../template/testdata/content/article.html)
-as an integration input; it must be loaded as content, never as templates.
+in CONT-05 as content, never as templates. No pgtmpl invocation can load these
+fixtures as content yet.
 
-## 5. Proposed loading stages
+## 5. Adopted loading stages
 
 ### A. Parse and identify the complete source document
 
@@ -283,9 +307,8 @@ context. Do not offer arbitrary selector-based subtree loading until selection
 scope and residual ownership are specified. Reject a named routing root on html
 or body for this first profile; that avoids an ambiguous residual/root contract.
 
-Recommend UTF-8 validation, following `tytui`, rather than silently changing bad
-input bytes. This is an explicit input-policy choice for CONT-00. Empty bodies
-should produce a valid empty-content result, unlike an empty template collection.
+Validate UTF-8, following `tytui`, and reject invalid input bytes. Empty bodies
+produce a valid empty-content result, unlike an empty template collection.
 
 ### B. Inspect CSS and style the original document once
 
@@ -298,11 +321,14 @@ Apply the cascade to the original document, with no channel wrappers or template
 frame nodes introduced. Resolve selector and inheritance context before any
 projection changes. Keep this CSSOM private to the content snapshot/load.
 
-Adopt explicit no-resource-loading behavior: no scripts, linked CSS, `@import`,
-network images or fonts. Recommend diagnosing active resource requirements rather
-than loading a visually incomplete document silently. Inert template contents and
-non-rendered metadata need a documented traversal boundary. Conditional/scoped
-styles and generated content are outside the proposed first profile.
+Do not fetch resources or execute scripts. Diagnose linked CSS, `@import` and
+unsupported active resource requirements, including images and font resources.
+Ordinary hyperlink targets do not require fetching. Record inert template
+contents, script contents and non-content metadata, but exclude them from box
+projection, routing and active CSS inspection. Direct head style elements are
+the explicit stylesheet exception. Inline declarations on display-suppressed
+elements are still inspected; suppression is not an inert-content boundary.
+Conditional/scoped styles and generated content are outside the first profile.
 
 Distinguish three validation layers: malformed CSS anywhere in an inspected
 sheet; unsupported authored properties/values in the content profile; and
@@ -331,8 +357,10 @@ it must not be confused with CSS property inheritance.
 Use checked `GetDisplay`, `GetBoxLength`, `GetBoxKeyword`, `GetColor` and
 `GetBorder`. Convert absolute DU values to CSS pixels explicitly. Keep percentages
 as fractions in `layout.LenPercent`; defer resolution against receiving geometry.
-Resolve source-relative font sizes before detaching a branch. Ordinary `em` box
-lengths must use that source font context, not a frame's font.
+Resolve source-relative font sizes before detaching a branch. Resolve `em` box
+lengths against that element's computed font and `rem` against the source root
+font. Font-relative border widths require DOM-CONT-02's checked context-aware
+helper. No conversion may consult a frame's font or duplicate CSS parsing here.
 
 Text style computation currently needs the shared resolver work in section 8.
 Preserve paragraph owner context even for empty/object-only groups. Do not use
@@ -344,7 +372,7 @@ explicitly rather than borrowing a mutable DOM accidentally.
 
 Traverse active content in source preorder. Identify explicit effective nonempty
 flow names, classify their source boxes, and build a route table before building
-normalized trees. For the proposed first profile, a route root must be an
+normalized trees. For the adopted first profile, a route root must be an
 in-flow, non-replaced block flow or block flow-root element.
 
 Reject nested named roots, even if both name the same channel. Descendant
@@ -353,12 +381,12 @@ inline/inline-block routing roots and routing from within an inline or atomic
 ancestor in this first slice. Those restrictions avoid settling split inline
 ownership and partially extracting an atomic interior here.
 
-Recommend that `display:none` suppress its whole subtree and creates no channel
-branch, with an explicit suppression classification available for inspection.
+`display:none` suppresses its whole subtree and creates no channel branch, with
+an explicit suppression classification available for inspection.
 This differs deliberately from `tytui`'s blanket rejection of hidden content.
 Do not equate `visibility:hidden` with display suppression: it still has layout
-consequences, so reject it for the initial profile unless its paint contract is
-implemented. Validate CSS sources even when selectors lose or target suppressed
+consequences, so reject hidden/collapse values in the initial profile.
+Validate CSS sources even when selectors lose or target suppressed
 content; do not validate nonexistent boxes as active receivers/material.
 
 When checking source coverage, distinguish authored non-content/inert nodes,
@@ -440,25 +468,43 @@ read-only branch payloads; callers may derive independent banks without changing
 the loaded document. Concurrent read-only inspection may be supported separately
 from the serialized-use contract of future prepared paragraph handles.
 
-## 6. Initial profile proposed for agreement
+## 6. Adopted initial profile
 
-These are staged choices, not permanent restrictions inferred from sibling code.
+These choices were adopted in CONT-00. They are staged scope, not permanent
+restrictions inferred from sibling code. The property-by-property implementation
+audit in CONT-02 must follow this profile and checked sibling parsers.
 
-| Concern | Proposed first slice | Later extension or decision |
+| Concern | Adopted first slice | Later extension or decision |
 | --- | --- | --- |
 | Input root | Whole body; style full document | Arbitrary selected subtree and out-of-scope material policy |
 | Elements | Ordinary supported block/inline containers and text, including headings, article/section/aside | Replaced images, lists/markers, tables, forms and generated content require explicit handling, not silent generic DIV conversion |
 | Display | Block/inline with flow/flow-root; display:none suppression | Flex/grid/table/ruby/contents unsupported until projection contracts exist |
 | Flow roots | Non-nested block branches under block ancestry; repeated names concatenate branch references | Nested flows, inline extraction and extraction from inside atomics |
 | Residual | Explicit residual tree; no automatic `main` name | Default-channel assignment and collision/interleaving policy |
-| Position | Static in-flow material | Floats and positioned content; template fixed frames are a separate domain |
+| Position | Static in-flow material | Positioned content; template fixed frames are a separate domain |
+| Floats | No floats in chunk 1; explicitly postponed by the author | Image/table floats may later flow into designated template frames, including margin-spanning illustration frames; see the deferred direction below |
 | Box sizing | Content-box | Border-box adaptation |
-| Dimensions | Auto/absolute/percentage widths and permitted edges retained unsized; effective positive source font context for em | Viewport units, richer expressions and font-metric-dependent units need explicit contracts |
+| Dimensions | Auto/absolute/percentage widths and permitted margins/padding; em/rem resolved from source fonts; checked absolute or font-relative border widths | Viewport units, richer expressions and font-metric-dependent units need explicit contracts |
 | Height/min/max | Auto height; default min/max behavior | Authored constrained block heights and fragmentation |
-| Text | Normal white-space and normal line-height initially; preserve language/direction/isolate metadata | Other whitespace modes and line-height representations need shared extraction/preparation support |
+| Text | Positive computed font sizes, normal white-space/line-height; preserve language/direction/isolate and hyphens none/manual/auto metadata and soft-hyphen bytes | Other whitespace modes, line-height forms and zero font size need explicit representation/preparation support |
 | Inline edges | Zero on ordinary inline boxes; preserve block/inline-block edges | General inline edge binding deferred as in PREPARATION.md |
 | Paint | Checked foreground and solid background/border values retained | Rich backgrounds, decorations, effects and paint-only visibility policies |
 | Resources | Caller-provided HTML and CSS; no implicit external fetching | Resource resolver and font configuration belong to later input/preparation work |
+
+Initial typography defaults are generic serif, 16 CSS pixels (`medium`), weight
+400, normal slant, black foreground, normal whitespace/line-height and manual
+hyphenation. Language and direction come from source HTML/CSS context, falling
+back to undetermined language and LTR. The shared resolver handles `lang`, `dir`,
+`bdi` and emphasis defaults; author CSS retains precedence. This does not import
+a browser stylesheet with implicit heading sizes or paragraph margins.
+
+Scope decision (2026-11-22): postpone float support. The intended later use case
+is HTML-authored image/table floats flowing into template frames suited to their
+material, including illustrations extending beyond the body-text area into a
+wide margin. [DESIGN.md records the direction and open questions](DESIGN.md#deferred-direction-floats-into-designated-template-frames).
+For chunk 1, unsupported floats receive profile diagnostics; do not silently
+ignore their float intent or treat this temporary limit as a permanent authoring
+restriction. No float-to-channel mapping or frame-kind syntax is settled here.
 
 Do not resolve a percentage width just to get through the builder. A later
 layout operation may still reject a dependency it cannot solve; chunk 1 should
@@ -466,27 +512,30 @@ promise representability and source preservation, not universal trial support.
 For example, current box layout has restrictions on percentage inline-block
 sizing. Record that as integration work rather than discarding the percentage.
 
-Positive font-size is a proposed first preparation-compatible profile: current
+Positive font-size is the adopted first preparation-compatible profile: current
 `typography/style` spans require it, and box `FontSizePx == 0` means inheritance
 or fallback. Supporting an explicit CSS zero needs a distinct representation;
 do not silently turn zero into an inherited nonzero size.
 
 Do not silently lock hyphenation to NoHyphenation because `tytui` does. Preserve
 the authored/effective policy and U+00AD source bytes, then let the preparation
-profile choose or diagnose supported behavior. The exact metadata carrier for
-hyphens and future line-height data is an explicit sibling decision below.
+profile choose or diagnose supported behavior. The shared DOM textstyle snapshot
+carries these policies; no typography engine change is needed for chunk 1.
 
 ## 7. Diagnostics and identity
 
 Use a content-owned structured error, analogous to template `LoadError`, with
 stable stage/code, source filename/path/node, optional CSS location, explanatory
-message and wrapped original cause. Candidate stages: input, css, source-style,
+message and wrapped original cause. Stages: input, css, source-style,
 profile, routing, projection, normalization and publication.
 
-Suggested routing codes include `route.nested`, `route.root-display`,
+Routing codes include `route.nested`, `route.root-display`,
 `route.atomic-ancestor` and `route.document-root`. Source omissions not justified
 by classification are internal invariant failures, not successful warnings.
 Missing receivers are not load errors because a catalog is not an input.
+Use `profile.value` for authored values excluded by the first profile, including
+non-none floats; retain the property, value and CSS source location. These codes
+are pinned in the fixture expectations without fixing diagnostic prose.
 
 Preserve each error's true coordinate system: CSS line/column within its sheet,
 DOM path in the repaired tree, decoded text byte range, and qualified normalized
@@ -502,13 +551,13 @@ their files and preserve read/close errors without partial publication.
 
 ### DOM-CONT-01 — Shared checked source text-style resolution
 
-**Required for the recommended reuse strategy.** `w3c-dom` already supplies CSS
+**Required by CONT-00.** `w3c-dom` already supplies CSS
 inspection, cascade, typed display, checked box values/colors and decoded flow
 names. It does not currently provide the complete detached text-style resolution
 performed in `tytui/htmlinput.ResolvedStyles`.
 
-Add a checked, DOM-side text-style snapshot facility, with explicit parent/root
-context where needed. It must resolve source font sizes, relative weights,
+Add `w3c-dom/style/textstyle`, a checked source text-style snapshot service with
+explicit parent/root context. It must resolve source font sizes, relative weights,
 foreground color and language/direction context without selecting fonts or
 requiring containing geometry. Define its supported whitespace, line-height,
 bidi and hyphenation metadata. Move relevant parsing to checked DOM value helpers;
@@ -516,24 +565,37 @@ do not add another parser in `pagelayout`.
 
 Keep the result free of typography engine/font objects. Map it into existing
 `typography/style.Style` at the content/preparation adapter boundary, with
-explicit DU conversion. Whether HTML hints (`lang`, `dir`, `bdi`, emphasis tags)
-are handled by this facility or an adjacent reusable HTML adapter must be decided
-before extraction. Preserve author CSS precedence over presentational hints.
+explicit DU conversion. HTML semantics (`lang`, `dir`, `bdi`, emphasis defaults)
+belong in this shared service. Preserve author CSS precedence over defaults and
+presentational hints. Its snapshots carry line-height and hyphenation policy
+metadata even where `typography/style.Style` has no corresponding fields.
 
 Use `tytui` tests for relative sizes, root size, cascade keywords, currentcolor,
 relative font weight, language and `dir=auto`/isolate boundaries as migration
 fixtures. Retain whole source ancestry during directionality scans; routing must
 not change the result. Stage any deliberately unsupported cases explicitly.
 
-**Alternative requiring a decision:** promote the resolver into a separate
-integration package instead. This may be preferable if keeping HTML semantics
-outside the DOM styling package is important. It still must be shared by tytui
-and pagelayout and must not import an application module. This is a packaging
-choice, not permission to maintain two drifting implementations.
+The previously proposed separate integration-package alternative is superseded
+by CONT-00's DOM-side ownership decision. Both tytui and pagelayout use this
+service; neither maintains a separate implementation of the moved semantics.
+
+### DOM-CONT-02 — Checked font-relative border resolution
+
+**Required by the adopted em/rem edge profile.** The current `css.GetBorder`
+rejects nonzero font-relative widths. Add a checked context-aware variant/helper
+using element and root computed font sizes from DOM-CONT-01. Keep CSS parsing,
+effective none/hidden widths, inheritance and currentcolor semantics in the DOM
+module; `pagelayout` supplies the source font context and converts DU to pixels.
+Retain the existing absolute-only API's behavior for existing callers.
+
+Test em/rem widths, inherited computed widths when parent/child font sizes differ,
+none/hidden and currentcolor. The acceptance fixture's relative border must
+resolve without frame geometry or local border parsing. The precise helper
+signature is an implementation detail, not a reason to narrow the agreed units.
 
 ### TY-CONT-01 — Migrate tytui to the shared resolver
 
-**Required companion work if DOM-CONT-01 extracts its semantics.** Preserve
+**Required companion work to DOM-CONT-01.** Preserve
 `htmlinput.ResolvedStyles` as a compatibility facade returning its current
 typography values. Replace moved parsing with the common implementation and
 retain tytui's application profile checks. Run its typography/style, extraction,
@@ -573,12 +635,27 @@ source-preserving inline extraction or one allocation domain across branches.
 Introduce it only when a concrete normalization case requires it. Until then,
 qualify BoxIDs by tree identity rather than promising global uniqueness.
 
+### BOX-CONT-02 — Generic persistent registers
+
+Replace `FlowMaterial` with type parameters on the existing Register and
+RegisterBank; do not introduce another queue implementation. Preserve zero-value
+usability, source/FIFO order, front insertion, structural sharing, concurrent
+derivation and caller-controlled publication. Empty First/Take results return
+the zero T and false; if a caller stores zero T, the boolean distinguishes it
+from an empty queue. Storage does not impose a GetBoxID constraint or call into
+pagelayout. Update existing register tests/examples to concrete payload types.
+
+Test persistent append/take/prepend, independent candidate banks and removal of
+exhausted names. CONT-04 adds content-specific assertions: valid Box payloads,
+qualified identity, retained source lifetime and an unchanged initial bank after
+deriving other versions. The channel/source inventory remains separate metadata.
+
 ### typography, khipu and other collaborators
 
 No shaping, line-breaking or continuation engine changes are required for chunk
-1. Reuse existing style value contracts and text storage concepts. If richer
-line-height/hyphenation source metadata belongs in `typography/style`, propose a
-small value-contract extension with mapping tests; do not add `PrepareInline`,
+1. Preserve DOM-owned source snapshots and map supported values to existing
+typography style contracts at preparation time. Any later typography value
+extensions belong to that boundary; do not add `PrepareInline`,
 `FitInline` or register cursors in this milestone. Those belong to preparation
 and page trials, respectively.
 
@@ -588,16 +665,18 @@ box normalization and typography should each keep one implementation owner.
 
 ## 9. Proposed PR sequence and exit criteria
 
-### CONT-00 — Agree the boundary and executable fixture
+### CONT-00 — Agree the boundary and executable fixture (complete)
 
-Resolve the blocking decisions in section 11. Specify the value inspection
-surface and source/profile vocabulary, add the small fixture and an expectation
-document, and pin the acceptance assertions. Choose shared resolver ownership
-and verify sibling instructions before changing their repositories.
+Adopted on 2026-11-22. The reader/inspection surface, concrete Box handles and
+generic registers, shared DOM textstyle ownership, input/routing/profile rules
+and sibling work are recorded above and in section 11. The HTML/CSS fixtures
+and [expected results](../content/testdata/README.md) are present. Float support
+is explicitly deferred. Read each sibling's instructions when implementing its
+work; no sibling source code is changed by this milestone.
 
-Exit: reviewers can state exactly which source material each output owns and
-which operations must not occur during loading. This plan's illustrative API is
-either accepted or revised before a public package is introduced.
+Exit satisfied at the design level: reviewers can state which source material
+each output owns and which operations must not occur during loading. Fixtures
+are inputs to future executable tests, not evidence of a working content loader.
 
 ### CONT-01 — Parse, inspect and style the content source
 
@@ -620,6 +699,12 @@ of private content parsing once the required context contract is agreed.
 
 Exit: both consumers can obtain the same supported source typography without
 font services; inherited values do not depend on later layout ancestry.
+
+### DOM-CONT-02 — Source-font border values
+
+Add the checked font-context helper and its inheritance/effective-width tests.
+Exit: content can project em/rem border widths from source styles without used
+values, frame fonts or its own CSS parser. This is a CONT-02 prerequisite.
 
 ### CONT-02 — Typed projection and effective profile
 
@@ -651,12 +736,18 @@ Keep behavior of existing builders and tytui geometry unchanged.
 Exit: callers can map normalization failures to source identities using
 `errors.As`, and independent builds have documented identity/ownership behavior.
 
+### BOX-CONT-02 — Typed register storage
+
+Convert and regression-test the existing persistent queues as described above.
+Exit: `RegisterBank[T]` retains the existing semantics with no payload interface;
+CONT-04 can instantiate it with concrete content.Box values.
+
 ### CONT-04 — Normalize, index and publish
 
 Build each projected tree through CSS core, supply validated text lookup, index
-groups/owners/nested atomic interiors, and populate an initial RegisterBank with
-read-only branch payloads in channel source order. Publish it with the complete
-material snapshot only after all branches succeed.
+groups/owners/nested atomic interiors, and populate an initial RegisterBank[Box]
+with valid branch-root handles in channel source order. Publish it with the
+complete material snapshot only after all branches succeed.
 Add the agreed minimal public reader/inspection API. Validate no duplicate or
 missing ownership and no partially published trees on later-branch failure.
 
@@ -678,14 +769,18 @@ No pgtmpl content UI or visual page proof is required to complete this milestone
 ### Dependencies and review order
 
 ```text
-CONT-00 -> CONT-01 ----------------------┐
-CONT-00 -> DOM-CONT-01 -> TY-CONT-01 ----> CONT-02 -> CONT-03 --┐
-CONT-00 -> BOX-CONT-01 -------------------------------------> CONT-04 -> CONT-05
+CONT-00 -> CONT-01 ------------------------------------> CONT-02
+CONT-00 -> DOM-CONT-01 -> TY-CONT-01 -------------------> CONT-02
+                       DOM-CONT-01 -> DOM-CONT-02 ------> CONT-02
+CONT-02 -> CONT-03 ------------------------------------> CONT-04 -> CONT-05
+CONT-00 -> BOX-CONT-01 --------------------------------> CONT-04
+CONT-00 -> BOX-CONT-02 --------------------------------> CONT-04
 ```
 
 The diagram expresses dependencies, not authorization to delegate work.
 Shared resolver semantics must be reviewed with the tytui migration before
-CONT-02 depends on them; CONT-04 depends on CONT-03 and structured builder errors.
+CONT-02 depends on them; CONT-02 also needs DOM-CONT-02. CONT-04 depends on
+CONT-03, structured builder errors and generic registers.
 Do not claim BOX-CONT-01 completes the later preparation driver.
 
 ## 10. Validation matrix
@@ -695,7 +790,7 @@ Do not claim BOX-CONT-01 completes the later preparation driver.
 | Ancestor, adjacent-sibling and nth-child selectors | Styles reflect original DOM positions after branches are routed elsewhere. |
 | Same HTML, different additional CSS | Fresh source/style/routing snapshot; no HTML-hash-only cache reuse. |
 | Two roots naming the same channel | Ordered separate branches; no duplicate residual material or synthetic merged parent. |
-| Initial RegisterBank | Take visits the channel's branch items in source order; deriving a bank or prepending a remainder leaves the initial bank unchanged. Payloads retain qualified source/tree identities. |
+| Initial RegisterBank[Box] | Take visits branch-root handles in source order; deriving a bank or prepending an unchanged whole item leaves the initial bank unchanged. Handles retain qualified identity and source lifetime. No within-box remainder is claimed. |
 | Nested named roots, including explicit CSS inherit | Deterministic route error with both source roots; no partial material. |
 | Inline/atomic routing roots or ancestors | Profile error; do not silently blockify or split atomic ownership. |
 | No flow declarations | All active material remains residual; zero named channels is valid. |
@@ -704,10 +799,13 @@ Do not claim BOX-CONT-01 completes the later preparation driver.
 | Empty decorated ancestor after extraction | Retained residual box; its source material is not duplicated into branches. |
 | Nested inline-block | Outer group contains an atomic boundary; interior groups remain independently indexed and unsized. |
 | Source font em/rem/% and inherited language/direction | Same effective source context before/after projection; no frame defaults consulted. |
+| Font-relative border widths | Checked source-font resolution, including inheritance, none/hidden and currentcolor; no local CSS parser or receiving geometry. |
 | Percentage box width and auto atomic width | Remain typed constraints; no used-value or intrinsic measurement occurs. |
 | Entities, multibyte UTF-8, NBSP and collapsible spaces | Valid decoded-byte ranges; no invented HTML offsets or unexplained content loss. |
 | Anonymous/split boxes | Qualified BoxIDs, original NodeIDs where available, valid owner context. |
 | Display suppression and inert content | Explicit classification; no channels created from suppressed subtrees. |
+| Empty body or emptied decorated ancestor | Valid residual tree and indexed empty horizontal group with owner context; no invented flowing text or discarded decoration. |
+| Deferred floats | Profile diagnostic, never ignored or automatically routed into a new kind of frame. |
 | Later branch build failure | No published document; wrapped cause and source locator retained. |
 | Missing CSS/source read failure | Structured error; no styling/boxing of partial input. |
 | Inspection mutation and repeat loads | Returned slices do not mutate snapshots; independent loads never share mutable current state. |
@@ -722,31 +820,42 @@ integration regression tests in tytui when its shared facade changes. A later
 render proof may help inspection, but must not become a hidden layout dependency
 of content loading.
 
-## 11. Decisions still required
+## 11. Adopted decisions and later open questions
 
-| Decision | Recommendation | Needed before |
+The following CONT-00 choices were adopted on 2026-11-22. Adoption establishes
+the implementation target; it does not mean the APIs have been implemented.
+
+| Decision | Adopted choice | Delivery |
 | --- | --- | --- |
-| Package/API and tree access | Separate `content` package; private trees and copied inspection values; preparation bridge accesses internals later | CONT-01/public surface in CONT-04 |
-| Shared text-style resolver home | DOM-side checked snapshot service plus tytui compatibility facade; integration-package alternative if HTML hints need separation | DOM-CONT-01 |
-| Typography value dependency | Reuse shared style values or map from DOM snapshots; explicitly carry policy fields absent from current Style | CONT-02 |
-| Source input scope | Whole body, full original document cascade; defer selector-based roots | CONT-01 |
-| Invalid UTF-8 and external resources | Reject invalid encoding and unsupported active resource requirements; never fetch implicitly | CONT-01 |
-| Content CSS profile/defaults | Approve section 6 and a property-by-property source audit; do not copy the template allowlist | CONT-02 |
-| Display:none vs visibility | Suppress display:none with recorded classification; diagnose unsupported visibility behavior | CONT-02/03 |
-| Route eligibility | Non-nested block/flow-root under block ancestry; reject root/inline/atomic extraction initially | CONT-03 |
-| Residual handling | Preserve separately; do not auto-bind to `main` in chunk 1 | CONT-03 |
-| Extracted-root ancestor boxes | Retain source style context, exclude ancestor layout boxes from the routed branch | CONT-03 |
-| Identity | Snapshot + tree + BoxID; no raw BoxID global keys or HTML-only semantic identity | CONT-02/04 |
-| Register payload API | Treat FlowMaterial/GetBoxID as provisional with no other clients; choose box storage/handles and adapt sibling registers as needed, preserving ownership guarantees | CONT-00 |
-| Zero font size and deferred text features | Explicit initial profile error for zero; preserve future policy metadata without choosing a breaker | CONT-02 |
-| Branch-root margins/containing block | Preserve constraints now; decide frame-edge and fragmentation rules in trials | Before chunk 3, not a reason to size in chunk 1 |
-| Default channel and missing receivers | Decide binding/order/collision policy when integrating existing registers with trials; never drop source material now | Before chunk 3 |
+| Package/API and tree access | Separate `content` package, reader API and copied inspection values; private normalized trees and read-only Box handles | CONT-01/04 |
+| Shared text-style resolver | `w3c-dom/style/textstyle`, including HTML semantics; tytui compatibility facade | DOM-CONT-01 + TY-CONT-01 |
+| Typography dependency | Keep DOM-owned style/policy values through loading; map to typography at preparation time | CONT-02; preparation later |
+| Source scope | Whole body, full original-document cascade; reader remains caller-owned; empty body is valid | CONT-01 |
+| Encoding/resources | Reject invalid UTF-8; no fetching or script execution; diagnose active unsupported resource requirements; classify inert/script/metadata contents | CONT-01 |
+| CSS/cascade | Adopt section 6 and its defaults; ordered additional author sheets with ordinary specificity/inline/importance; audit losing/nonmatching declarations | CONT-01/02 |
+| Relative lengths | Resolve em/rem from source fonts, including checked border helpers; retain percentages unsized | DOM-CONT-02 + CONT-02 |
+| Display/visibility | Suppress display:none with recorded classification; reject hidden/collapse visibility in this profile | CONT-02/03 |
+| Route eligibility | Non-nested static block/flow-root under block ancestry; reject document-root, inline and atomic extraction | CONT-03 |
+| Residual/ancestors | Preserve residual separately, including emptied decorated containers; no automatic main; routed roots keep own boxes and ancestor-derived styles, not ancestor boxes | CONT-03 |
+| Identity | Snapshot + tree + BoxID; comparable Box handles retain ownership; no raw global BoxID keys or HTML-only semantic identity | CONT-02/04 |
+| Register payload | Concrete `content.Box` branch-root handles in `RegisterBank[Box]`; convert existing queues to generics and remove FlowMaterial/GetBoxID | BOX-CONT-02 + CONT-04 |
+| Text policy | Positive font size; normal whitespace/line-height; preserve hyphens none/manual/auto and soft-hyphen bytes for preparation | DOM-CONT-01 + CONT-02 |
+| Diagnostics/publication | Structured source-aware errors and causes, deterministic ordering, no partial document/bank on failure | BOX-CONT-01 + CONT-01/04 |
+| Floats | Explicitly deferred beyond chunk 1; unsupported float values are profile errors | CONT-02; future float design |
 
-After agreement, update the status of individual choices rather than marking the
-entire proposal settled. Register/RegisterBank storage and persistent bank
-versions already exist. What remains to design is the concrete material payload,
-within-item continuation, residual binding and page-level publication policy.
-The channel inventory supplements the bank with source/order metadata.
+Still open beyond CONT-00:
+
+| Later question | Boundary already fixed | Decide when |
+| --- | --- | --- |
+| Branch-root margins and containing blocks | Preserve constraints; do not zero edges or resolve against a guessed frame | Page trials, before chunk 3 |
+| Residual binding and missing receivers | Retain all material now; explicit residual binding and errors for material with no permitted destination are the later recommendation | Composition/page trials |
+| Within-box continuation and page publication | Reuse persistent banks and immutable boxes; no mutable cursor or accepted geometry in the source snapshot | Page trials |
+| Richer profile and float placement | Current limits are staged; the recorded image/table-to-frame direction remains deferred | Dedicated later designs |
+
+The channel inventory supplements the bank with source/order metadata. Detailed
+diagnostic prose and implementation helper signatures may evolve without
+reopening these ownership and scope decisions. Broader PREPARATION.md and page
+trial proposals are not adopted by completing CONT-00.
 
 ## 12. Handoff to preparation
 

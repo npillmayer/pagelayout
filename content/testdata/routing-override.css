@@ -1,0 +1,13 @@
+/* Pass this text as one additional author stylesheet, after embedded CSS. */
+.source { font-size: 24px; }
+.source > .story { flow-into: features; }
+.story + .note { color: #006699; }
+
+/* Later source order alone does not beat the preceding sibling selector. */
+.note { color: #ff0000; }
+
+/* Normal author CSS does not replace story-a's inline color. */
+.story { color: #cc0000; }
+
+/* Important author CSS does replace story-b's normal inline color. */
+#story-b { color: #008855 !important; }
