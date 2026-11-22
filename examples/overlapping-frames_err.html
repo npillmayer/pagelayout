@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Invalid: overlapping frames reject the whole collection</title>
+  <style>
+    .page { width:400px; height:300px; background:#ffffff; }
+    .frame { position:fixed; top:20px; width:160px; height:260px; flow-from:main; }
+    .left { left:20px; }
+    .right { left:220px; }
+    .broken > .right { left:160px; }
+  </style>
+</head>
+<body>
+  <!-- This first definition is valid, but it must not be published separately
+       when the following definition fails. serve must start no server. -->
+  <template id="valid-columns" data-type="page">
+    <div class="page">
+      <div class="frame left"></div>
+      <div class="frame right"></div>
+    </div>
+  </template>
+
+  <!-- Expected: geometry/geometry.overlap. The left frame ends at x=180;
+       the right starts at x=160, creating a 20px overlap. Remove the .broken
+       override to restore the 40px gutter used in the first definition. -->
+  <template id="overlapping-columns" data-type="page">
+    <div class="page broken">
+      <div class="frame left"></div>
+      <div class="frame right"></div>
+    </div>
+  </template>
+</body>
+</html>

@@ -170,6 +170,10 @@ tolerance; accepted geometry is not snapped or clipped. See
 
 ## Template-checking CLI
 
+The [`examples`](examples/) directory contains three valid collections of
+increasing complexity and three deliberately invalid `*_err.html` collections,
+with expected diagnostics and CLI commands.
+
 [`pgtmpl`](pgtmpl/) checks collections using the same Commando framework as
 `tytui/tycli`. Run `go run ./pgtmpl load <html>` to check a local collection with
 `template.LoadFS`. Success summaries and error diagnostics go to stdout; loading

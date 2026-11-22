@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Invalid: nested template frame</title>
+  <style>
+    .page { width:300px; height:200px; }
+    .outer { position:fixed; left:20px; top:20px; width:260px; height:160px; flow-from:main; }
+    .inner { position:fixed; left:40px; top:40px; width:80px; height:40px; flow-from:notes; }
+  </style>
+</head>
+<body>
+  <!-- Expected: structure/frame.content. Frames must be empty direct children
+       of the page DIV. To fix this, move inner beside outer and give the two
+       frames nonoverlapping rectangles. -->
+  <template id="nested-frame" data-type="page">
+    <div class="page">
+      <div class="outer">
+        <div class="inner"></div>
+      </div>
+    </div>
+  </template>
+</body>
+</html>

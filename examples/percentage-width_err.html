@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Invalid: percentage frame width</title>
+  <style>
+    .page { width:300px; height:200px; }
+    .frame {
+      position:fixed; left:20px; top:20px; width:80%; height:160px;
+      flow-from:main;
+    }
+  </style>
+</head>
+<body>
+  <!-- Expected: profile/profile.value. Percentages are outside the initial
+       template CSS profile. Change width:80% to width:240px to make it valid. -->
+  <template id="percentage-width" data-type="page">
+    <div class="page"><div class="frame"></div></div>
+  </template>
+</body>
+</html>

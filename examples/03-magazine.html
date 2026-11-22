@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Magazine opening and continuation pages</title>
+  <style>
+    .page { width:800px; height:1000px; background:#fffdf8; }
+    .frame { position:fixed; }
+    .heading { flow-from:heading; }
+    .article { flow-from:article; }
+    .notes { flow-from:notes; }
+    .folio { flow-from:folio; }
+
+    .opening > .heading {
+      left:40px; top:40px; width:720px; height:120px;
+      background:#e9eff3;
+      border-bottom:3px solid #355c73;
+    }
+    .opening > .article {
+      left:40px; top:200px; width:460px; height:700px;
+    }
+    /* With content-box sizing this frame's outer size is 220 × 256:
+       192 + 2×12 + 2×2 wide, 228 + 2×12 + 2×2 high.
+       It sits beside the article, not inside it. */
+    .opening > .notes {
+      left:540px; top:200px; width:192px; height:228px;
+      padding:12px;
+      border:2px solid #ad7941;
+      background:#f8edda;
+    }
+
+    .continuation > .heading {
+      left:40px; right:40px; top:40px; height:40px;
+      border-bottom:1px solid #355c73;
+    }
+    .continuation > .article {
+      top:120px; width:340px; height:780px;
+    }
+    .continuation > .left { left:40px; }
+    .continuation > .right { right:40px; }
+
+    .folio { left:40px; right:40px; bottom:40px; height:20px; }
+  </style>
+</head>
+<body>
+  <!-- This collection gives the viewer two templates to navigate between.
+       The same flow channel keeps its identity across both definitions. -->
+  <template id="magazine-opening" data-type="page">
+    <div class="page opening">
+      <div class="frame heading"></div>
+      <div class="frame article"></div>
+      <div class="frame notes"></div>
+      <div class="frame folio"></div>
+    </div>
+  </template>
+
+  <template id="magazine-continuation" data-type="page">
+    <div class="page continuation">
+      <div class="frame heading"></div>
+      <!-- Source order defines the article chain: left column, then right. -->
+      <div class="frame article left"></div>
+      <div class="frame article right"></div>
+      <div class="frame folio"></div>
+    </div>
+  </template>
+</body>
+</html>
