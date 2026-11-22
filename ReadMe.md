@@ -270,8 +270,10 @@ and original-document styling, with inert/resource boundaries and structured
 diagnostics. Run `go test ./content` for these checks. Public material loading,
 full profile validation and routing remain pending. DOM-CONT-01 adds the shared
 `w3c-dom/style/textstyle` source snapshots, and TY-CONT-01 migrates tytui's
-compatibility facade. Source-font border helpers and box/register changes remain
-pending; CONT-02 will consume the shared snapshots in `content`.
+compatibility facade. DOM-CONT-02 adds checked source-font border resolution,
+including inherited em/rem widths, with an acceptance-fixture integration test.
+Box/register changes remain pending; CONT-02 will consume these sibling services
+in the content projection.
 Floats, preparation and page trials remain later work.
 
 See [the loading package and PR plan](doc/TEMPLATE-LOADING.md),

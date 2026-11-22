@@ -17,6 +17,7 @@ require (
 	github.com/npillmayer/tree v0.0.0-20260127205735-9aa4bb66c981 // indirect
 	github.com/thatisuday/clapper v1.0.10 // indirect
 	golang.org/x/image v0.23.0 // indirect
+	golang.org/x/text v0.33.0 // indirect
 )
 
 // The styling integration uses the sibling development modules, including DOM-01.

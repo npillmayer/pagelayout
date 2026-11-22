@@ -2,8 +2,9 @@
 
 Date: 2026-11-22. Status: CONT-00 adopted and complete; CONT-01 private source
 parsing, inspection and styling implemented. DOM-CONT-01's shared text-style
-service and TY-CONT-01's tytui migration are implemented. The public material
-loader, normalization/routing, DOM-CONT-02 and BOX-CONT work remain pending.
+service, TY-CONT-01's tytui migration and DOM-CONT-02's source-font border helper
+are implemented. The public material loader, normalization/routing and BOX-CONT
+work remain pending.
 Floats remain explicitly deferred.
 
 This plan develops the content-input phase of [DESIGN.md](DESIGN.md), following
@@ -25,7 +26,7 @@ CONT-00 adopts concrete `content.Box` handles as payloads and a generic conversi
 of those existing queues, preserving their persistent behavior.
 
 Section 11 records the adopted decisions separately from later open questions.
-CONT-02 onward, DOM-CONT-02 and the BOX-CONT items remain implementation
+CONT-02 onward and the BOX-CONT items remain implementation
 work. References describe checked-out implementations; code sketches describe
 the adopted target API unless explicitly identified as implemented.
 
@@ -52,8 +53,8 @@ ordinary hyperlink/canonical-link destinations are never fetched or executed.
 This uses the implemented sibling `CSSOM.StyleWithOptions` traversal boundary,
 which preserves original selector ancestry and sibling positions. The styler
 also now applies declarations to every included element, without a layout-tag
-allowlist. DOM-CONT-01's separate computed text-style service is now implemented;
-its content projection and DOM-CONT-02's font-aware border helper remain pending.
+allowlist. DOM-CONT-01's computed text-style service and DOM-CONT-02's font-aware
+border helper are implemented; their content projection remains CONT-02.
 
 Tests cover the fixtures' source/style assertions, reader ownership/failures,
 UTF-8, CSS diagnostics and causes, inert boundaries, source immutability and
@@ -391,14 +392,16 @@ routing validator. Branch ownership is inherited structurally after routing;
 it must not be confused with CSS property inheritance.
 
 Use checked `GetDisplay`, `GetBoxLength`, `GetBoxKeyword`, `GetColor` and
-`GetBorder`. Convert absolute DU values to CSS pixels explicitly. Keep percentages
+`GetBorderWithFontContext` (or absolute-only `GetBorder`). Convert absolute DU
+values to CSS pixels explicitly. Keep percentages
 as fractions in `layout.LenPercent`; defer resolution against receiving geometry.
 Resolve source-relative font sizes before detaching a branch. Resolve `em` box
 lengths against that element's computed font and `rem` against the source root
-font. Font-relative border widths require DOM-CONT-02's checked context-aware
-helper. No conversion may consult a frame's font or duplicate CSS parsing here.
+font. Font-relative border widths use DOM-CONT-02's implemented
+`GetBorderWithFontContext` helper. No conversion may consult a frame's font or
+duplicate CSS parsing here.
 
-Text style computation currently needs the shared resolver work in section 8.
+Text style computation uses the implemented shared resolver in section 8.
 Preserve paragraph owner context even for empty/object-only groups. Do not use
 the first text run as an owner's font default. Source snapshots may outlive the
 DOM/CSSOM, following `tytui`; if some property still needs ancestry, retain it
@@ -646,19 +649,35 @@ computed typography. Tests cover relative/root sizes, CSS-wide keywords,
 currentcolor, weights, HTML/CSS precedence, source-context direction scans,
 line-height/hyphenation, failure identity and detached/concurrent snapshots.
 
-### DOM-CONT-02 — Checked font-relative border resolution
+### DOM-CONT-02 — Checked font-relative border resolution (implemented)
 
-**Required by the adopted em/rem edge profile.** The current `css.GetBorder`
-rejects nonzero font-relative widths. Add a checked context-aware variant/helper
-using element and root computed font sizes from DOM-CONT-01. Keep CSS parsing,
-effective none/hidden widths, inheritance and currentcolor semantics in the DOM
-module; `pagelayout` supplies the source font context and converts DU to pixels.
-Retain the existing absolute-only API's behavior for existing callers.
+**Required by the adopted em/rem edge profile; implemented.**
+`css.GetBorderWithFontContext(node, side, css.FontContext)` resolves absolute and
+em/rem widths to the existing detached `css.Border` value. The context supplies
+`RootFontSize dimen.DU` and `FontSize func(*styledtree.StyNode) (dimen.DU, error)`
+from DOM-CONT-01 source snapshots. The lookup can receive an ancestor when a
+width is explicitly inherited: compute there before inheriting, even when the
+child has a different font size. Root-relative borders use the document
+element's computed font size, including for borders on that element itself.
 
-Test em/rem widths, inherited computed widths when parent/child font sizes differ,
-none/hidden and currentcolor. The acceptance fixture's relative border must
-resolve without frame geometry or local border parsing. The precise helper
-signature is an implementation detail, not a reason to narrow the agreed units.
+Parsing, none/hidden effective widths, inheritance and currentcolor stay in the
+DOM module; `pagelayout` supplies source font context and converts DU to pixels.
+`css.GetBorder` keeps its existing absolute-only behavior. Absolute/zero widths
+and none/hidden need no font context; nonzero em consults the element lookup,
+and rem consults the root size. Used fonts must be positive and below dimen.Fil.
+Relative products round to nearest DU, half upward; overflow, nonzero unsupported
+units and missing/invalid required context fail without a partial Border.
+Font-lookup errors retain their causes. This does not implement font-metric units,
+viewport units, percentages or deferred expressions for borders.
+
+Sibling tests cover all physical sides, source/root sizes, inherited computed
+widths across changed fonts, resets, none/hidden, currentcolor, cascade priority,
+invalid input/context, range/rounding, source preservation and concurrent reads.
+The integration test in [content/border_fonts_test.go](../content/border_fonts_test.go)
+checks the actual acceptance fixture: story-b's border is 98304 DU (2px), or
+117965 DU (approximately 2.4px) with the override sheet and its changed currentcolor.
+It needs no frame geometry or local CSS parser. CONT-02 will integrate this into
+the content projection; no public material loader is introduced by this step.
 
 ### TY-CONT-01 — Migrate tytui to the shared resolver (implemented)
 
@@ -780,11 +799,12 @@ conversions and ownership documented in section 8 and the sibling README.
 Exit: both consumers can obtain the same supported source typography without
 font services; inherited values do not depend on later layout ancestry.
 
-### DOM-CONT-02 — Source-font border values
+### DOM-CONT-02 — Source-font border values (implemented)
 
-Add the checked font-context helper and its inheritance/effective-width tests.
-Exit: content can project em/rem border widths from source styles without used
-values, frame fonts or its own CSS parser. This is a CONT-02 prerequisite.
+The checked font-context helper, sibling inheritance/effective-width tests and
+acceptance-fixture integration check are implemented as described in section 8.
+Content can project em/rem border widths from source styles without used values,
+frame fonts or its own CSS parser. This CONT-02 prerequisite is complete.
 
 ### CONT-02 — Typed projection and effective profile
 

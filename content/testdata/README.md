@@ -12,6 +12,12 @@ The private stage retains both `_err` files as styled source: their profile and
 routing failures belong to later phases. No channel/group/register assertions
 are claimed implemented by CONT-01.
 
+DOM-CONT-02 adds a focused integration check in `content/border_fonts_test.go`:
+the shared text-style snapshots and border getter resolve story-b's `.1em`
+border to 98304 DU (2px), or 117965 DU (approximately 2.4px) with the override.
+Currentcolor follows each source cascade. This check uses no frame or font
+services and does not implement the full CONT-02 content projection.
+
 Load each HTML file as a complete body with its embedded CSS. Supply the override
 CSS only in the explicitly named variant. No template catalog, receiver size,
 font service, network fetch or resource resolver is an input. Label source
