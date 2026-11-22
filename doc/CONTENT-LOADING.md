@@ -14,6 +14,11 @@ to reusable sibling services and keeping channel ownership in `pagelayout`.
 Do not make the application module `tytui` a production dependency or copy its
 complete document pipeline into this module.
 
+Use the existing sibling [`registers`](../../css-box-layout/registers/doc.go)
+package for channel material storage. `Register` and `RegisterBank` already
+provide persistent queues and bank versions; they are not future APIs to invent.
+The source routing and concrete material payload contracts remain proposed.
+
 All CONT, DOM-CONT and BOX-CONT items below are proposed work. References describe
 the checked-out implementations, not a promise that the whole proposed process
 already exists. This plan authorizes no sibling edits by itself.
@@ -26,6 +31,8 @@ snapshot containing:
 - Source node identities, ancestry, decoded text and diagnostic locators.
 - Effective source typography, box constraints and paint, independent of frames.
 - Ordered named channels, each owning an ordered sequence of extracted branches.
+- An initial `registers.RegisterBank` containing read-only branch material for
+  those channels, built only after all branches normalize successfully.
 - A residual source-associated tree, explicitly separate from named channels.
 - Normalized trees and an index of their actual horizontal groups, including
   groups inside inline-blocks.
@@ -62,6 +69,7 @@ page-layout demonstration.
 | [documentlayout preparation](../../tytui/documentlayout/preparation.go) | Checks both group pointer and owner identity, and reuses extracted input and prepared paragraphs within one invocation. | Retain this identity discipline. Extending preparation lifetime belongs to chunk 2. |
 | [documentlayout policy](../../tytui/documentlayout/policy.go) | Enforces an explicit supported subset and reports unsupported cases. | Adopt explicit failure, not its complete policy: pixel-only box parsing, hidden-content rejection and NoHyphenation are application choices. |
 | [documentlayout lifetime tests](../../tytui/documentlayout/lifetime_test.go) | Exercise detached source/results and later reuse. | Port relevant contract scenarios, not whole implementation files. |
+| [css-box-layout registers](../../css-box-layout/registers/doc.go) | Persistent queues and named banks with Append, First, Take and Prepend; whole-item consumption preserves earlier versions. | Use for channel material; do not build a competing queue/cursor container. |
 
 `tytui` is especially useful because it separates **source context** from
 **normalized layout structure**. Its group context comes from the owning block,
@@ -126,6 +134,7 @@ type LoadOptions struct {
     Stylesheets []Stylesheet // Named, caller-supplied author CSS texts.
 }
 
+func (d *Document) Bank() registers.RegisterBank        // Persistent value, immutable payloads.
 func (d *Document) Channels() []string                  // First occurrence order.
 func (d *Document) Branches(channel string) []BranchInfo // Source order.
 func (d *Document) Residual() TreeInfo                  // Separate from channels.
@@ -151,6 +160,61 @@ The caller owns reader lifetime. Additional CSS should match the established
 template-loader semantics without making `content` depend on `template` just to
 share an options struct. A common stylesheet input type is a packaging decision,
 not a prerequisite for a shared cascade implementation.
+
+### Flow channels and existing registers
+
+A **flow channel** is the logical named stream connected by `flow-into` and
+`flow-from`. Its queued material lives in a **Register**, and a **RegisterBank**
+holds those named registers. These terms describe different aspects of the same
+mechanism, not competing designs.
+
+[`Register`](../../css-box-layout/registers/register.go) supports persistent FIFO
+Append/Take, First and front insertion with Prepend. The
+[`bank`](../../css-box-layout/registers/bank.go) derives a new version on update,
+sharing unchanged queues and payloads. A trial can retain its starting bank,
+derive a candidate bank, and publish the chosen candidate only after success.
+That checkpoint mechanism already exists; no additional whole-item cursor layer
+is required just to advance or reject a trial.
+
+The current payload interface is `FlowMaterial { GetBoxID() layout.BoxID }`.
+**Author clarification (2026-11-22): this definition is provisional and has no
+other client dependencies.** Its purpose was to leave the concrete item type
+open; the working expectation is now that register items will always be boxes.
+Do not treat GetBoxID or interface-based storage as a compatibility requirement.
+Sibling changes, including changes to the register types, are allowed and
+encouraged when useful to the page-layout design.
+
+Choose the box/material representation before introducing an adapter solely to
+satisfy FlowMaterial. Evaluate direct box storage or a box-oriented handle that
+retains the source/material owner, tree identity and future preparation/result
+associations. A raw mutable LayoutNode pointer is not automatically the right
+answer: persistent bank versions still need safe shared ownership, and BoxIDs
+remain tree-scoped. The current bank neither deduplicates nor interprets box IDs.
+
+Append box branches under `RegisterID(flowName)` in source order after
+normalization. Chunk 1's items are unset box material, not shaped paragraphs.
+Preparation later supplies reusable associations or a new bank of prepared box
+handles without mutating an earlier bank's items. The exact payload API and any
+necessary sibling changes are part of CONT-00, not fixed by this plan.
+
+The bank has no channel enumeration/order API, and removes exhausted registers.
+Retain a separate channel/source inventory for deterministic inspection; it is
+metadata, not another queue implementation. The bank accepts every string ID and
+nil payloads, but the content adapter should publish only validated flow names and
+non-nil branch items. Keep residual content separate until its binding policy is
+agreed; the bank's acceptance of an empty ID does not settle that policy.
+
+Later fragmentation can Take a whole item and Prepend a new immutable remainder
+to the candidate bank. The bank does not measure or split material, validate
+continuation identity, or make mutable payloads safe. Queue versions can be
+derived concurrently, but typography preparation may still require serialized
+operations. Publishing a shared current bank remains the coordinator's job.
+Tests/examples of these existing mechanics are in
+[`registers/example_test.go`](../../css-box-layout/registers/example_test.go).
+
+Repeated Append copies each remaining queue, so bulk loading a large channel has
+quadratic copying cost. Start with the existing API for the small milestone;
+consider a bulk constructor only if realistic collection sizes justify it.
 
 ## 4. First executable input
 
@@ -371,7 +435,9 @@ across independent loads.
 Public inspection returns values/copies. Internally retain normalized structure
 read-only and retain source/style/text data for the full preparation lifetime.
 No committed cursor, receiver, current width or cached accepted result belongs
-to this snapshot. Concurrent read-only inspection may be supported separately
+to this snapshot. Publish its initial persistent register bank with private,
+read-only branch payloads; callers may derive independent banks without changing
+the loaded document. Concurrent read-only inspection may be supported separately
 from the serialized-use contract of future prepared paragraph handles.
 
 ## 6. Initial profile proposed for agreement
@@ -494,6 +560,8 @@ Document BoxID scope across independent builds. These tests support an existing
 construction API rather than introducing channel semantics to the engine.
 
 **No required named-flow callback or forest API for the first profile.**
+The existing `registers` package already covers channel material storage;
+this statement concerns additional box-construction APIs, not queue availability.
 `RenderNode.ChildrenNodes` is already adapter-owned, and source styles can be
 snapshotted before filtering. That makes detached projection partitioning a viable
 implementation using `BuildLayoutTree` today. `BuildLayoutTrees`' fixed-root
@@ -586,7 +654,9 @@ Exit: callers can map normalization failures to source identities using
 ### CONT-04 — Normalize, index and publish
 
 Build each projected tree through CSS core, supply validated text lookup, index
-groups/owners/nested atomic interiors, and publish the complete material snapshot.
+groups/owners/nested atomic interiors, and populate an initial RegisterBank with
+read-only branch payloads in channel source order. Publish it with the complete
+material snapshot only after all branches succeed.
 Add the agreed minimal public reader/inspection API. Validate no duplicate or
 missing ownership and no partially published trees on later-branch failure.
 
@@ -625,6 +695,7 @@ Do not claim BOX-CONT-01 completes the later preparation driver.
 | Ancestor, adjacent-sibling and nth-child selectors | Styles reflect original DOM positions after branches are routed elsewhere. |
 | Same HTML, different additional CSS | Fresh source/style/routing snapshot; no HTML-hash-only cache reuse. |
 | Two roots naming the same channel | Ordered separate branches; no duplicate residual material or synthetic merged parent. |
+| Initial RegisterBank | Take visits the channel's branch items in source order; deriving a bank or prepending a remainder leaves the initial bank unchanged. Payloads retain qualified source/tree identities. |
 | Nested named roots, including explicit CSS inherit | Deterministic route error with both source roots; no partial material. |
 | Inline/atomic routing roots or ancestors | Profile error; do not silently blockify or split atomic ownership. |
 | No flow declarations | All active material remains residual; zero named channels is valid. |
@@ -666,14 +737,16 @@ of content loading.
 | Residual handling | Preserve separately; do not auto-bind to `main` in chunk 1 | CONT-03 |
 | Extracted-root ancestor boxes | Retain source style context, exclude ancestor layout boxes from the routed branch | CONT-03 |
 | Identity | Snapshot + tree + BoxID; no raw BoxID global keys or HTML-only semantic identity | CONT-02/04 |
+| Register payload API | Treat FlowMaterial/GetBoxID as provisional with no other clients; choose box storage/handles and adapt sibling registers as needed, preserving ownership guarantees | CONT-00 |
 | Zero font size and deferred text features | Explicit initial profile error for zero; preserve future policy metadata without choosing a breaker | CONT-02 |
 | Branch-root margins/containing block | Preserve constraints now; decide frame-edge and fragmentation rules in trials | Before chunk 3, not a reason to size in chunk 1 |
-| Default channel and missing receivers | Decide binding/order/collision policy during register design; never drop source material now | Before chunk 3 |
+| Default channel and missing receivers | Decide binding/order/collision policy when integrating existing registers with trials; never drop source material now | Before chunk 3 |
 
 After agreement, update the status of individual choices rather than marking the
-entire proposal settled. In particular, the channel inventory here is not the
-future register API: registers need private trial cursors, continuation identity
-and commit semantics that this milestone intentionally does not define.
+entire proposal settled. Register/RegisterBank storage and persistent bank
+versions already exist. What remains to design is the concrete material payload,
+within-item continuation, residual binding and page-level publication policy.
+The channel inventory supplements the bank with source/order metadata.
 
 ## 12. Handoff to preparation
 
