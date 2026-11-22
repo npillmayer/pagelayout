@@ -22,8 +22,8 @@ func TestLoadErrorPreservesContextAndCause(t *testing.T) {
 	if !errors.Is(err, cause) {
 		t.Fatal("original cause was lost")
 	}
-	var d diagnostic
-	if !errors.As(err, &d) || d.code != codeParseFailure || d.source.templateID != "front" {
+	var d Diagnostic
+	if !errors.As(err, &d) || d.Code != string(codeParseFailure) || d.Source.TemplateID != "front" {
 		t.Fatalf("structured diagnostic is not available through wrapping: %v", err)
 	}
 	message := err.Error()

@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-// These types remain private until the complete loading API is ready. Codes and
-// paths identify failures independently of the human-readable message.
+// Internal diagnostics retain private stage/code types. Public diagnostics are
+// detached snapshots; codes and paths do not depend on human-readable messages.
 type loadStage string
 
 const (
@@ -17,6 +17,7 @@ const (
 	stageCSS       loadStage = "css"
 	stageStyling   loadStage = "styling"
 	stageProfile   loadStage = "profile"
+	stageGeometry  loadStage = "geometry"
 )
 
 type diagnosticCode string
@@ -49,6 +50,13 @@ const (
 	codeProfileBox          diagnosticCode = "profile.box"
 	codeProfileSizing       diagnosticCode = "profile.sizing"
 	codeProfileFlow         diagnosticCode = "profile.flow"
+	codeGeometryInvalid     diagnosticCode = "geometry.invalid"
+	codeGeometryResolve     diagnosticCode = "geometry.resolve"
+	codeGeometryContent     diagnosticCode = "geometry.content-dependent"
+	codeGeometryPosition    diagnosticCode = "geometry.position"
+	codeGeometryReceiving   diagnosticCode = "geometry.receiving-size"
+	codeGeometryBounds      diagnosticCode = "geometry.bounds"
+	codeGeometryOverlap     diagnosticCode = "geometry.overlap"
 )
 
 // CSS locations refer to the style element's text or style attribute value.
@@ -104,17 +112,56 @@ func (d diagnostic) Error() string {
 
 func (d diagnostic) Unwrap() error { return d.cause }
 
-// loadError owns an ordered snapshot. Neither diagnostics nor Unwrap exposes its
-// backing slice. Each diagnostic wraps its original cause, if one exists.
-type loadError struct {
+// CSSLocation refers to a style element's text or a style attribute. Rule and
+// Declaration are one-based ordinals; zero means unavailable/not applicable.
+// Line/Column are CSS locations, not enclosing HTML locations. Effective-style
+// and geometry diagnostics identify a node/property without inventing positions.
+type CSSLocation struct {
+	Rule, Declaration, Line, Column int
+	Property                        string
+	Inline                          bool
+}
+
+// Diagnostic is a value snapshot of one load failure. Stage and Code are stable
+// machine-readable identifiers; Message is descriptive text. Unwrap preserves
+// the original cause when available. Mutating a snapshot does not change its error.
+type Diagnostic struct {
+	Stage, Code string
+	Source      SourceRef
+	CSS         CSSLocation
+	Message     string
+	cause       error
+}
+
+func (d diagnostic) public() Diagnostic {
+	return Diagnostic{Stage: string(d.stage), Code: string(d.code), Source: publicSource(d.source),
+		CSS:     CSSLocation{Rule: d.css.rule, Declaration: d.css.declaration, Line: d.css.line, Column: d.css.column, Property: d.css.property, Inline: d.css.inline},
+		Message: d.message, cause: d.cause}
+}
+
+// Error formats this diagnostic with source context and its original cause.
+func (d Diagnostic) Error() string {
+	return (diagnostic{stage: loadStage(d.Stage), code: diagnosticCode(d.Code),
+		source: sourceRef{name: d.Source.Name, templateID: d.Source.TemplateID, path: d.Source.Path, nodeID: sourceNodeID(d.Source.NodeID)},
+		css:    cssLocation{rule: d.CSS.Rule, declaration: d.CSS.Declaration, line: d.CSS.Line, column: d.CSS.Column, property: d.CSS.Property, inline: d.CSS.Inline}, message: d.Message, cause: d.cause}).Error()
+}
+
+// Unwrap returns the original parser, reader, styling or geometry error, if any.
+func (d Diagnostic) Unwrap() error { return d.cause }
+
+// LoadError owns an ordered diagnostic snapshot. Use errors.As to inspect it;
+// errors.Is/As also reach original causes through its diagnostic children.
+// Diagnostics and Unwrap return copies, and expose no DOM or mutable style state.
+type LoadError struct {
 	items []diagnostic
 }
 
-func newLoadError(items []diagnostic) *loadError {
-	return &loadError{items: slices.Clone(items)}
+func newLoadError(items []diagnostic) *LoadError {
+	return &LoadError{items: slices.Clone(items)}
 }
 
-func (e *loadError) Error() string {
+// Error formats all diagnostics in source order.
+func (e *LoadError) Error() string {
 	messages := make([]string, len(e.items))
 	for i, d := range e.items {
 		messages[i] = d.Error()
@@ -122,12 +169,22 @@ func (e *loadError) Error() string {
 	return strings.Join(messages, "\n")
 }
 
-func (e *loadError) diagnostics() []diagnostic { return slices.Clone(e.items) }
+func (e *LoadError) diagnostics() []diagnostic { return slices.Clone(e.items) }
 
-func (e *loadError) Unwrap() []error {
+// Diagnostics returns independent value snapshots in deterministic source order.
+func (e *LoadError) Diagnostics() []Diagnostic {
+	ds := make([]Diagnostic, len(e.items))
+	for i, d := range e.items {
+		ds[i] = d.public()
+	}
+	return ds
+}
+
+// Unwrap returns diagnostic children without exposing the error's backing slice.
+func (e *LoadError) Unwrap() []error {
 	causes := make([]error, len(e.items))
 	for i, d := range e.items {
-		causes[i] = d
+		causes[i] = d.public()
 	}
 	return causes
 }

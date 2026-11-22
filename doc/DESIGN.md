@@ -695,7 +695,8 @@ The changed process moves this work to eager catalog construction. It preserves
 the principle that template geometry is independent of future content. TPL-03 now
 implements the initial CSS validation and typed adaptation subset described in
 [TEMPLATE-LOADING.md](TEMPLATE-LOADING.md#c-validate-source-declarations-and-effective-styles).
-The geometry API and final rectangle policies below remain proposals:
+BOX-01 implements fixed geometry; TPL-04 now compiles the catalog and enforces
+the initial rectangle policy below. Further profile extensions remain proposals:
 
 | Area | Proposed restriction |
 | --- | --- |
@@ -705,7 +706,7 @@ The geometry API and final rectangle policies below remain proposals:
 | Lengths | Start with `px`, `pt`, `in`, `cm`, `mm` and valid unitless zero; percentage/font-relative authoring deferred. |
 | Insets | At least one definite inset per axis; auto size requires both. Reject content-dependent sizing and both-auto static-position fallback. |
 | Edges and effects | Nonnegative absolute padding/effective border widths; initially none/hidden or solid borders. Explicit policies required for transforms, min/max sizing, clipping and unsupported effects. |
-| Result checks | Finite positive receiving rectangles; propose rejecting out-of-page border boxes and positive-area overlaps. Touching edges are allowed; tolerance and bleed/overlay exceptions remain open. |
+| Result checks | Finite positive receiving rectangles; reject out-of-page border boxes and border-box overlaps. Touching edges are allowed under the documented TPL-04 precision tolerance. Bleed/overlay exceptions remain open. |
 
 Source input validation complements effective-property checks: unsupported
 declarations can otherwise be discarded by styling. DOM-02/03 now provide the

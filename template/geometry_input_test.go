@@ -6,8 +6,8 @@ import (
 	"github.com/npillmayer/css-box-layout/layout"
 )
 
-// This is the TPL-03 / BOX-01 boundary proof, not catalog compilation. TPL-04
-// will add publication, receiving-size/bounds/overlap checks and flow chains.
+// This is the TPL-03 / BOX-01 boundary proof. Compilation/publication tests
+// separately cover receiving-size/bounds/overlap checks and flow chains.
 func TestValidatedInputsResolveWithoutContent(t *testing.T) {
 	for _, tc := range []struct {
 		name, css      string

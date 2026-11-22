@@ -25,7 +25,7 @@ func FuzzTemplateCollection(f *testing.F) {
 	f.Fuzz(func(t *testing.T, input string) {
 		c, err := parseTemplateCollection(strings.NewReader(input), "fuzz.html")
 		if err != nil {
-			var failure *loadError
+			var failure *LoadError
 			if c != nil || !errors.As(err, &failure) || len(failure.items) == 0 {
 				t.Fatalf("partial model or unstructured failure: %v, %v", c, err)
 			}

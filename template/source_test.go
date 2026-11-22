@@ -337,7 +337,7 @@ func parseCollectionOK(t *testing.T, input string) *templateCollection {
 
 func errorDiagnostics(t *testing.T, err error) []diagnostic {
 	t.Helper()
-	var failure *loadError
+	var failure *LoadError
 	if !errors.As(err, &failure) {
 		t.Fatalf("expected structured load error, got %T: %v", err, err)
 	}

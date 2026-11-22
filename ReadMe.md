@@ -3,7 +3,7 @@
 A Go module for template-based page composition using HTML/CSS page definitions
 and fixed receiving frames. The overall machinery is still being designed.
 
-## Implemented: TPL-01 through TPL-03
+## Implemented: TPL-01 through TPL-04
 
 Template loading lives in the [`template`](template/) subpackage, imported as
 `github.com/npillmayer/pagelayout/template`. Its code, tests and fixtures are
@@ -38,10 +38,31 @@ solid paint and flow bindings. It reuses checked `w3c-dom` values and
 `css-box-layout` default constructors; absolute DU values become CSS pixels and
 auto dimensions/insets remain distinct from zero.
 
-Invalid input returns no partial collection. Source models remain read-only;
-styled working trees own their nodes, attributes and styling state. Validated
-inputs retain source identities but no DOM/CSSOM references. Public loading,
-geometry resolution and immutable compiled catalogs are later milestones.
+TPL-04 exposes `template.Load`, resolves fixed geometry through BOX-01, checks
+positive receiving areas, page bounds and border-box overlaps, and publishes an
+immutable catalog. Frames and flow chains retain source order. Descriptions
+contain resolved geometry, edges, paint and source references as values.
+
+```go
+catalog, err := template.Load(reader, template.LoadOptions{SourceName: "pages.html"})
+if err != nil {
+    return err
+}
+page, ok := catalog.Lookup("two-column-article")
+if ok {
+    size := page.Page() // Width/Height in CSS pixels
+    frames := page.FramesForFlow("article-flow") // Copies in source order
+    fmt.Printf("%g x %g px; %d article frames\n", size.Width, size.Height, len(frames))
+}
+```
+
+Invalid input returns no partial catalog. `errors.As` exposes `*template.LoadError`
+and its copied `Diagnostics()` values; original reader/parser/geometry errors
+remain available through `errors.Is`/`errors.As`. Catalogs retain no DOM, CSSOM,
+constraints or intermediate state. Lookup returns an independent handle, and
+all returned descriptions/slices can be modified without changing the catalog.
+Read-only catalog access is safe concurrently. `Load` does not close its reader.
+Filesystem loading is planned for TPL-05; content layout and rendering are separate.
 
 ## Structural input profile
 
@@ -66,7 +87,10 @@ absolute lengths, horizontal LTR block/flow boxes, content-box sizing, zero
 margins and solid paint. Page dimensions must be positive; auto frame sizes
 require opposing insets. Percentages, font-relative units, images, transforms,
 clipping, min/max sizing and other effects remain outside this profile.
-Final receiving sizes, bounds and overlap checks belong to geometry compilation.
+Compilation rejects nonpositive receiving sizes, out-of-page border boxes and
+border-box overlaps. Touching edges are allowed within a documented precision
+tolerance; accepted geometry is not snapped or clipped. See
+[the comparison policy](doc/TEMPLATE-LOADING.md#d-resolve-fixed-geometry-and-build-the-compiled-tree).
 
 ## CLI scaffold
 
@@ -94,13 +118,12 @@ remain diagnosed as unsupported.
 
 BOX-01 provides `layout.ResolveFixedGeometry` in `css-box-layout`. A boundary
 test resolves TPL-03's typed inputs directly, without tree construction or
-content callbacks. Catalog compilation, bounds/overlap checks and public loading
-remain TPL-04 work.
+content callbacks. TPL-04 uses that service for catalog compilation.
 
 Development requires sibling checkouts at `../w3c-dom`, `../css-box-layout`,
 `../tree` and `../schuko`,
 selected by `go.mod` replacements. The reviewed baselines are `w3c-dom` at
-`ddac155`, `css-box-layout` at `66e420e` plus BOX-01, `tree` at `167ff46c52db`, and
+`ddac155`, `css-box-layout` at `edbd6e6`, `tree` at `167ff46c52db`, and
 `schuko` at `287adb3427da`. The `w3c-dom` and `css-box-layout` `v0.0.0`
 requirements are local development placeholders, not published releases.
 Replace them with released/pinned versions

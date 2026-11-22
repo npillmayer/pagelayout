@@ -1,21 +1,23 @@
 # Template loading: package proposal and PR plan
 
-Date: 2026-11-22. Status: TPL-01/02/03, DOM-01/02/03 and BOX-01 implemented; remaining milestones proposed.
+Date: 2026-11-22. Status: TPL-01 through TPL-04, DOM-01/02/03 and BOX-01 implemented; remaining milestones proposed.
 
-This note details the template-loading part of [DESIGN.md](DESIGN.md). TPL-01/02/03
+This note details the template-loading part of [DESIGN.md](DESIGN.md). TPL-01 through TPL-04
 and upstream DOM-01/02/03 and BOX-01 have been implemented at the author's request. They preserve the distinction
 between template definitions, prepared content and page trials. Later APIs,
 profile choices and PR boundaries below remain proposals for discussion.
 
-The current implementation is private within the `template` subpackage:
+The `template` subpackage exposes [Load](../template/load.go) and an immutable
+[catalog](../template/catalog.go), with private loading stages:
 [source parsing](../template/source.go),
 [structural validation](../template/validate.go) and
 [diagnostics](../template/diagnostic.go), followed by
 [active documents](../template/active.go), [styling](../template/style.go),
-[source profile checks](../template/profile.go) and [typed adaptation](../template/adapt.go).
+[source profile checks](../template/profile.go), [typed adaptation](../template/adapt.go)
+and [geometry compilation](../template/compile.go).
 It uses Go 1.25.6 and `golang.org/x/net` v0.49.0, plus the sibling `w3c-dom` DOM-01
 reporting APIs. See [ReadMe.md](../ReadMe.md) for development dependencies and
-reviewed revisions. The public APIs sketched below are not implemented.
+reviewed revisions. The reader/catalog API below is implemented; `LoadFS` remains TPL-05.
 
 ## 1. The first deliverable
 
@@ -50,16 +52,14 @@ appropriate sibling DOM and box-layout services. Keep the loading stages private
 within this one package rather than adding separate public parser, CSS adapter
 or compiler packages.
 
-An illustrative public surface in package `template` is:
+The implemented public surface in package `template` is:
 
 ```go
-// PROPOSED API; implementation and final type names remain open.
 type LoadOptions struct {
     SourceName string // Diagnostic label, not a resource-fetching base URL.
 }
 
 func Load(r io.Reader, opts LoadOptions) (*Catalog, error)
-func LoadFS(fsys fs.FS, name string) (*Catalog, error)
 
 func (c *Catalog) IDs() []string
 func (c *Catalog) Lookup(id string) (*Template, bool)
@@ -70,29 +70,34 @@ func (t *Template) Frames() []FrameInfo
 func (t *Template) FramesForFlow(name string) []FrameInfo
 ```
 
-Callers would use `template.Load`, `template.Catalog` and `template.Template`.
-These names remain proposals; the package boundary is decided and implemented.
+Callers use `template.Load`, `template.Catalog` and `template.Template`.
+`LoadFS(fsys fs.FS, name string)` remains proposed for TPL-05. `Load` leaves its
+reader open and returns either the complete catalog or nil with `*LoadError`.
 
 `Catalog` and `Template` have private fields and no mutation methods.
 Returned slices are copies; descriptions contain value data, not mutable DOM,
 CSSOM or layout-tree pointers. An empty flow lookup returns an empty slice.
 Template lookup is exact and case-sensitive; a missing ID returns `false`.
 Document order determines `IDs()`, `Frames()` and filtered frame chains.
+Lookup returns a fresh handle to private compiled data, so even assigning over
+the returned `Template` value cannot alter a catalog entry. Nil/zero catalog and
+template handles return empty lookup/description results. Concurrent reads are
+safe; callers own synchronization for changes to their own handles.
 
-The description types should expose:
+The description types expose:
 
 | Value | Contents |
 | --- | --- |
 | `PageInfo` | Positive page width/height, page paint and a source reference. The page-local origin is zero. |
-| `FrameInfo` | Template-local frame identity, flow name, border and receiving content rectangles, effective edges, paint and a source reference. |
-| Paint values | Resolved background color and supported border styles/colors. No CSS strings requiring another cascade or renderer-specific objects. |
-| Source reference | Collection name, template ID and stable source-node path; optional CSS rule/declaration information for diagnostics. |
+| `FrameInfo` | One-based `FrameID`, `Flow`, page-local `BorderBox`/`ContentBox`, effective `Margin`/`Padding`/`Border` edges, `Paint`, and `Source`. |
+| `Paint` | Non-premultiplied sRGB background and `BorderPaints` (Top/Right/Bottom/Left). Each border has a `BorderStyle` constant and color; effective widths are in `FrameInfo.Border`, not duplicated in paint. Page borders have zero width. |
+| `SourceRef` | Collection `Name`, `TemplateID`, collection-local `NodeID` and repaired-tree `Path`. CSS locations are separate diagnostic values. |
 
-Use `css-box-layout` rectangle/edge values, or public aliases of them, initially.
+`Rect` and `Edges` are public aliases of `css-box-layout` value types.
 Their numeric unit is **CSS pixels**, not typography DU or big points. Resolve
 author units with checked conversion at compilation. Colors and other paint
-descriptions should be immutable values; widths in geometry and paint must
-agree. Exact exported description fields should be reviewed before publication.
+descriptions are detached values; all returned slices are copies. The parent page
+and its ordered frames form the logical hierarchy, without normalized inline groups.
 
 Internally, a template retains the logical hierarchy `page -> frames` and an
 index of frame positions per flow. It is a compiled box description, not merely
@@ -101,7 +106,7 @@ groups or preserve a `LayoutNode` solely to represent that hierarchy.
 
 Do not add public intermediate parsed/styled states or a caller-supplied geometry
 engine initially. Keep those boundaries private so sibling API changes do not
-force public migrations. The file-system helper opens only the collection file,
+force public migrations. The proposed file-system helper will open only the collection file,
 sets its source name and delegates to the reader API.
 
 ### Suggested files
@@ -313,11 +318,19 @@ documented alternative for integrations requiring the tree path. Do not implemen
 production routes speculatively, and never use empty content to recover from a
 content-dependency error. No new fixed-position equations belong in `pagelayout`.
 
-Validate finite positive receiving rectangles. Initially propose rejecting
-out-of-page border boxes and positive-area overlaps, while allowing touching
-edges. Use one documented, solver-precision-aware comparison tolerance; do not
-scatter arbitrary epsilon values through the loader. Bleed, decorative overlap
-and clipping policy remain open extensions.
+TPL-04 validates finite, strictly positive border and receiving content sizes.
+Border boxes outside the page or overlapping another frame's border box are
+rejected, including overlaps between different flow channels. Touching edges and
+corners are allowed. Bleed, decorative overlap and clipping remain extensions.
+
+The comparison tolerance is the larger of one source DU in CSS pixels
+(`1 / dimen.PX`, about 0.000020345 px) and eight float32 spacings immediately
+below the larger page dimension. This accounts for source-unit quantization and
+solver rounding at the page scale. Each axis's tolerance is capped at half the
+smaller compared span, so an entire tiny receiver cannot vanish into tolerance.
+Bounds are accepted within this tolerance; overlap is rejected when penetration
+exceeds it on both axes. Endpoints are summed in float64. Positivity is strict,
+independent of tolerance; published solver geometry is never snapped or clipped.
 
 Store both border and content rectangles in page coordinates. The content origin
 already includes the frame's position and edges; do not add the border origin
@@ -345,12 +358,24 @@ wait for the page-trial design; the loading milestone should not settle it.
 
 ## 4. Diagnostics and ownership
 
-Return structured diagnostics containing stage, stable code, source name,
+`Load` returns `*LoadError` on failure. `Diagnostics()` returns copied public
+`Diagnostic` values containing stage, stable code, source name,
 template ID when known, node path, property/rule information and wrapped cause.
 Useful distinctions are invalid collection structure, unsupported CSS/profile,
 invalid geometry and content-dependent geometry. Include rule/declaration order
 when available; promise line/column positions only when the parser supplies
-reliable locations.
+reliable locations. `CSSLocation` holds one-based CSS locations/ordinals, with
+zero for unavailable values. `errors.As` can retrieve `*LoadError` or a diagnostic;
+`errors.Is`/`errors.As` reach original reader, CSS and geometry causes. No concrete
+DOM type is needed to inspect failures.
+
+Geometry codes are `geometry.invalid` (invalid page), `geometry.resolve` (solver
+failure), `geometry.content-dependent`, `geometry.position`,
+`geometry.receiving-size`, `geometry.bounds` and `geometry.overlap`.
+An overlap is attached to the later frame and names the earlier frame/path.
+Independent errors are ordered by source node, then check order (and earlier
+frame order for overlaps). Fatal prerequisite failures stop later stages, so
+diagnostics do not invent geometry errors for an invalid CSS profile.
 
 Collect independent per-template failures in deterministic source order. A fatal
 input or shared stylesheet failure may prevent later stages; avoid cascading
@@ -556,6 +581,16 @@ No new cascade, shorthand expander or fixed solver is implemented here.
 ### TPL-04 — Compile and publish the immutable catalog
 
 Repository: `pagelayout`. Depends on TPL-03 and BOX-01.
+
+**Implemented:** `template.Load` runs all private stages and publishes an
+immutable `Catalog` only after every definition succeeds. BOX-01 supplies frame
+rectangles; compilation enforces positive sizes, page bounds and no border-box
+overlap under the comparison policy above. Accessors copy values/slices and flow
+chains retain source order. Public `LoadError`/`Diagnostic` snapshots preserve
+source context and causes. Tests cover the documented geometry example,
+explicit/stretch equivalence, touching/tolerance, case-sensitive flow chains,
+atomic failure, ownership, repeated/concurrent lookup and the original sketch.
+`LoadFS`, executable examples and CLI integration are separate follow-ups.
 
 - Resolve each page and frame, retain the logical box hierarchy, check bounds
   and overlaps, and build flow chains in source order.

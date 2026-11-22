@@ -12,9 +12,9 @@ import (
 	"golang.org/x/net/html"
 )
 
-// validatedCollection is detached input for the future geometry service. It
+// validatedCollection is detached input for geometry compilation. It
 // owns every slice and FixedStyle; it contains no DOM, CSSOM or styled nodes.
-// It is not a catalog of resolved rectangles and remains private until TPL-04.
+// It is not a catalog of resolved rectangles and remains an internal stage.
 type validatedCollection struct {
 	templates []*validatedTemplate
 	byID      map[string]*validatedTemplate

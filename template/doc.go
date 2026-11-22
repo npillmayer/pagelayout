@@ -12,10 +12,14 @@
 // are retained. Unsupported rule forms and syntax failures reject the collection.
 // TPL-03 checks the initial CSS profile and adapts effective page/frame values
 // into detached paint, flow bindings and css-box-layout constraints in CSS pixels.
-// Geometry resolution is not implemented. The public loading API will be
-// introduced when complete styled, sized catalogs can be returned.
+// Load compiles every definition into an immutable Catalog (TPL-04), resolving
+// fixed frame geometry and checking positive receiving sizes, page bounds and
+// border-box overlaps. A failure returns no partial catalog. Errors expose
+// structured diagnostics through LoadError and retain original wrapped causes.
 //
-// The intended compiled catalog is read-only and uses page-local CSS-pixel
-// geometry. Content preparation, page trials and rendering are separate phases.
+// Catalog descriptions use page-local CSS-pixel geometry and resolved solid
+// paint. Accessors return copies; selection requires no parsing, styling or
+// geometry work. Load retains no DOM/CSSOM or mutable intermediate inputs.
+// Content preparation, page trials and rendering are separate phases.
 // This package does not use Go's html/template or text/template engines.
 package template
