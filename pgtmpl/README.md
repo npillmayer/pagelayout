@@ -49,7 +49,8 @@ selector. Its SVG uses the catalog's compiled page dimensions, frame border
 rectangles and solid paint; the browser does not resolve the source CSS again.
 The first CSS snippet adds colored outlines to top-level frames without changing
 their geometry. A flow keeps its color across the collection, and a legend names
-the channels. The checked **Show frame borders** control hides these outlines
+the channels and their matching frame numbers (for example, `#2, #3`).
+The checked **Show frame borders** control hides these outlines
 and frame numbers when unchecked; authored backgrounds and borders remain.
 Hover over a frame to see its compiled receiving content rectangle in CSS pixels.
 

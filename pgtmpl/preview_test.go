@@ -67,6 +67,16 @@ func TestPreviewCatalogGeometryAndNavigation(t *testing.T) {
 			}
 			colors[frame.Flow] = style
 		}
+		legend := previewNodes(doc, "span", "frame-ids")
+		wantLegend := [][]string{{"#1", "#2, #3"}, {"#1", "#2"}}[i]
+		if len(legend) != len(wantLegend) {
+			t.Fatalf("got %d legend entries, want %d", len(legend), len(wantLegend))
+		}
+		for j, want := range wantLegend {
+			if legend[j].FirstChild == nil || legend[j].FirstChild.Data != want {
+				t.Fatalf("legend entry %d must show frame numbers %q", j, want)
+			}
+		}
 		links := previewNodes(doc, "a", "button")
 		if len(links) != 1 || previewAttr(links[0], "href") != "?page="+strconv.Itoa(1-i) {
 			t.Fatal("incorrect previous/next navigation")

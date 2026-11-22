@@ -18,7 +18,7 @@ var previewHTML string
 
 type previewFlow struct {
 	Name, Color string
-	Count       int
+	FrameIDs    []template.FrameID
 }
 
 type previewBorder struct {
@@ -78,7 +78,7 @@ func newPreviewHandler(catalog *template.Catalog, name string) (http.Handler, er
 				flowIndices[frame.Flow] = index
 				page.Flows = append(page.Flows, previewFlow{Name: frame.Flow, Color: color})
 			}
-			page.Flows[index].Count++
+			page.Flows[index].FrameIDs = append(page.Flows[index].FrameIDs, frame.ID)
 			page.Frames = append(page.Frames, previewFrame{FrameInfo: frame, Color: color, Borders: frameBorders(frame)})
 		}
 		var output bytes.Buffer

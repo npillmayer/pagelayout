@@ -42,7 +42,7 @@
     .flows li { display: flex; align-items: center; gap: 8px; margin: 10px 0; font-size: 12px; }
     .swatch { width: 12px; height: 12px; border: 2px solid var(--flow-color); border-radius: 2px; flex: none; }
     .flow-name { overflow-wrap: anywhere; }
-    .count { margin-left: auto; color: #65727b; }
+    .frame-ids { margin-left: auto; color: #65727b; text-align: right; }
     .section { margin-top: 24px; padding-top: 18px; border-top: 1px solid #e4e9ed; }
     .note { color: #65727b; font-size: 12px; margin: 18px 0 0; }
     figure { margin: 0; min-width: 0; text-align: center; }
@@ -78,9 +78,9 @@
         </form>
         <section class="section" aria-label="Flow channels">
           <p class="eyebrow">Flow channels</p>
-          <ul class="flows">{{range .Flows}}<li style="{{flowStyle .Color}}"><span class="swatch" aria-hidden="true"></span><span class="flow-name">{{.Name}}</span><span class="count">{{.Count}}</span></li>{{else}}<li>No receiving frames</li>{{end}}</ul>
+          <ul class="flows">{{range .Flows}}<li style="{{flowStyle .Color}}"><span class="swatch" aria-hidden="true"></span><span class="flow-name">{{.Name}}</span><span class="frame-ids" title="Frame numbers">{{range $i, $id := .FrameIDs}}{{if $i}}, {{end}}#{{$id}}{{end}}</span></li>{{else}}<li>No receiving frames</li>{{end}}</ul>
         </section>
-        <p class="note">Frame numbers follow document order. Hover over a frame for its receiving rectangle.</p>
+        <p class="note">The legend lists matching frame numbers in document order. Hover over a frame for its receiving rectangle.</p>
       </aside>
       <figure>
         <svg class="page" xmlns="http://www.w3.org/2000/svg" width="{{number .Page.Width}}" height="{{number .Page.Height}}" viewBox="0 0 {{number .Page.Width}} {{number .Page.Height}}" role="img" aria-labelledby="page-title page-description">
