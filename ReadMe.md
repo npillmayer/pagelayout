@@ -265,7 +265,10 @@ the tytui integration's source/style/projection contracts, partition named flows
 before normalization, and preserve residual content. CONT-00's reader/inspection
 API, concrete box handles in generic registers, shared style-service ownership
 and initial profile are adopted. [Acceptance fixtures and expected results](content/testdata/README.md)
-are included; content loading and sibling changes are not implemented yet.
+are included. CONT-01 implements private UTF-8 source parsing, CSS inspection
+and original-document styling, with inert/resource boundaries and structured
+diagnostics. Run `go test ./content` for these checks. Public material loading,
+full profile validation, routing and the planned sibling services remain pending.
 Floats, preparation and page trials remain later work.
 
 See [the loading package and PR plan](doc/TEMPLATE-LOADING.md),

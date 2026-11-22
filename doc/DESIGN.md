@@ -228,7 +228,9 @@ summarized below.
 The implementation sequence, sibling changes and later open questions for this
 phase are detailed in [CONTENT-LOADING.md](CONTENT-LOADING.md). CONT-00's loading
 contract and initial profile are adopted, with acceptance fixtures and expected
-results. Content loading and the required sibling changes are not implemented.
+results. CONT-01's private source parser/inspector/styler is implemented; the
+public material loader, routing and required computed-style/box services remain
+pending.
 
 Parse and style **all of Cont-Doc in its original context**, then construct
 source-associated box material with computed style inputs but no final widths,

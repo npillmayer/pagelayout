@@ -13,7 +13,8 @@ The preceding content-input phase is planned in
 [CONTENT-LOADING.md](CONTENT-LOADING.md): source styling, named-branch routing,
 residual preservation and normalized group indexing. Its output is unsized box
 material with source context, not prepared paragraphs. CONT-00 has adopted that
-loading contract and its fixtures; the loader is not implemented. The preparation
+loading contract and its fixtures; CONT-01 implements private source inspection
+and styling. The public material loader is pending, and the preparation
 interfaces in this document remain proposals.
 
 ## Recommendation

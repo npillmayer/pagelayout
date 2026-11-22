@@ -1,10 +1,16 @@
 # CONT-00 content fixtures and expected results
 
 Date: 2026-11-22. Status: adopted acceptance contract. These files accompany
-[CONTENT-LOADING.md](../../doc/CONTENT-LOADING.md); content loading is not yet
-implemented. The results below are requirements for CONT-01 through CONT-05,
-not captured output from an existing loader. They are content documents, not
-template collections accepted by `pgtmpl`.
+[CONTENT-LOADING.md](../../doc/CONTENT-LOADING.md). CONT-01's private source
+parser/inspector/styler is implemented and tests the source/style assertions.
+The full results below remain requirements for CONT-02 through CONT-05, not
+captured output from a public material loader. These are content documents,
+not template collections accepted by `pgtmpl`.
+
+Run `go test ./content` from the module root for the current source-stage checks.
+The private stage retains both `_err` files as styled source: their profile and
+routing failures belong to later phases. No channel/group/register assertions
+are claimed implemented by CONT-01.
 
 Load each HTML file as a complete body with its embedded CSS. Supply the override
 CSS only in the explicitly named variant. No template catalog, receiver size,

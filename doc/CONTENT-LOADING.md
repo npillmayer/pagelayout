@@ -1,8 +1,9 @@
 # Content loading and routing implementation plan
 
-Date: 2026-11-22. Status: CONT-00 adopted and completed (design, fixtures and
-expected results). Content loading and the required sibling changes are not
-implemented. Floats remain explicitly deferred.
+Date: 2026-11-22. Status: CONT-00 adopted and complete; CONT-01 private source
+parsing, inspection and styling implemented. The public material loader,
+normalization/routing and DOM-CONT/TY-CONT/BOX-CONT work remain pending.
+Floats remain explicitly deferred.
 
 This plan develops the content-input phase of [DESIGN.md](DESIGN.md), following
 the completed [template-loading milestone](TEMPLATE-LOADING.md). It ends with
@@ -23,10 +24,43 @@ CONT-00 adopts concrete `content.Box` handles as payloads and a generic conversi
 of those existing queues, preserving their persistent behavior.
 
 Section 11 records the adopted decisions separately from later open questions.
-CONT-01 onward and the DOM-CONT, TY-CONT and BOX-CONT items remain implementation
+CONT-02 onward and the DOM-CONT, TY-CONT and BOX-CONT items remain implementation
 work. References describe checked-out implementations; code sketches describe
-the adopted target API, not APIs already available. This CONT-00 change adds no
-production Go code or sibling implementation changes.
+the adopted target API unless explicitly identified as implemented.
+
+### Implemented CONT-01 boundary
+
+The private [`loadSource`](../content/load.go) pipeline returns a styled working
+source or a structured error, never a public partial Document. Its input values
+`LoadOptions` and `Stylesheet` exist; public `Load`, Document, Box and inspection
+records await CONT-04. [`source.go`](../content/source.go) reads caller-owned
+UTF-8 input, keeps HTML recovery and indexes every source node in preorder with
+ancestry, repaired-tree paths and decoded text. There is no HTML-hash identity.
+
+[`style.go`](../content/style.go) retains all inspected declarations and applies
+one fresh CSSOM to the original DOM, with ordered additional author sheets.
+Syntax/inspection failures stop before styling. Template subtrees, scripts and
+metadata are classified and excluded from active inspection/styled output; their
+source records remain. Display:none nodes still participate in inspection and
+styling; suppression is classified in CONT-02. Linked stylesheets, misplaced or
+conditional style elements, external CSS at-rules and resource-bearing body
+elements are diagnosed without fetching. Source resource checks occur before
+display evaluation and apply outside inert boundaries. Script sources and
+ordinary hyperlink/canonical-link destinations are never fetched or executed.
+
+This uses the implemented sibling `CSSOM.StyleWithOptions` traversal boundary,
+which preserves original selector ancestry and sibling positions. The styler
+also now applies declarations to every included element, without a layout-tag
+allowlist. These narrow CSSOM changes do not implement DOM-CONT-01's computed
+text-style service or DOM-CONT-02's font-aware border helper.
+
+Tests cover the fixtures' source/style assertions, reader ownership/failures,
+UTF-8, CSS diagnostics and causes, inert boundaries, source immutability and
+independent concurrent loads. No boxes, channel registers, fonts or used geometry
+are created. Full authored/effective profile checking (including float, CSS
+paint-resource/effect and typography restrictions) remains CONT-02; nested route
+validation remains CONT-03. Thus the two `_err` fixtures currently load as private
+styled source and still must fail when those later phases are implemented.
 
 ## 1. Deliverable and boundaries
 
@@ -133,7 +167,7 @@ record or create a second resolver in `pagelayout`.
 The adopted reader and inspection API is:
 
 ```go
-// Adopted target API; implemented in CONT-01 through CONT-04.
+// Adopted target API. Input structs exist in CONT-01; Load/Document await CONT-04.
 func Load(r io.Reader, opts LoadOptions) (*Document, error)
 
 type Stylesheet struct {
@@ -268,9 +302,10 @@ consider a bulk constructor only if realistic collection sizes justify it.
 
 ## 4. Acceptance fixtures and expected results
 
-The canonical inputs and assertion tables now live alongside the future package
+The canonical inputs and assertion tables now live alongside the content package
 in [content/testdata](../content/testdata/README.md). They specify required future
-loader results; no content loader or executable content test exists in CONT-00.
+material-loader results. CONT-01 tests exercise their source/style portions;
+channel, box, group and publication assertions await the subsequent phases.
 
 | Fixture | Acceptance purpose |
 | --- | --- |
@@ -556,6 +591,9 @@ inspection, cascade, typed display, checked box values/colors and decoded flow
 names. It does not currently provide the complete detached text-style resolution
 performed in `tytui/htmlinput.ResolvedStyles`.
 
+CONT-01's `StyleWithOptions` traversal boundary and removal of the styler's
+element allowlist are implemented prerequisites, not completion of this service.
+
 Add `w3c-dom/style/textstyle`, a checked source text-style snapshot service with
 explicit parent/root context. It must resolve source font sizes, relative weights,
 foreground color and language/direction context without selecting fonts or
@@ -678,18 +716,20 @@ Exit satisfied at the design level: reviewers can state which source material
 each output owns and which operations must not occur during loading. Fixtures
 are inputs to future executable tests, not evidence of a working content loader.
 
-### CONT-01 — Parse, inspect and style the content source
+### CONT-01 — Parse, inspect and style the content source (implemented)
 
-Add private source identities, decoded text storage, CSS inspection and a single
-source-document cascade. Accept named additional stylesheet texts; preserve
-normal cascade precedence. Define active/inert/resource boundaries and structured
-diagnostics. Reuse DOM helpers and template-loader conventions without exposing
-template internals or importing the template package into content.
+Implemented in content's private source/load/style/diagnostic files. Private
+source identities, decoded text, retained CSS inspection and one original-source
+cascade are covered by source/style tests. Named additional sheets preserve
+normal precedence. The sibling styling traversal option excludes inert/metadata
+subtrees without DOM mutation. No template-package dependency was introduced.
 
-Exit: source selectors/inheritance and errors are inspectable without boxing;
-the DOM remains unchanged. Include sibling/ancestor selector and CSS override
-cases, reader errors, malformed CSS and invalid UTF-8 according to the agreed
-policy. No public partial source model escapes.
+Exit satisfied: source selectors/inheritance and errors are inspectable privately
+without boxing; DOM identities/attributes/ancestry stay unchanged. Tests cover
+original ancestor/sibling/nth-child selection, CSS overrides, reader errors,
+malformed CSS and invalid UTF-8. A parse fuzz target checks source-index invariants.
+No public partial source model escapes. Full profile and routing errors remain
+separate from syntax/resource inspection as described in the boundary above.
 
 ### DOM-CONT-01 + TY-CONT-01 — Shared text-style snapshot service
 
