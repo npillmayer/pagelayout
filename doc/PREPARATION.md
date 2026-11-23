@@ -1,12 +1,13 @@
 # Preparation between CSS box construction and layout
 
-Date: 2026-11-23. Status: PREP-00 contract and acceptance fixtures complete;
-preparation runtime not implemented. BOX-PREP-01 is the next implementation step.
+Date: 2026-11-23. Status: PREP-00 contract/fixtures and BOX-PREP-01 shared group
+enumeration complete; preparation runtime not implemented. PREP-01 is next.
 
 This note develops the preparation phase introduced in [DESIGN.md](DESIGN.md).
 Preparing reusable content before page trials is established direction. The
 first-slice ownership and policy decisions in sections 11–12 are now pinned by
-PREP-00. Runtime APIs and the subsequent milestones remain unimplemented; earlier
+PREP-00. BOX-PREP-01 implements shared structural enumeration; preparation runtime
+APIs and the subsequent milestones remain unimplemented. Earlier
 conceptual sketches yield to those decisions. The sibling modules are under our control;
 their current limitations identify integration work rather than permanent limits
 on this design.
@@ -168,15 +169,15 @@ transactional multi-channel page fitting still need a later plan.
 
 ## 5. Group enumeration and the preparation driver
 
-Keep the structural traversal in `css-box-layout`: enumerate normalized horizontal
-groups, owners and atomic boundaries deterministically, including interior groups.
-It is a pure operation with no shaping or geometry work. Share that traversal
-with content's normalized group index rather than inventing another group model.
+The structural traversal lives in `css-box-layout`: `layout.InlineGroups`
+enumerates normalized horizontal groups, owners and atomic boundaries
+deterministically, including interior groups. It is a pure operation with no
+shaping or geometry work. Content's normalized group index now uses it.
 
 Place the effectful driver in pagelayout's orchestration layer. Conceptually:
 
 ```text
-CollectInlineGroups(normalized tree) -> ordered group descriptors
+layout.InlineGroups(root) -> iter.Seq[layout.InlineGroup]  // implemented
 Prepare(content document, explicit services/policy)
     -> immutable prepared snapshot + separate serialized execution session
 ```
@@ -570,8 +571,9 @@ are explicit. Current tests verify loading/structure and manifest consistency;
 actual extraction, engine calls, cleanup and two-width results belong to later
 PRs. No runtime preparation has been implemented by the fixture tests.
 
-No unresolved first-slice decision blocks BOX-PREP-01. Wider span-level/automatic
-hyphenation and intrinsic support require KHIPU-PREP work; ordinary-inline edges,
+With BOX-PREP-01 implemented, no unresolved first-slice decision blocks PREP-01.
+Wider span-level/automatic hyphenation and intrinsic support require KHIPU-PREP
+work; ordinary-inline edges,
 percentage-atomic sizing cycles, font discovery, concurrent sessions sharing
 services, incremental preparation, residual receiver binding, floats, partial
 box fitting and page transactions remain scoped extensions. None narrows the
@@ -589,9 +591,10 @@ package imports; separate adapter modules would be independent packaging work.
 
 ## 13. Step-by-step PR plan
 
-PREP-00 is complete as a contract/fixture milestone. All later entries are
-unimplemented runtime work. Cross-module
-changes must follow each sibling's instructions. Each PR has a narrow acceptance
+PREP-00 is complete as a contract/fixture milestone; BOX-PREP-01's shared
+enumeration and content-index migration are implemented. PREP-01 and later entries
+are unimplemented runtime work. Cross-module changes must follow each sibling's
+instructions. Each PR has a narrow acceptance
 boundary; do not label the full phase complete after the first preparation call.
 
 ### PREP-00 — Close prerequisites and pin the contract (complete)
@@ -616,23 +619,37 @@ out, and fixtures distinguish existing source material from future extraction,
 preparation and trials. No preparer/session runtime or sibling API is added.
 The intentionally omitted CONT-03 routing fuzz target is not reopened.
 
-### BOX-PREP-01 — Enumerate normalized groups without sizing
+### BOX-PREP-01 — Enumerate normalized groups without sizing (implemented)
 
-**Owner:** css-box-layout.
+**Owner:** css-box-layout, with consumer migration in pagelayout/content.
 
-Add one deterministic traversal primitive identifying each BoxAnonymousInline,
-its actual block owner, and its atomic boundaries. Visit nested atomic interiors
-as independent groups; extracting an outer group must not flatten them. Include
-empty groups, preserve tree-local BoxIDs, and perform no callbacks that measure,
-shape or resolve geometry. Keep traversal input read-only and return descriptors
-whose lifetime/borrowing is explicit. Migrate CONT-04's existing private group
-index traversal to this shared primitive to avoid two subtly different
-definitions of a group. CONT-04 currently indexes only structure and source
-context; it does not implement this proposed shared core API.
+`layout.InlineGroups(root) iter.Seq[layout.InlineGroup]` yields descriptors with
+`Group`, `Owner`, `Atomics` and `ParentAtomic`. It identifies actual
+BoxAnonymousInline groups and their nearest block-container owners in structural
+preorder, including anonymous owners and empty groups. Immediate atomic lists
+stop at inline-block boundaries; nested interiors are independent later groups.
+Replaced leaves are atomic boundaries without interior groups.
 
-**Exit:** core tests cover anonymous/split structure, empty owners, nested atomics,
-unchanged input and stable preorder. Two independent trees with colliding local
-IDs are handled independently. No typography, DOM or font imports are added.
+Node pointers borrow the normalized input tree and must remain read-only,
+including styles/child slices. Each Atomics slice is caller-owned and independent
+of other descriptors/iterations. BoxIDs remain tree-local. Nil yields nothing;
+subtrees ignore external ancestors, and an inline-block root encloses its own
+interiors. The iterator is repeatable after early termination and supports
+concurrent reads. It is not a malformed-tree/cycle validator. No text processing,
+measurement, shaping, style resolution or geometry operation occurs.
+
+CONT-04's content index consumes this shared traversal for group ownership and
+atomic relationships. Its separate source/identity validation walk remains;
+paragraph source context is still resolved by content, including anonymous
+owners. Public metadata retains copied values and qualified immutable Box
+handles, with no borrowed raw nodes exposed.
+
+**Exit satisfied:** core tests cover anonymous/split structure, empty owners,
+nested atomics, replaced leaves, unchanged input and stable preorder. Independent
+trees with colliding local IDs, descriptor slice ownership, subtree boundaries,
+early termination and concurrent reads are covered. Existing content tests retain
+their group/source-context results. No typography, DOM or font imports are added
+by the iterator. PREP-01 extraction and effectful preparation remain separate work.
 
 ### PREP-01 — Extract detached group input and source mappings
 

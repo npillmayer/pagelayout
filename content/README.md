@@ -78,8 +78,9 @@ Preparation starts from this published snapshot, not from another parse or
 cascade. [PREP-00](../doc/PREPARATION.md#12-prep-00-decisions-and-deferred-extensions)
 now pins session/service ownership and initial policy. Its
 [fixtures](testdata/preparation/README.md) distinguish today's loaded structure
-from future extraction/preparation results. Runtime implementation starts with
-BOX-PREP-01's shared group enumeration.
+from future extraction/preparation results. BOX-PREP-01's shared group enumeration
+is implemented and used by the content index. PREP-01's detached group extraction
+and source mapping are next; engine preparation remains unimplemented.
 
 | Published material | Use at the preparation boundary |
 | --- | --- |
@@ -95,8 +96,9 @@ excluded descendants. It is **not** a normalized paragraph stream. The public
 inspection API intentionally exposes no mutable tree or general box-child
 traversal. PREP-01's bridge inside `content` will extract processed groups from
 the private normalized trees, preserving text transformations and source maps.
-BOX-PREP-01 first supplies shared CSS-core group enumeration to replace the
-current private indexing traversal.
+The index already uses `layout.InlineGroups` for group ownership and atomic
+relationships, with source-context validation remaining inside `content`.
+The core's borrowed node pointers never escape through the public content API.
 
 The proposed two-width experiment should load once, extract/prepare once, then
 use the same group and atomic identities for two independent layout results.

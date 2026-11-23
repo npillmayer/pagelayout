@@ -291,8 +291,9 @@ and preparation handoff. Run `go test ./content -run '^Example' -v` from the mod
 root. No preparation or sizing is needed to inspect loaded material.
 PREP-00 now pins preparation ownership, services, failure cleanup and the initial
 hyphenation policy, with [acceptance fixtures](content/testdata/preparation/README.md).
-Preparation runtime remains unimplemented; BOX-PREP-01's shared group enumeration
-is next. Floats and page trials remain later work.
+BOX-PREP-01's shared group enumeration is implemented and used by content's
+index. PREP-01's detached extraction/source mapping is next; engine preparation,
+floats and page trials remain later work.
 
 See [the loading package and PR plan](doc/TEMPLATE-LOADING.md),
 [the broader design](doc/DESIGN.md), and

@@ -222,18 +222,18 @@ func (s *snapshot) readText(ref boxtext.TextRef) (string, error) {
 	return t.Text[ref.Range.Start:ref.Range.End], nil
 }
 
-// indexTree enumerates structure only. It does not implement normalization or
-// paragraph extraction, resolve used values, measure atomics, or prepare text.
+// indexTree validates source/box correspondence, then consumes the core's shared
+// group enumeration. Only content owns source context and snapshot qualification;
+// group ownership and atomic relationships come from layout.InlineGroups.
 func (s *snapshot) indexTree(id TreeID) error {
 	t := &s.trees[id]
 	t.nodes = make(map[layout.BoxID]*layout.LayoutNode)
 	t.contexts = make(map[layout.BoxID]layout.NodeID)
-	var walk func(*layout.LayoutNode, Box, layout.NodeID, Box, int) error
-	walk = func(n *layout.LayoutNode, owner Box, context layout.NodeID, atomic Box, group int) error {
+	var walk func(*layout.LayoutNode, layout.NodeID) error
+	walk = func(n *layout.LayoutNode, context layout.NodeID) error {
 		if n == nil || n.BoxID == 0 || t.nodes[n.BoxID] != nil || n.Style == nil {
 			return fmt.Errorf("missing or duplicate box identity/style")
 		}
-		b := Box{s, id, n.BoxID}
 		t.nodes[n.BoxID] = n
 		if n.NodeID != 0 {
 			if uint64(n.NodeID) >= uint64(len(s.sources)) || s.sources[n.NodeID].Tree != id {
@@ -254,34 +254,16 @@ func (s *snapshot) indexTree(id TreeID) error {
 				return err
 			}
 		}
-		if n.Box == layout.BoxInlineBlock {
-			if group < 0 {
-				return fmt.Errorf("atomic box %d has no containing group", n.BoxID)
-			}
-			t.groups[group].Atomics = append(t.groups[group].Atomics, b)
-			atomic, group = b, -1
-		}
 		if layout.IsBlockContainer(n.Box) {
-			owner = b
 			if n.NodeID != 0 {
 				context = n.NodeID
 			}
-			group = -1
 		}
 		if context == 0 || uint64(context) >= uint64(len(s.sources)) || !s.sources[context].HasTextStyle {
 			return fmt.Errorf("box %d has no source paragraph context", n.BoxID)
 		}
-		if n.Box == layout.BoxAnonymousInline {
-			if !owner.Valid() || group >= 0 {
-				return fmt.Errorf("invalid owner/group for box %d", n.BoxID)
-			}
-			group = len(t.groups)
-			c := s.sources[context]
-			t.groups = append(t.groups, GroupInfo{Group: b, Owner: owner, Source: c.Source,
-				TextStyle: c.TextStyle, ParentAtomic: atomic})
-		}
 		for _, child := range n.Children {
-			if err := walk(child, owner, context, atomic, group); err != nil {
+			if err := walk(child, context); err != nil {
 				return err
 			}
 		}
@@ -290,5 +272,23 @@ func (s *snapshot) indexTree(id TreeID) error {
 	if t.root == nil {
 		return nil
 	}
-	return walk(t.root, Box{}, 0, Box{}, -1)
+	if err := walk(t.root, 0); err != nil {
+		return err
+	}
+	for g := range layout.InlineGroups(t.root) {
+		if g.Owner == nil {
+			return fmt.Errorf("group %d has no block owner", g.Group.BoxID)
+		}
+		c := s.sources[t.contexts[g.Owner.BoxID]]
+		info := GroupInfo{Group: Box{s, id, g.Group.BoxID}, Owner: Box{s, id, g.Owner.BoxID},
+			Source: c.Source, TextStyle: c.TextStyle}
+		if g.ParentAtomic != nil {
+			info.ParentAtomic = Box{s, id, g.ParentAtomic.BoxID}
+		}
+		for _, atomic := range g.Atomics {
+			info.Atomics = append(info.Atomics, Box{s, id, atomic.BoxID})
+		}
+		t.groups = append(t.groups, info)
+	}
+	return nil
 }
