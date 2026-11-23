@@ -1,6 +1,6 @@
 # Preparation between CSS box construction and layout
 
-Date: 2026-11-21. Status: design discussion, before implementation.
+Date: 2026-11-23. Status: proposed implementation plan; preparation not implemented.
 
 This note develops the preparation phase introduced in [DESIGN.md](DESIGN.md).
 Preparing reusable content before page trials is established direction. The
@@ -13,21 +13,25 @@ The preceding content-input phase is planned in
 [CONTENT-LOADING.md](CONTENT-LOADING.md): source styling, named-branch routing,
 residual preservation and normalized group indexing. Its output is unsized box
 material with source context, not prepared paragraphs. CONT-00 has adopted that
-loading contract and its fixtures; CONT-01 implements private source inspection
-and styling. The public material loader is pending, and the preparation
-interfaces in this document remain proposals.
+loading contract and its fixtures; CONT-01/02/03 implement private source loading,
+typed projection and route partitions. **Content loading is not yet complete:**
+BOX-CONT-01/02 and CONT-04/05 still need builder diagnostics, generic registers,
+normalization/group indexing, public publication and integration examples.
+The preparation interfaces remain proposals. Sections 11–14 add the recommended
+register/session model, decision gates, PR sequence and acceptance tests. They
+refine the earlier callback/driver sketch where functional ownership requires it.
 
 ## Recommendation
 
-Add a preparation callback alongside the existing typography callbacks, and
-introduce an explicit pass **after box normalization and before used-value
-resolution**. Its result should be reusable input to both intrinsic measurement
-and layout.
+Introduce an explicit preparation stage **after box normalization and before
+used-value resolution**. Reuse the result for both intrinsic measurement and
+layout. Keep group enumeration in the CSS core and effectful preparation in an
+explicit orchestrator/session, as detailed in sections 11–13.
 
-The addition is more than another callback: it establishes a prepared-material
-lifetime spanning many layout trials. The box core owns the traversal;
-the typography adapter prepares each horizontal group; `pagelayout` decides
-when to prepare its flow material and which page trials consume it.
+This establishes a prepared-material lifetime spanning many layout trials.
+The box core identifies horizontal groups; the typography adapter prepares them;
+`pagelayout` decides when to prepare flow material and which trials consume it.
+Registers keep their immutable content.Box payloads throughout.
 
 This need not depart from CSS formatting semantics. CSS does not prescribe this
 particular implementation architecture. CSS Text explicitly permits a different
@@ -90,8 +94,8 @@ and placement work. Its trial stages show dependencies: laying out an atomic
 interior itself invokes paragraph layout for the groups inside that atomic box.
 Used-value resolution and intrinsic sizing are grouped together because they
 interact recursively. The coordinator advances private cursors while traversing
-frames and commits only a selected complete page. The fragment fitter remains
-proposed.
+frames and commits only a selected complete page. CSS-level fragment fitting remains proposed; typography now has paragraph
+continuation/fitting APIs, which do not by themselves implement page composition.
 
 Preparation also precedes intrinsic measurement: measurement should consume the
 same shaped material that subsequent layout uses.
@@ -124,102 +128,72 @@ A percentage box width can remain unresolved until containing geometry is known.
 This follows CSS's distinction between computed values and layout-dependent used
 values. [CSS value processing](https://www.w3.org/TR/css-cascade-5/#computed).
 
-## 4. A preparation callback returning a reusable handle
+## 4. Explicit preparation and execution handles
 
-The proposed sibling callback should return a prepared handle, rather than
-merely populate an adapter's hidden cache. An illustrative interface is:
+The earlier sketch proposed a `PreparedInline` object with measurement and layout
+methods stored in `PreparedBoxes`. Review of the current functional and typography
+contracts refines this: executable handles belong to a separate session, not an
+immutable bank payload or structural tree. See section 11 for the lifetime model.
 
-```go
-// PROPOSED interfaces, not existing css-box-layout APIs.
-type InlinePrepareRequest struct {
-    Group   *LayoutNode
-    OwnerID BoxID
-}
+A neutral preparer receives detached group input and returns an executable engine
+handle plus immutable metadata to the orchestrator. Its request contains source
+text/styles, paragraph owner context and atomic identities, but no receiver width,
+height budget, used-value table or realized atomic dimensions. A typography bridge
+can wrap `paragraph.Prepared` privately; the core and loader need no khipu or
+concrete font types. Exact public signatures are PREP-00 work.
 
-type InlinePreparer interface {
-    PrepareInline(InlinePrepareRequest) (PreparedInline, error)
-}
+The operations remain distinct:
 
-type PreparedInline interface {
-    MeasureInline(InlineMeasureRequest) (IntrinsicWidths, error)
-    LayoutInline(InlineRequest) (InlineTrialResult, error)
-}
-```
+- Preparation establishes reusable horizontal material and source correspondence.
+- Measurement uses that material with explicit atomic contribution ranges.
+- Layout uses it with definite width and realized atomic geometry, returning an
+  independent candidate rather than replacing a current result on the handle.
 
-The preparation request contains no frame width, height budget, used-value table
-or sized atomic objects. The adapter obtains source text, effective styles and
-font services from its stable source context.
+The existing `InlineLayouter` and `IntrinsicMeasurer` interfaces can remain.
+Each trial supplies fresh callback adapters that look up the same session's
+prepared group and collect typed paragraph results privately. Publish those
+results alongside CSS geometry after whole-invocation success. There is no need
+to put an opaque paragraph payload in core `InlineResult` or geometry tables.
 
-`PreparedInline` would be a small interface defined by `css-box-layout`. Its
-concrete implementation in the typography adapter would wrap `paragraph.Prepared`
-together with source mappings and atomic occurrence mappings. The box core
-would not import `khipu` or inspect shaped glyphs.
+Whole-group layout and partial fitting remain separate contracts. Typography's
+`Prepared.Trial`, `Trial.Assemble`, checkpoints and `Continuation.Fit` already
+supply paragraph-level pieces. CSS-level `FitInline`, block fragmentation and
+transactional multi-channel page fitting still need a later plan.
 
-The three operations have distinct purposes:
+## 5. Group enumeration and the preparation driver
 
-- `PrepareInline` establishes reusable horizontal material.
-- `MeasureInline` obtains intrinsic contributions under supplied measurement
-  conditions.
-- `LayoutInline` produces one independent candidate using definite dimensions.
+Keep the structural traversal in `css-box-layout`: enumerate normalized horizontal
+groups, owners and atomic boundaries deterministically, including interior groups.
+It is a pure operation with no shaping or geometry work. Share that traversal
+with content's normalized group index rather than inventing another group model.
 
-The prepared receiver makes the dependency explicit: measurement and layout
-operate on the material returned by preparation. They cannot accidentally
-prepare a different version of the paragraph.
-
-`InlineTrialResult` is also a proposed type. It represents today's extent and
-atomic placements plus a retained, immutable paragraph-result handle. Currently
-the adapter stores paragraph output in invocation-local maps. Multiple trials
-need independent results; overwriting one “current paragraph result” per group
-would defeat that. The precise payload interface remains open.
-
-When fragmentation is introduced, a `FitInline` operation can add height budgets
-and continuations while using the same prepared handle. Whole-group layout and
-partial fitting should remain distinct operations. The request/result types and
-compatibility with existing callbacks need refinement before implementation.
-
-## 5. The box-level preparation driver
-
-Add an explicit driver in `css-box-layout`, conceptually:
+Place the effectful driver in pagelayout's orchestration layer. Conceptually:
 
 ```text
-PrepareBoxes(roots, inlinePreparer) -> PreparedBoxes
+CollectInlineGroups(normalized tree) -> ordered group descriptors
+Prepare(content document, explicit services/policy)
+    -> immutable prepared snapshot + separate serialized execution session
 ```
 
-`PreparedBoxes` need not be a second copy of the box tree. It can contain:
+The snapshot shares the existing immutable source trees and stores copied side
+data. The session owns executable preparation handles. Qualified group identity
+includes the content snapshot and tree; a bare BoxID is not unique across branches.
+No pass adds readiness, glyphs, selected geometry or execution handles to nodes.
 
-```text
-immutable normalized roots
-+ group identity -> prepared inline handle
-```
-
-Group identity must be scoped to the corresponding tree/preparation; a bare
-`BoxID` is not globally unique across independently built trees.
-
-This preserves the existing separation between structural nodes and layout
-geometry. Each trial gets its own used-value tables, atomic realizations,
-paragraph decisions and placements. Preparation adds reusable data alongside
-the structure.
-
-The driver belongs in `css-box-layout`, because that module understands which
-nodes are horizontal groups and how nested formatting contexts are represented.
-`pagelayout` invokes it for flow material. The typography adapter implements the
-callback and retains the source correspondence it needs.
+Each trial receives its own used-value tables, atomic realizations, paragraph
+choices and placements. Preparation provides reusable data without choosing
+geometry. This is a refinement of the earlier proposal to put the entire
+`PrepareBoxes` driver in css-box-layout: the core retains group semantics, while
+external services and their caches stay outside the pure passes.
 
 ![Requests, returned handles and reuse between css-box-layout and typography during preparation and trials](diagrams/preparation-interactions.svg)
 
 [Graphviz DOT source](diagrams/preparation-interactions.dot)
 
-The left column is the box core; the right is the typography adapter and the
-paragraph services it calls. Solid arrows show requests or orchestration,
-dashed arrows return values, and dotted arrows reuse of the same preparation.
-The preparation pass and handle interfaces are proposed; the named paragraph
-operations already exist. The adapter preserves source/style context and handles
-unit and identity conversion, keeping khipu types out of the box core.
-
-The trial lane illustrates whole-group layout with independent retained results.
-Partial paragraph fitting would use the separate proposed `FitInline` contract;
-neither existing `LayoutInline` nor `Trial.Assemble` alone supplies that service.
-The core repeats measurement and layout for nested atomic interiors as needed.
+The diagram shows the earlier conceptual preparation-handle interaction, not a
+final API or an assertion that executable handles are immutable payloads. For the
+planned ownership and driver placement, sections 11–13 take precedence. The
+measurement/layout dependencies remain valid, including recursive atomic sizing.
 
 ## 6. Nested inline-blocks demonstrate the boundary
 
@@ -250,9 +224,9 @@ During preparation:
 The outer paragraph's preparation does not need the inner paragraph's dimensions
 or even its preparation result. It needs the atomic identity.
 
-The driver can therefore walk top down, as envisaged in the author's remarks.
-The outer callback stops at the atomic boundary when extracting its text; the
-driver continues into the atomic subtree and prepares its separate groups.
+Enumeration can therefore walk top down, as envisaged in the author's remarks.
+Outer-group extraction stops at the atomic boundary; enumeration continues into
+the atomic subtree so the orchestrator prepares its separate groups.
 The current [extraction code](../../tytui/documentlayout/extract.go) already
 distinguishes outer atomic occurrences from their interior groups.
 
@@ -313,13 +287,13 @@ no shaping service can ever run again. See the
 
 ## 9. Ownership and lifetime rules
 
-Proposed rules for the new phase:
+Proposed rules for the new phase (with the snapshot/session split in section 11):
 
-- A successful pass publishes a complete prepared set for the requested roots.
+- A successful pass publishes a complete snapshot/session pair for the document.
   Failure publishes no partially ready set. Internal completed caches need not
   be erased merely because a later operation fails.
-- Prepared material contains no mutable current width, selected page or accepted
-  register cursor.
+- Prepared snapshots contain no execution state. Sessions contain no mutable
+  current width, selected page or accepted register cursor.
 - Every layout trial returns independent results. Rejecting it leaves preparation
   usable and does not consume any channel material.
 - Continuations identify their preparation and accepted prefix. Width changes
@@ -341,7 +315,8 @@ optimization that callers must understand.
 Prepare an outer paragraph and a nested auto-width inline-block, then lay them
 out at two receiving widths. Both groups should be prepared before any
 measurement or layout callback. Both candidates should coexist; rejecting either
-should change nothing in the preparations. Base text should not be reshaped for
+must leave published material unchanged and the session reusable, although complete
+memoized discoveries may persist. Base text should not be reshaped for
 the second width, while explicitly deferred alternatives remain permitted.
 
 This experiment would establish the phase and its lifetime before adding the
@@ -354,10 +329,354 @@ Before implementation, refine:
 - The representation and ownership of retained paragraph trial results.
 - Driver scope, tree/group identities and failure publication behavior.
 - Deferred inline contributions and the supported initial text/box profile.
-- The later `FitInline` contract for partial results and continuation.
+- Record `FitInline` for partial results and continuation as a later decision,
+  not a prerequisite for the whole-group experiment.
 
-These are design questions. This note does not implement APIs or authorize
-changes to sibling repositories.
+Sections 11–13 recommend concrete answers and sequence their implementation.
+The remaining decisions are explicit review gates, not unspecified prerequisites
+for every PR. This note does not implement APIs or authorize sibling changes.
+
+## 11. Registers, prepared snapshots and functional ownership
+
+**Recommendation (2026-11-23; review in PREP-00): keep the register payload
+`content.Box` throughout preparation.** That is the adopted content-loading
+payload, not a new mixed interface or a box with a mutable readiness flag.
+The generic register conversion remains BOX-CONT-02 work.
+
+A register stores immutable branch-root handles. A branch may own many horizontal
+groups, including groups inside atomics; it is not interchangeable with one
+paragraph. Preparing those groups does not change the branch's identity,
+structure, source styles or position in its channel. Publish a separate prepared
+snapshot keyed by qualified group identity. The same bank can then be consumed
+with either of two independently prepared snapshots of the same content.
+
+```text
+Content Document D ─── immutable normalized trees + source/group indices
+       │
+       └── Bank B: RegisterBank[content.Box] ─── references D only
+
+Prepare(D, explicit services and policy)
+       ├── PreparedSnapshot P: D + immutable group/atomic/source metadata
+       │                      + preparation identity and coverage manifest
+       └── PreparationSession S: matching execution handles/services
+                                  (serialized use; never a register payload)
+
+Trial(B, P, S, receiver constraints)
+       └── independent candidate output + derived bank B′
+           choosing the candidate publishes B′; rejecting it keeps B
+```
+
+The last line describes a future page coordinator, not a preparation API that
+already implements page fitting. Within-box continuations remain separate from
+whole-item `Take`; neither preparation nor measuring consumes a bank.
+
+Use `(content snapshot, TreeID, BoxID)` for group identity and a new
+`PreparationID` for each successful preparation session/snapshot pair. Bind the
+session to exactly that snapshot and reject cross-document or cross-preparation
+calls before invoking services. Atomic occurrence IDs are local to a group;
+associate them with qualified box handles, not raw BoxIDs across trees.
+
+Prepare the whole document in the first implementation: residual tree first,
+then branch trees in global source order, visiting groups in deterministic tree
+preorder. This includes empty and atomic-only groups. Validate complete coverage
+before publishing either result. A bank assembled from another document is not
+implicitly compatible. Selected-subset and incremental preparation are deferred.
+
+`PreparedSnapshot` does not point to its session. It can retain immutable source,
+processed-text/source-map/paint values and stable resource identity, but no
+mutable discovery cache, stream, current result, used-value table or cursor.
+`PreparationSession` owns the adapter's `paragraph.Prepared` handles, which retain
+immutable Khipu plus mutable Discovery. Dropping the session releases working
+preparation without invalidating source material or previously frozen results.
+The snapshot alone is an inspection/coverage value, not an executable paragraph.
+Do not reopen fonts or silently reprepare if the matching session is absent.
+
+This fits the current sibling API rather than assuming an immutable
+`paragraph.Prepared`: its [contract](../../typography/glyphing/paragraph/prepared.go)
+requires serialized operations and retains Discovery. Khipu already separates
+[immutable material, binding and plans from discovery](../../khipu/doc/PREPARED_PARAGRAPHS.md).
+The first bridge can use those APIs unchanged; exporting the private base Khipu
+from paragraph.Prepared is not required just to create a public manifest.
+
+This deliberately avoids placing `*paragraph.Prepared` in a register or a field
+reachable through `content.Box`: persistent queues share payloads, not deep
+copies. Calling such a handle could update discoveries visible through old bank
+versions. A private mutable field would not become functional merely because it
+is unexported. See the [register contract](../../css-box-layout/registers/doc.go).
+
+The split follows [css-box-layout's functional rules](../../css-box-layout/doc/Functional.md):
+
+- Structural trees, source records, register versions and published geometry are
+  immutable values. Preparation adds side data without decorating existing nodes.
+- Core group enumeration and geometry transforms are deterministic with explicit
+  inputs. Font selection/shaping and memoized discovery live in an explicit
+  orchestration/session layer, not hidden core state.
+- Each measurement/layout invocation has fresh scratch, used values, atomic
+  realizations and a private result collector. Publish copied results only after
+  complete success. A rejected trial never overwrites another candidate.
+- Session calls, including calls sharing a resolver or services across sessions,
+  are serialized initially. Persistent-bank concurrency does not imply concurrent
+  typography execution. Failed calls may leave complete memoized discoveries,
+  but cannot mutate published material or earlier results.
+
+Strict referential transparency of every font-service call is not claimed by
+this proposal. The functional guarantee applies to material, banks and published
+results; the effectful service layer is explicit. Requiring discovery itself to
+be a persistent value would be additional khipu work, not necessary for this
+milestone or a reason to weaken the register payload contract.
+
+## 12. Recommended choices and open decisions
+
+These recommendations make the PR plan reviewable; they are not automatically
+adopted APIs. PREP-00 should settle the first-slice choices before implementation.
+
+| Decision | Recommended first implementation | Remaining boundary |
+| --- | --- | --- |
+| Register payload | Keep `RegisterBank[content.Box]`; readiness belongs to a separate snapshot/session pair | No mixed raw/prepared queue items or destructive conversion |
+| Preparation scope | Eager, whole-document, atomic publication, including residual and nested groups | Partial/lazy preparation and bounded working sets later |
+| Tree access and package boundary | A backend-neutral preparation entry point on `content` owns private tree access and source extraction; an optional `pagelayout/preparation/typography` bridge implements its preparer contract | Names are provisional; do not expose mutable LayoutNodes through public inspection or import typography into the loader |
+| Core traversal | Shared group enumeration in css-box-layout; effectful driver in pagelayout orchestration | Refines the earlier proposal to put the entire preparation driver in the box core |
+| Font selection | Caller supplies preloaded selection/resolver and matching shaper services; reuse `khipu/contracts.FontFace` and `FontInstance` inside the bridge | Discovery/configuration remain application concerns; no new font wrapper or default OpenType backend |
+| Trial result ownership | Retain typed paragraph trials/results in a fresh adapter invocation collector; return them alongside fresh CSS geometry | No `any` paragraph payload in core geometry; no last-result map on a prepared group |
+| Initial text/box profile | Normal whitespace and CSS normal line height; zero ordinary-inline edges; nested auto/fixed-width atomics in the trial experiment | Loading/preparation retain percentages; unsupported intrinsic dependencies fail explicitly in the trial, not by rewriting material |
+| Breaker and alignment | Start the experiment with explicit FirstFit, zero side skips, CSS line boxes and bottom-margin-edge atomic alignment | Additional breaker policies can follow without changing bank payloads |
+| Hyphenation | First experiment explicitly uses source `hyphens:none`; production bridge admits uniform none and supported uniform manual with an injected explicit hyphenator | Mixed per-span policies and automatic intrinsic measurement need further contracts; never silently force manual/auto to none |
+| Partial fitting | Defer CSS-level fitting and whole-page transactions to a later plan | Reuse existing paragraph Trial/Checkpoint/Continuation APIs where their restrictions fit; general block fragmentation is unsolved |
+| Concurrency/lifetime | Serialize session/shared-service use; release session after reflow is no longer needed; frozen output retains only its required stable resources | No concurrent-trial promise or document-wide permanent cache |
+
+The hyphenation boundary is substantive. Content loading preserves none/manual/
+auto per source span, with manual as its default. Khipu currently fixes one
+hyphenation mode per preparation; its intrinsic measurement supports none and
+bounded explicit alternatives, but not automatic or arbitrary multiple explicit
+splits per textbox. The bridge must retain all original policies and return
+source/group-associated unsupported-policy errors where necessary. Do not split
+one paragraph into separate paragraphs to simulate span-level policy. Broader
+admission requires a separately scoped KHIPU-PREP extension and matching
+paragraph tests; this is an integration limitation, not a permanent CSS rule.
+
+No w3c-dom change is currently required: its source-style snapshots already carry
+font sizes, language, bidi and hyphenation policy. Convert DOM DU explicitly to
+typography/khipu DU. Keep line-height and hyphenation beside typography.Style,
+whose fields do not represent both. The bridge reuses
+`glyphing.NewStyleMapper`/`ItemizeInline` and `paragraph.Prepare`; the application
+may choose typography's OpenType adapter. No concrete `*ot.Font` enters
+pagelayout's public/core types. Typography bundles adapters in its Go module,
+so an indirect module-graph dependency is still possible even without OpenType
+package imports; separate adapter modules would be independent packaging work.
+
+## 13. Step-by-step PR plan
+
+All entries below are proposed work, not implemented milestones. Cross-module
+changes must follow each sibling's instructions. Each PR has a narrow acceptance
+boundary; do not label the full phase complete after the first preparation call.
+
+### PREP-00 — Close prerequisites and pin the contract
+
+**Owners:** pagelayout; prerequisite css-box-layout content work.
+
+Finish BOX-CONT-01 (structured builder errors), BOX-CONT-02 (generic registers),
+CONT-04 (normalization, group indexing, immutable public material) and CONT-05
+(executable handoff). Review section 12, freeze snapshot/session ownership and
+choose the admitted hyphenation subset. The public content.Box remains the
+adopted branch handle. Agree service failure/cleanup and source error mapping;
+preparation must return neither a partial snapshot nor an accessible session.
+
+Add small acceptance inputs: text-only; an outer paragraph with nested auto-width
+atomic text; empty/atomic-only groups; two branches in one channel plus residual;
+manual soft hyphens and mixed/auto-policy rejection cases. Pin processed-text,
+source-map, group/atomic identity and expected preparation-call counts. Use
+explicit `hyphens:none` in the initial two-width experiment rather than overriding
+source policy in code. Preparation-specific fixtures belong beside its tests.
+
+**Exit:** prerequisites pass; remaining policy choices are explicitly adopted or
+scoped out, and the fixtures distinguish source material, preparation and trials.
+The intentionally omitted CONT-03 routing fuzz target is not reopened.
+
+### BOX-PREP-01 — Enumerate normalized groups without sizing
+
+**Owner:** css-box-layout.
+
+Add one deterministic traversal primitive identifying each BoxAnonymousInline,
+its actual block owner, and its atomic boundaries. Visit nested atomic interiors
+as independent groups; extracting an outer group must not flatten them. Include
+empty groups, preserve tree-local BoxIDs, and perform no callbacks that measure,
+shape or resolve geometry. Keep traversal input read-only and return descriptors
+whose lifetime/borrowing is explicit. Use it for CONT-04's group index to avoid
+two subtly different definitions of a group.
+
+**Exit:** core tests cover anonymous/split structure, empty owners, nested atomics,
+unchanged input and stable preorder. Two independent trees with colliding local
+IDs are handled independently. No typography, DOM or font imports are added.
+
+### PREP-01 — Extract detached group input and source mappings
+
+**Owner:** pagelayout/content, consuming BOX-PREP-01.
+
+Use private normalized trees and source snapshots to build copied group inputs:
+processed UTF-8 text, source spans, computed text styles, separate paint, paragraph
+owner context, bidi isolates, hyphenation policy spans and atomic occurrences.
+Reuse `css-box-layout/text.NormalizeNormal`; follow tytui's established extraction
+contract, not its application package dependency. Map collapsed/omitted bytes,
+NBSP, soft hyphens and entities back to decoded source ranges. Insert one U+FFFC
+only for a structural atomic occurrence; distinguish an authored U+FFFC. Keep
+occurrence-to-qualified-box mappings and independent interior group identities.
+
+**Exit:** extraction is a pure transform, returns copies, has no font calls, and
+handles text adjacency after routing and owner defaults even with no text runs.
+Isolate and style ranges address the same processed bytes as atomic anchors.
+
+### PREP-02 — Publish preparation snapshots and isolated sessions
+
+**Owner:** pagelayout/content; fake engine only at first.
+
+Add the neutral entry point and preparer protocol with detached GroupInput values,
+no raw public tree accessor and no typography imports. Implement whole-document
+orchestration, stable preparation identity, an immutable coverage manifest and a
+separate private session table of executable handles. Construct both privately;
+publish only after every expected group succeeds. Validate returned group/owner
+identity and completeness, and define disposal of failed working handles.
+
+Preparation must not call bank.Take/Prepend or resolve receiving dimensions.
+Keep bank handles pointing only to the content snapshot. Validate that trials
+use the matching preparation/session and source handles, including when raw BoxIDs
+happen to collide. No mutable session pointer is stored in a public value payload.
+
+**Exit:** fake-engine tests prove one preparation per group, deterministic order,
+no layout calls, unchanged original bank/tree, no partial publication after a
+late failure, and two coexisting preparations of the same source. Foreign or
+mismatched handles fail before service work.
+
+### TYPE-PREP-01 — Implement the typography preparation bridge
+
+**Owner:** optional pagelayout/preparation/typography package; typography/khipu
+changes only if an identified contract gap requires them.
+
+Map detached source styles to typography styles with checked unit conversion.
+Accept caller-owned resolver, shaper factory and explicit supported hyphenation
+services/policy. Resolve owner typography separately from the first text run.
+Itemize, retain paint outside shaping, construct bidi markup and anchors, then
+call paragraph.Prepare exactly once for each group. Store paragraph.Prepared
+only in the session-owned engine handle. Retain source/atomic mappings as copied
+immutable metadata. Do not discover fonts or choose an implicit backend.
+
+Preflight unsupported policy combinations; preserve upstream causes/stages.
+Keep borrowed source/font/service lifetimes explicit. Do not promise that lazy
+discretionary work never runs again, only that base shaping is reused.
+
+**Exit:** fake font/stream tests verify no receiver geometry, one base preparation,
+independent atomic interiors, owner struts, paint/source correspondence and atomic
+failure publication. Dependency checks forbid opentype/fontfind/tytui imports
+outside explicitly optional integration tests or application examples. Tests for
+manual/auto/mixed policies demonstrate admission or explicit rejection.
+
+### PREP-03 — Consume preparation during intrinsic measurement
+
+**Owners:** pagelayout typography bridge; css-box-layout only for a discovered
+request-contract gap.
+
+Adapt existing InlineMeasureRequest to the retained group handle. Supply ordered
+atomic contribution ranges using core-provided border widths plus horizontal
+margins exactly once. Keep signed arithmetic and range checks explicit. Call
+Prepared.MeasureIntrinsic without final heights, line breaking, vertical metrics
+or publication of paragraph geometry. Never fall back to preparing on a cache
+miss; a missing group is an identity/coverage error.
+
+**Exit:** repeated measurements reuse base preparation; requests are not retained;
+nested auto-width dependencies work within the existing CSS profile; unsupported
+percentage cycles and hyphenation policies report errors without poisoning the
+session or prior outputs. Intrinsic answers are not cached solely by group ID.
+
+### PREP-04 — Produce independent whole-tree trial results
+
+**Owner:** pagelayout orchestration and typography bridge.
+
+Reuse existing ResolveUsedValues/FlowLayout with fresh callback instances for each
+trial. Route both measurement and layout to the same preparation session. Layout
+uses prepared paragraph trials/assembly and core-completed atomic dimensions;
+retain typed paragraph output, source/paint mappings and CSS geometry in a fresh
+invocation collector. Publish that bundle only after the entire requested tree
+succeeds. Failed late atomic/paragraph work returns no partial candidate.
+
+Keep core InlineResult geometry-only; an opaque paragraph payload on LayoutNode
+or LayoutGeometry is unnecessary. Each new invocation has its own callback
+tracking, so the existing within-invocation no-repeat policy need not become a
+shared "already laid out" flag. Retain accepted frozen results without their
+session; trial constraints and tables must not remain borrowed in preparation.
+
+**Exit:** lay out the same outer/nested-atomic preparation at two widths; both
+candidates coexist and neither changes after another succeeds or fails. Counts
+show no second base shaping. Trial geometry differs where expected while source,
+bank, preparation manifest and immutable trees remain unchanged.
+
+### BOX-PREP-02 — Clarify names for realized atomics
+
+**Owner:** css-box-layout, with tytui and pagelayout consumer updates.
+
+Rename the private prepareAtomics operation to layoutAtomicInteriors (or an
+agreed equivalent). Rename/document PreparedAtomic and PreparedAtomicsView as
+realized border-box geometry. This is terminology cleanup, not additional
+preparation or a change to CSS geometry. If compatibility aliases are useful for
+a staged migration, remove them after the known consumers migrate.
+
+**Exit:** both consumer suites pass with unchanged geometry and clear distinction
+between reusable horizontal preparation and trial-specific atomic realization.
+This PR is independent of PREP-03/04 and must not block the contract experiment.
+
+### PREP-05 — Prove lifetime, bank persistence and the handoff
+
+**Owner:** pagelayout; cross-module regression checks for touched boundaries.
+
+Add an executable two-width example and an integration test using caller-supplied
+real font services. Document the initial policy limits and session serialization.
+Exercise old/new bank versions during preparation, trial rejection and later
+successful trials. Banks retain original content only; inspection is unchanged
+and session release does not invalidate frozen output. Add lifecycle tests that
+retained output does not keep discovery/preparation/workspaces alive, following
+typography's existing lifetime regressions.
+
+**Exit:** the acceptance matrix below passes. No automatic frame assignment,
+page-template selection, bank commit, within-box remainder or general FitInline
+is implied. Preparation is complete for its explicitly admitted profile; page
+trials and wider policy support have their own milestones.
+
+### Dependencies and optional extensions
+
+```text
+BOX-CONT-01 + BOX-CONT-02 -> CONT-04 -> CONT-05 -> PREP-00
+PREP-00 -> BOX-PREP-01 -> PREP-01 -> PREP-02 -> TYPE-PREP-01
+TYPE-PREP-01 -> PREP-03 -> PREP-04 -> PREP-05
+BOX-PREP-02: independent terminology migration, before final handoff
+```
+
+No new khipu or w3c-dom feature is a prerequisite for the restricted experiment.
+If PREP-00 requires wider hyphenation admission, schedule KHIPU-PREP-01 for
+per-span policy and intrinsic-measurement support, with typography facade tests,
+before claiming that wider preparation profile. Percentage-atomic layout and
+CSS-level continuation are separate BOX/PAGE work; do not narrow the loader's
+accepted unsized material to hide these integration limits.
+
+## 14. Preparation acceptance matrix
+
+| Test | Required observation |
+| --- | --- |
+| Load then prepare | No fonts during loading; no geometry during preparation; existing bank and source inspection unchanged |
+| Two branches with colliding local BoxIDs | Qualified group identity keeps preparations and results distinct |
+| Two preparations of one content snapshot | Same content.Box payloads, distinct preparation identities; session mixing rejected |
+| Nested auto-width atomic | Outer preparation contains only occurrence; inner group prepared separately before any measurement |
+| Empty/atomic-only paragraph | Owner source typography supplies strut context; first text run is never the default |
+| Whitespace, NBSP, soft hyphen, literal U+FFFC, isolates | Exact processed-byte/source correspondence; supported policy preserved, unsupported policy diagnosed |
+| Failure in last group | Neither prepared snapshot nor session published; original document/bank and previous preparation usable |
+| Repeated measurement and two-width layout | Base shaping count unchanged; atomic contributions/realizations are explicit request inputs |
+| Reject trial or fail a later callback | Earlier candidate, preparation metadata and bank version unchanged; no partial new output |
+| Change fonts, source style or preparation policy | New preparation/session; old results remain stable; no HTML-only cache key |
+| Release session while retaining frozen output | No preparation/discovery retention through results or bank; needed font resources remain usable |
+| Dependency and concurrency boundaries | Neutral content/core imports; no hidden OpenType defaults; serialized session use documented and tested |
+
+Run focused tests for each PR and the relevant full/race suites on changed
+boundaries; test races under the supported serialization protocol rather than
+asserting concurrent execution is supported. Add build/vet and the tytui
+regressions for shared core/typography changes. Documentation-only planning does
+not require running Go tests.
 
 ## Diagram sources
 
