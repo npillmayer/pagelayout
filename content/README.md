@@ -82,8 +82,8 @@ and extracted text from future preparation results. BOX-PREP-01's shared group
 enumeration, PREP-01's detached extraction and PREP-02's neutral preparation
 protocol are implemented. TYPE-PREP-01's optional
 [typography backend](../preparation/typography/README.md) now supplies itemization
-and paragraph preparation with explicit services. PREP-03's intrinsic integration
-is next.
+and paragraph preparation with explicit services. PREP-03 adds intrinsic
+measurement using the same pair; PREP-04 whole-tree layout is next.
 
 | Published material | Use at the preparation boundary |
 | --- | --- |
@@ -102,6 +102,16 @@ the normalized trees, preserving text transformations and source maps.
 The index already uses `layout.InlineGroups` for group ownership and atomic
 relationships, with source-context validation remaining inside `content`.
 The core's borrowed node pointers never escape through the public content API.
+
+`MeasureIntrinsic(prepared, session, root, context, measurer)` traverses a covered
+block container through the CSS core, returning border-box width bounds in CSS
+pixels, excluding its own margins. The optional typography package supplies the
+four-argument convenience entry point with its `GroupMeasurer`. This neutral
+contract receives the existing group handle, qualified group/owner Boxes, and
+borrowed value-returning edge/atomic views. It exposes no raw tree, creates no
+used geometry and consumes no bank. The whole invocation reserves the exact pair;
+missing coverage, closed sessions and reentrancy fail without re-preparation.
+Each call has fresh scratch; failures publish zero bounds and preserve causes.
 
 Extraction reuses `text.NormalizeNormal` and returns copied UTF-8 text, source
 maps, DOM style spans, separate foreground paint, hyphenation policies, bidi

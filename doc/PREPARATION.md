@@ -3,16 +3,17 @@
 Date: 2026-11-23. Status: PREP-00 contract/fixtures, BOX-PREP-01 shared enumeration
 and PREP-01 extraction complete. PREP-02's neutral preparation protocol and
 session lifecycle are implemented. TYPE-PREP-01 connects the real typography
-pipeline with explicit fake-font/stream integration tests. PREP-03 intrinsic
-integration is next; layout, real-font proofs and page trials remain later work.
+pipeline with explicit fake-font/stream integration tests. PREP-03 reuses that
+preparation for intrinsic measurement. PREP-04 whole-tree layout is next;
+real-font proofs and page trials remain later work.
 
 This note develops the preparation phase introduced in [DESIGN.md](DESIGN.md).
 Preparing reusable content before page trials is established direction. The
 first-slice ownership and policy decisions in sections 11–12 are now pinned by
 PREP-00. BOX-PREP-01 implements shared structural enumeration; PREP-01 implements
 detached extraction. PREP-02 publishes the neutral protocol and isolated sessions;
-TYPE-PREP-01 adds the typography bridge. Measurement/layout integration and
-subsequent milestones remain unimplemented. Earlier
+TYPE-PREP-01 adds the typography bridge; PREP-03 adds intrinsic measurement.
+Whole-tree layout integration and subsequent milestones remain unimplemented. Earlier
 conceptual sketches yield to those decisions. The sibling modules are under our control;
 their current limitations identify integration work rather than permanent limits
 on this design.
@@ -578,9 +579,11 @@ actual PREP-01 extraction against the unchanged expectations. PREP-02 tests now
 verify fake-engine call counts, policy preflight, failure cleanup, identity
 isolation and snapshot/session lifetime. TYPE-PREP-01 checks actual typography
 preparation with injected fake fonts/streams, retaining lazy manual measurement
-restrictions. Public measurement integration and two-width results remain later work.
+restrictions. PREP-03 exercises public measurement, nested atomic contributions,
+signed margins, request-sensitive answers and failure/retry without base reshaping.
+Two-width layout results remain later work.
 
-With TYPE-PREP-01 implemented, no unresolved first-slice decision blocks PREP-03.
+With PREP-03 implemented, no unresolved first-slice decision blocks PREP-04.
 Wider span-level/automatic hyphenation and intrinsic support require KHIPU-PREP
 work; ordinary-inline edges,
 percentage-atomic sizing cycles, font discovery, concurrent sessions sharing
@@ -602,8 +605,8 @@ package imports; separate adapter modules would be independent packaging work.
 
 PREP-00 is complete as a contract/fixture milestone; BOX-PREP-01's shared
 enumeration/content-index migration, PREP-01's extraction and PREP-02's neutral
-protocol/session lifecycle and TYPE-PREP-01's typography bridge are implemented.
-PREP-03 and later entries are
+protocol/session lifecycle, TYPE-PREP-01's typography bridge and PREP-03's
+intrinsic integration are implemented. PREP-04 and later entries are
 unimplemented integration work. Cross-module changes must follow each sibling's
 instructions. Each PR has a narrow acceptance
 boundary; do not label the full phase complete after the first preparation call.
@@ -802,25 +805,48 @@ manual admission/lazy discovery, auto/mixed/service rejection, late itemization/
 factory/acceptance/shaping failures, stream finishing, cleanup, retry and retained
 output after Close. Production dependency tests exclude OpenType/fontfind/tytui
 from the bridge and typography/khipu from content/template/CSS core. Public
-measurement and trial integration remain PREP-03/04; real-font visual proof is
+measurement is implemented in PREP-03; trial integration remains PREP-04 and real-font visual proof is
 PREP-05. See the [bridge guide](../preparation/typography/README.md).
 
-### PREP-03 — Consume preparation during intrinsic measurement
+### PREP-03 — Consume preparation during intrinsic measurement (implemented)
 
-**Owners:** pagelayout typography bridge; css-box-layout only for a discovered
-request-contract gap.
+**Owners:** pagelayout content orchestration/typography bridge; css-box-layout
+standalone access to its existing recursive intrinsic pass.
 
-Adapt existing InlineMeasureRequest to the retained group handle. Supply ordered
-atomic contribution ranges using core-provided border widths plus horizontal
-margins exactly once. Keep signed arithmetic and range checks explicit. Call
-Prepared.MeasureIntrinsic without final heights, line breaking, vertical metrics
-or publication of paragraph geometry. Never fall back to preparing on a cache
-miss; a missing group is an identity/coverage error.
+`preparation/typography.MeasureIntrinsic(prepared, session, root, context)` measures
+a covered block container, returning CSS-pixel border-box bounds excluding the
+root's own margins. The context provides a definite containing width for root
+percentages and a fallback font size, not a paragraph line width. Definite root
+widths contribute their prescribed width plus padding/borders; auto widths recurse.
 
-**Exit:** repeated measurements reuse base preparation; requests are not retained;
-nested auto-width dependencies work within the existing CSS profile; unsupported
-percentage cycles and hyphenation policies report errors without poisoning the
-session or prior outputs. Intrinsic answers are not cached solely by group ID.
+The missing core entry point is now `layout.MeasureIntrinsic(root, context,
+measurer)`. It runs the existing intrinsic pass with fresh scratch and the normal
+atomic-width profile, producing no used-value table or geometry. No typography
+change was necessary. The neutral `content.MeasureIntrinsic` wrapper reserves the
+exact snapshot/session pair for the entire invocation, including definite boxes
+that skip callbacks. It qualifies core group/owner identities and calls an
+explicit `GroupMeasurer` with the retained handle and value-returning edge/atomic
+views. Mutable tree nodes never escape. Missing coverage and foreign/closed pairs
+fail without preparation or service work.
+
+The typography adapter supplies ordered atomic ranges from core-provided border
+bounds plus horizontal margins exactly once. Each CSS-pixel primitive is converted
+to physical typography DU, signed sums use int64, and both input and summary
+rounding are checked against the finite domain. Padding/borders are not added
+twice, negative advances are not clamped prematurely, and owner/vertical edges do
+not enter the paragraph measurement. Retained `Prepared.MeasureIntrinsic` performs
+no final heights, line breaking, vertical metrics or geometry publication.
+
+**Exit satisfied:** repeated measurements reuse base preparation; changed atomic
+requests and root percentage bases produce fresh answers. Requests are consumed
+without retention. Tests cover nested auto-width dependencies, zero/empty input,
+signed/fractional margins, range failures, qualified tree/session coverage,
+reentrancy, late failure with zero published output and unchanged source/banks.
+Unsupported percentage cycles and manual alternatives preserve causes and leave
+the session/previous outputs usable; failed lazy discovery retries and complete
+batches are reused. Source-aware failures use StageMeasurement and retain upstream
+paragraph stages. Typography still imports no concrete font backend; content/CSS
+core import no typography. Whole-tree used sizing/layout remains PREP-04.
 
 ### PREP-04 — Produce independent whole-tree trial results
 

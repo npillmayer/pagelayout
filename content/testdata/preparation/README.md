@@ -3,8 +3,9 @@
 Status: contract and fixtures pinned on 2026-11-23. All eight inputs load and
 PREP-01 extraction matches their expected text/source/atomic mappings. PREP-02
 verifies fake-engine counts and policy admission. TYPE-PREP-01 repeats preparation
-with the real typography pipeline and explicit fake fonts/streams. Public
-measurement/layout integration and real-font proofs remain future work.
+with the real typography pipeline and explicit fake fonts/streams. PREP-03
+exercises public intrinsic measurement and reuse. Whole-tree layout integration
+and real-font proofs remain future work.
 See [PREPARATION.md](../../../doc/PREPARATION.md#12-prep-00-decisions-and-deferred-extensions).
 
 `expected.json` pins raw decoded text, processed UTF-8, text-source spans, owner
@@ -15,7 +16,9 @@ actual PREP-01 extraction with this unchanged manifest. It invokes no fonts and
 does not simulate preparation. `TestPrepareAcceptance` separately invokes a fake
 Preparer and checks the manifest's counts and initial policy failures.
 `preparation/typography/TestBridgeAcceptanceFixtures` repeats them with the real
-bridge. Additional `TestExtract` cases cover routing-created
+bridge. `TestMeasurementAcceptanceFixtures` measures accepted preparations through
+the public bridge, including the expected manual-many failure. Additional
+`TestExtract` cases cover routing-created
 adjacency, split/nested isolate scopes, collapsed-space ownership, detached values
 and concurrent reads.
 
@@ -25,9 +28,9 @@ Run from the module root:
 go test ./content -run '^TestPreparationAcceptanceInputs$' -v
 ```
 
-## Inputs and future results
+## Inputs and expected results
 
-| Input | Group-owner order | Successful preparation calls | Future behavior |
+| Input | Group-owner order | Successful preparation calls | Expected behavior |
 | --- | --- | --- | --- |
 | `text-only.html` | text | 1 | `Café & tea U+FFFC NBSP ok.` with the exact spacing in JSON. Collapse a whitespace run crossing a source-element boundary; preserve the authored U+FFFC as text, with **no** atomic anchor. |
 | `nested.html` | outer, wide, inner | 3 | Outer: `Before U+FFFC after.`; wide: `Wide U+FFFC`; inner: `Inner.`. Anchors point to wide at byte 7 and inner at byte 5 in their respective groups. Both atomics remain auto-width. |
@@ -45,7 +48,7 @@ For accepted cases the call count assumes valid explicit services. Missing
 resolver/shaper services, or a missing manual hyphenator, fail preflight with zero
 calls even when there is no U+00AD. Defaults must never select a synthetic backend.
 
-The future acceptance hyphenator is deterministic: a U+00AD request returns one
+The acceptance hyphenator is deterministic: a U+00AD request returns one
 permitting alternative with pre-break `-`, empty post-break and penalty 0. It
 does not find automatic word splits. This defines test policy only; the bridge
 must not install it as a production default. Hyphenator queries/discretionary
@@ -87,6 +90,13 @@ trials add **zero** group preparation calls; target widths never enter Prepare.
 Do not pin line counts without the later fake/real-font acceptance configuration.
 Each candidate owns its geometry and paragraph results; rejecting one leaves the
 other and the original bank unchanged.
+
+PREP-03 verifies the measurement part independently: nested auto bounds reuse all
+base preparations, changed atomic inputs are not cached as group-only answers,
+and no vertical metrics or final heights are queried. It also checks signed and
+fractional margins, finite range/summary rounding, percentage-cycle failures,
+late unsupported manual alternatives, and retry of failed lazy discovery. No
+measurement request is retained; returned widths and source/banks stay unchanged.
 
 Use `branches.html` for later-group failure injection: fail group b's fourth
 PrepareGroup call after three successes. Release completed handles in reverse

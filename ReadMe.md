@@ -299,9 +299,10 @@ atomic publication and reverse-order cleanup. Fake-engine tests and an
 [executable example](content/prepare_example_test.go) verify the protocol.
 TYPE-PREP-01 adds the optional [typography bridge](preparation/typography/README.md),
 using explicit loaded-font/stream services for itemization and reusable paragraph
-preparation. Its tests use fake fonts with the real typography pipeline. PREP-03's
-intrinsic integration is next; real-font visual proofs, floats and page trials
-remain later work.
+preparation. Its tests use fake fonts with the real typography pipeline. PREP-03
+adds `MeasureIntrinsic`, reusing preparation for nested width measurements with
+checked signed atomic contributions and no final layout. PREP-04 whole-tree
+layout is next; real-font visual proofs, floats and page trials remain later work.
 
 See [the loading package and PR plan](doc/TEMPLATE-LOADING.md),
 [the broader design](doc/DESIGN.md), and

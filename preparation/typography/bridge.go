@@ -2,7 +2,8 @@
 // preparations. Call content.Prepare with a Backend constructed by New. Font
 // selection and discovery belong to the caller; no default backend is installed.
 // Sessions own executable preparations, while source/paint metadata stays copied
-// and immutable. Measurement, layout and page trials are separate integrations.
+// and immutable. Intrinsic measurement reuses these handles; used sizing, final
+// layout and page trials remain separate integrations.
 package typography
 
 import (
@@ -119,8 +120,8 @@ func (b *Backend) PrepareGroup(g content.GroupInput) (content.GroupPreparation, 
 	return content.GroupPreparation{Group: g.Group, Owner: g.Owner, Handle: h}, nil
 }
 
-// Only the session owns this handle. Future bridge operations borrow it through
-// WithGroup; no accessor exports paragraph.Prepared or its mutable discovery.
+// Only the session owns this handle. Execution borrows it under the session's
+// access guard; no accessor exports paragraph.Prepared or its mutable discovery.
 type preparedGroup struct {
 	input      content.GroupInput
 	paragraph  *paragraph.Prepared

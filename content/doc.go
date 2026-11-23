@@ -22,8 +22,9 @@
 // source boxes stay unchanged. Session.WithGroup validates qualified identities;
 // callers serialize execution and Close. Cleanup releases owned handles in
 // reverse order and preserves causes through PreparationError. The optional
-// preparation/typography package supplies the typography backend; sizing and page
-// trials remain separate integration work.
+// preparation/typography package supplies the typography backend. MeasureIntrinsic
+// reuses existing handles through a neutral measurement callback while keeping
+// trees private; used sizing, final layout and page trials remain later work.
 //
 // Executable examples demonstrate the sketch input, a channel/branch/group
 // report, persistent banks, additional stylesheets and structured failures.

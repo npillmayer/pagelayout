@@ -78,8 +78,36 @@ errors retain decoded source ranges, while unlocated engine errors use the owner
 Base preparation runs once per group. Manual alternatives may be shaped lazily
 later; this is not a promise of zero later service calls. Intrinsic measurement
 retains the upstream restriction to bounded explicit alternatives and reports
-unsupported multiple splits without changing source policy. The public intrinsic
-and whole-tree layout integrations remain PREP-03 and PREP-04.
+unsupported multiple splits without changing source policy. PREP-03 now provides
+the public intrinsic operation; whole-tree layout remains PREP-04.
+
+After preparation, measure a branch or residual block container using the same
+pair (import `github.com/npillmayer/css-box-layout/layout` for the context):
+
+```go
+bounds, err := prep.MeasureIntrinsic(prepared, session, doc.Residual().Root,
+    layout.ResolveContext{ContainingBlock: layout.Rect{W: 600}})
+```
+
+`bounds.MinContent` and `MaxContent` are CSS-pixel **border-box** bounds, including
+the selected root's padding/borders and excluding its own margins. A definite root
+width contributes that prescribed width; auto width recursively measures content.
+The containing width supplies root percentage resolution, not a paragraph line
+constraint. Nested dependencies on unknown auto widths retain the CSS core's
+explicit errors. Inline-block widths remain auto or fixed pixels in this profile.
+
+Core performs recursive aggregation and supplies atomic border bounds; the bridge
+adds each atomic's signed horizontal margins once. It converts each primitive to
+DU before summing in int64, checking finite ranges before narrowing and after
+summary rounding. No final heights, vertical metrics, line breaking or geometry
+are computed. Every invocation uses fresh scratch and returns value widths, with
+no result cache keyed only by group. The entire operation reserves the session;
+pair/coverage errors never cause re-preparation. Measurement errors return zero
+bounds, preserve original causes/source context and leave the pair reusable.
+
+The content-side adapter exposes qualified box handles and borrowed value views,
+never a raw mutable LayoutNode. `content.MeasureIntrinsic` and `GroupMeasurer`
+are the neutral orchestration contract for other explicitly supplied backends.
 
 Tests exercise the real mapper/itemizer/paragraph pipeline with explicitly
 injected fake fonts and synthetic streams. They cover all eight preparation
@@ -87,3 +115,6 @@ fixtures, owner struts, paint bypass, source/atomic mappings, lazy manual policy
 late failures, stream finishing, reverse cleanup through content's session,
 retry, retained output after Close, and production dependency boundaries. They
 do not claim real-font visual proof or page composition; that remains PREP-05.
+Measurement tests also cover the acceptance fixtures, nested auto widths, signed
+and fractional contributions, request changes, percentage-cycle errors and lazy
+manual discovery failure/retry without repeating base shaping.

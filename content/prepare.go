@@ -142,6 +142,7 @@ const (
 	StagePreparation PreparationStage = "preparation"
 	StageAccess      PreparationStage = "access"
 	StageExecution   PreparationStage = "execution"
+	StageMeasurement PreparationStage = "measurement"
 	StageRelease     PreparationStage = "release"
 )
 
@@ -256,6 +257,14 @@ func Prepare(d *Document, backend Preparer) (*PreparedSnapshot, *PreparationSess
 // never to source boxes or this neutral snapshot. Failure leaves the session
 // reusable; only the backend's complete memoized discoveries may change.
 func (s *PreparationSession) WithGroup(p *PreparedSnapshot, group, owner Box, use func(GroupHandle) error) error {
+	return s.withAccess(p, func(st *preparationState) error {
+		return st.useGroup(group, owner, use)
+	})
+}
+
+// Reserve the entire operation, including recursive core callbacks, so even
+// groups requiring no backend work check pair identity and session lifecycle.
+func (s *PreparationSession) withAccess(p *PreparedSnapshot, use func(*preparationState) error) error {
 	if s == nil || s.state == nil || s.state.closed {
 		return &PreparationError{Stage: StageAccess, Err: ErrClosedSession}
 	}
@@ -263,15 +272,19 @@ func (s *PreparationSession) WithGroup(p *PreparedSnapshot, group, owner Box, us
 	if st.busy {
 		return &PreparationError{Stage: StageAccess, Err: ErrSessionBusy}
 	}
-	if p == nil || p.data == nil || p.data != st.prepared || use == nil {
-		return &PreparationError{Stage: StageAccess, Err: ErrInvalidPreparation}
-	}
-	i, ok := st.index[group]
-	if !ok || st.owned[i].info.Owner != owner {
+	if p == nil || p.data == nil || p.data != st.prepared {
 		return &PreparationError{Stage: StageAccess, Err: ErrInvalidPreparation}
 	}
 	st.busy = true
 	defer func() { st.busy = false }()
+	return use(st)
+}
+
+func (st *preparationState) useGroup(group, owner Box, use func(GroupHandle) error) error {
+	i, ok := st.index[group]
+	if !ok || st.owned[i].info.Owner != owner || use == nil {
+		return &PreparationError{Stage: StageAccess, Err: ErrInvalidPreparation}
+	}
 	if err := use(st.owned[i].handle); err != nil {
 		return preparationFailure(StageExecution, st.owned[i].info, err)
 	}
