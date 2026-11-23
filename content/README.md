@@ -80,7 +80,10 @@ now pins session/service ownership and initial policy. Its
 [fixtures](testdata/preparation/README.md) distinguish today's loaded structure
 and extracted text from future preparation results. BOX-PREP-01's shared group
 enumeration, PREP-01's detached extraction and PREP-02's neutral preparation
-protocol are implemented. TYPE-PREP-01's real typography adapter is next.
+protocol are implemented. TYPE-PREP-01's optional
+[typography backend](../preparation/typography/README.md) now supplies itemization
+and paragraph preparation with explicit services. PREP-03's intrinsic integration
+is next.
 
 | Published material | Use at the preparation boundary |
 | --- | --- |
@@ -126,7 +129,7 @@ all input before preflight. The backend validates its complete service/policy
 requirements there, without invoking fonts, shaping or layout. It then prepares
 each group once in residual-first/global-branch/preorder order, including empty
 groups. Every callback gets independent input slices. This neutral protocol
-chooses no font backend or hyphenation fallback; the forthcoming typography
+chooses no font backend or hyphenation fallback; the optional typography
 bridge must enforce its none/manual admission and explicit-service requirements.
 
 Each `GroupPreparation` echoes its qualified Group/Owner and transfers an
@@ -160,7 +163,8 @@ assume backend methods honor the ownership contract; panics are not recovered.
 
 See the [recording-backend example](prepare_example_test.go), executable with
 `go test ./content -run '^ExamplePrepare$' -v`. The fake-engine tests prove the
-neutral lifecycle; they make no claim about actual shaping or two-width layout.
+neutral lifecycle. The typography bridge separately tests the real paragraph
+pipeline with explicit fake fonts/streams; two-width layout remains later work.
 
 The proposed two-width experiment should load once, extract/prepare once, then
 use the same group and atomic identities for two independent layout results.

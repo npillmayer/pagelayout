@@ -2,15 +2,17 @@
 
 Date: 2026-11-23. Status: PREP-00 contract/fixtures, BOX-PREP-01 shared enumeration
 and PREP-01 extraction complete. PREP-02's neutral preparation protocol and
-session lifecycle are implemented with fake engines. TYPE-PREP-01's real
-typography bridge is next; measurement, layout and page trials remain later work.
+session lifecycle are implemented. TYPE-PREP-01 connects the real typography
+pipeline with explicit fake-font/stream integration tests. PREP-03 intrinsic
+integration is next; layout, real-font proofs and page trials remain later work.
 
 This note develops the preparation phase introduced in [DESIGN.md](DESIGN.md).
 Preparing reusable content before page trials is established direction. The
 first-slice ownership and policy decisions in sections 11–12 are now pinned by
 PREP-00. BOX-PREP-01 implements shared structural enumeration; PREP-01 implements
 detached extraction. PREP-02 publishes the neutral protocol and isolated sessions;
-the real typography bridge and subsequent milestones remain unimplemented. Earlier
+TYPE-PREP-01 adds the typography bridge. Measurement/layout integration and
+subsequent milestones remain unimplemented. Earlier
 conceptual sketches yield to those decisions. The sibling modules are under our control;
 their current limitations identify integration work rather than permanent limits
 on this design.
@@ -574,10 +576,11 @@ source-byte mapping, atomic offsets, preparation order and service-call counts
 are explicit. Current tests verify loading/structure, manifest consistency and
 actual PREP-01 extraction against the unchanged expectations. PREP-02 tests now
 verify fake-engine call counts, policy preflight, failure cleanup, identity
-isolation and snapshot/session lifetime. Real typography calls, measurement and
-two-width results still belong to later PRs.
+isolation and snapshot/session lifetime. TYPE-PREP-01 checks actual typography
+preparation with injected fake fonts/streams, retaining lazy manual measurement
+restrictions. Public measurement integration and two-width results remain later work.
 
-With PREP-02 implemented, no unresolved first-slice decision blocks TYPE-PREP-01.
+With TYPE-PREP-01 implemented, no unresolved first-slice decision blocks PREP-03.
 Wider span-level/automatic hyphenation and intrinsic support require KHIPU-PREP
 work; ordinary-inline edges,
 percentage-atomic sizing cycles, font discovery, concurrent sessions sharing
@@ -599,7 +602,8 @@ package imports; separate adapter modules would be independent packaging work.
 
 PREP-00 is complete as a contract/fixture milestone; BOX-PREP-01's shared
 enumeration/content-index migration, PREP-01's extraction and PREP-02's neutral
-protocol/session lifecycle are implemented. TYPE-PREP-01 and later entries are
+protocol/session lifecycle and TYPE-PREP-01's typography bridge are implemented.
+PREP-03 and later entries are
 unimplemented integration work. Cross-module changes must follow each sibling's
 instructions. Each PR has a narrow acceptance
 boundary; do not label the full phase complete after the first preparation call.
@@ -743,31 +747,63 @@ two coexisting pairs, foreign/colliding-ID rejection before callbacks, repeatabl
 Close, and concurrent immutable inspection after closure. A public executable
 [recording-backend example](../content/prepare_example_test.go) exercises the API.
 The fake policy models none/manual admission and rejects mixed/auto; real font
-service validation and typography preparation remain TYPE-PREP-01. No typography
-or font imports, public tree accessor or mutable register payload is introduced.
+service validation and typography preparation are implemented separately by
+TYPE-PREP-01. No typography or font imports enter content; no public tree accessor
+or mutable register payload is introduced.
 
-### TYPE-PREP-01 — Implement the typography preparation bridge
+### TYPE-PREP-01 — Implement the typography preparation bridge (implemented)
 
 **Owner:** optional pagelayout/preparation/typography package; typography/khipu
 changes only if an identified contract gap requires them.
 
-Map detached source styles to typography styles with checked unit conversion.
-Accept caller-owned resolver, shaper factory and explicit supported hyphenation
-services/policy. Resolve owner typography separately from the first text run.
-Itemize, retain paint outside shaping, construct bidi markup and anchors, then
-call paragraph.Prepare exactly once for each group. Store paragraph.Prepared
-only in the session-owned engine handle. Retain source/atomic mappings as copied
-immutable metadata. Do not discover fonts or choose an implicit backend.
+`preparation/typography.New(Config)` returns a content.Preparer backend requiring
+an already constructed glyphing.StyleMapper and fresh exclusive-stream factory.
+The caller builds the resolver with glyphing.NewStyleMapper and selected opaque
+font faces/coverage. Config optionally supplies an explicit-marker Hyphenator;
+source manual policy requires it even when no marker is present. No implicit
+backend, discovery or new font wrapper is introduced. No sibling changes were
+needed; local module replacements wire the existing typography/khipu/cords/uax
+graph while keeping concrete adapter packages out of production imports.
 
-Preflight unsupported policy combinations; preserve upstream causes/stages.
-Keep borrowed source/font/service lifetimes explicit. Do not promise that lazy
-discretionary work never runs again, only that base shaping is reused.
+Whole-document preflight validates source policies, finite dimension conversion,
+style/anchor coordinates and bidi markup without font resolution, coverage,
+scaling, stream creation or shaping. Mixed/auto groups fail before any group
+preparation. Uniform none preserves soft-hyphen bytes without discovery; manual
+uses khipu.ExplicitHyphenation and the explicit U+00AD protocol. Omitted whitespace
+and structural markers do not select policy; owners supply empty/object-only
+defaults. Source ranges and original causes are preserved in PreparationError.
 
-**Exit:** fake font/stream tests verify no receiver geometry, one base preparation,
-independent atomic interiors, owner struts, paint/source correspondence and atomic
-failure publication. Dependency checks forbid opentype/fontfind/tytui imports
-outside explicitly optional integration tests or application examples. Tests for
-manual/auto/mixed policies demonstrate admission or explicit rejection.
+The bridge resolves the owner separately, converts DOM DU using the physical BP
+ratio with a finite-range check, and retains paint outside shaping styles.
+ItemizeInline's returned styled text is passed unchanged to paragraph.Prepare
+exactly once per group, together with zero-byte bidi markup and atomic anchors.
+Private session handles retain only the prepared paragraph and copied source,
+atomic, font-binding and normal line-height metadata. No receiving width, atomic
+geometry, vertical metrics or line breaking is involved in preparation.
+
+The upstream bidi callback represents one opening and one closing per offset.
+Coincident nested openings/closings therefore fail preflight explicitly; adjacent
+close/open pairs are supported. Broader coincidence support is later uax/paragraph
+integration work, not a permanent content-loading restriction. No text characters
+are inserted to work around it.
+
+Release drops handle references without closing borrowed services or fonts.
+The existing paragraph/khipu lifecycle finishes streams, including unused ones
+after acceptance failure; factories retain cleanup responsibility on failure.
+Itemization/preparation causes and upstream paragraph stages remain available.
+Engine errors without structured source offsets fall back to owner context.
+Base preparation is reused; lazy manual alternative shaping may still occur.
+Unsupported intrinsic alternatives remain upstream errors without fallback.
+
+**Exit satisfied:** all eight fixtures run through the real typography pipeline
+with explicit fake fonts/streams and exact group/base-preparation counts. Tests
+cover source/atomic mappings, paint bypass, owner struts, nested interiors,
+manual admission/lazy discovery, auto/mixed/service rejection, late itemization/
+factory/acceptance/shaping failures, stream finishing, cleanup, retry and retained
+output after Close. Production dependency tests exclude OpenType/fontfind/tytui
+from the bridge and typography/khipu from content/template/CSS core. Public
+measurement and trial integration remain PREP-03/04; real-font visual proof is
+PREP-05. See the [bridge guide](../preparation/typography/README.md).
 
 ### PREP-03 — Consume preparation during intrinsic measurement
 

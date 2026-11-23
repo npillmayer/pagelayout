@@ -2,8 +2,9 @@
 
 Status: contract and fixtures pinned on 2026-11-23. All eight inputs load and
 PREP-01 extraction matches their expected text/source/atomic mappings. PREP-02
-verifies fake-engine counts and policy admission. Real typography preparation
-and measurement results below remain **expected future results**.
+verifies fake-engine counts and policy admission. TYPE-PREP-01 repeats preparation
+with the real typography pipeline and explicit fake fonts/streams. Public
+measurement/layout integration and real-font proofs remain future work.
 See [PREPARATION.md](../../../doc/PREPARATION.md#12-prep-00-decisions-and-deferred-extensions).
 
 `expected.json` pins raw decoded text, processed UTF-8, text-source spans, owner
@@ -12,8 +13,9 @@ and atomic identities, group order and expected backend `PrepareGroup` counts.
 and the internal byte-coordinate consistency of these expectations, and compares
 actual PREP-01 extraction with this unchanged manifest. It invokes no fonts and
 does not simulate preparation. `TestPrepareAcceptance` separately invokes a fake
-Preparer and checks the manifest's counts and initial policy failures. TYPE-PREP-01
-must repeat those checks with its real bridge. Additional `TestExtract` cases cover routing-created
+Preparer and checks the manifest's counts and initial policy failures.
+`preparation/typography/TestBridgeAcceptanceFixtures` repeats them with the real
+bridge. Additional `TestExtract` cases cover routing-created
 adjacency, split/nested isolate scopes, collapsed-space ownership, detached values
 and concurrent reads.
 
@@ -92,11 +94,13 @@ order, publish neither snapshot nor session, retain the original bank and an
 older preparation, and preserve the injected cause plus #b/group identity.
 Retry uses a fresh working session, not the failed partial table. PREP-02's fake
 tests execute this lifecycle contract, including independent input copies and
-cleanup causes. Real typography resource lifetimes still need the later bridge.
+cleanup causes. TYPE-PREP-01 also checks real bridge/stream cleanup and retained
+synthetic output; real-font resource proofs remain PREP-05.
 
 Also use it for two coexisting preparations: identical source Box handles,
 different preparation identities; foreign groups/owners and a mismatched session
 are rejected before service calls. Close is idempotent and serialized with session
 operations; frozen outputs keep stable font resources, not the closed session.
 PREP-02 verifies these identities and the serialized lifecycle with fake handles;
-real service/frozen-output checks continue in TYPE-PREP-01/PREP-05.
+TYPE-PREP-01 verifies its stream lifecycle and synthetic frozen-output retention;
+real-font checks continue in PREP-05.

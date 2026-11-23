@@ -297,7 +297,10 @@ mapping, isolate scopes and atomic occurrences. PREP-02 adds `content.Prepare`
 with an explicit backend, immutable coverage metadata, separate execution sessions,
 atomic publication and reverse-order cleanup. Fake-engine tests and an
 [executable example](content/prepare_example_test.go) verify the protocol.
-TYPE-PREP-01's typography bridge is next; real shaping, floats and page trials
+TYPE-PREP-01 adds the optional [typography bridge](preparation/typography/README.md),
+using explicit loaded-font/stream services for itemization and reusable paragraph
+preparation. Its tests use fake fonts with the real typography pipeline. PREP-03's
+intrinsic integration is next; real-font visual proofs, floats and page trials
 remain later work.
 
 See [the loading package and PR plan](doc/TEMPLATE-LOADING.md),

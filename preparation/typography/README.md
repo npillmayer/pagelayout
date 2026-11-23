@@ -1,0 +1,89 @@
+# Typography preparation bridge
+
+This optional package implements `content.Preparer` using
+`typography/glyphing.StyleMapper` and `typography/glyphing/paragraph.Prepare`.
+It prepares every normalized group before receiving geometry is known. The
+caller supplies already selected fonts and matching services:
+
+```go
+import (
+    "github.com/npillmayer/pagelayout/content"
+    prep "github.com/npillmayer/pagelayout/preparation/typography"
+)
+
+// mapper was constructed with glyphing.NewStyleMapper from loaded faces and
+// explicit coverage. newShaper creates a fresh, exclusively owned stream.
+backend, err := prep.New(prep.Config{
+    Resolver: mapper,
+    NewShaper: newShaper,
+    Hyphenator: explicitMarkers, // Required for source hyphens:manual.
+})
+if err != nil {
+    return err
+}
+prepared, session, err := content.Prepare(doc, backend)
+if err != nil {
+    return err // No partial snapshot/session; prior acquired handles released.
+}
+defer session.Close()
+for _, group := range prepared.Groups() {
+    input, _ := prepared.Input(group.Group)
+    // Inspect input.Text, Paint, TextSources and Occurrences as detached values.
+    _ = input
+}
+```
+
+There is no implicit synthetic backend, font discovery, resource fetching or
+OpenType dependency in the package imports. Applications may use typography's
+OpenType adapter to build the services. The module graph includes typography's
+adapter dependencies; the dependency test separately verifies that the bridge's
+production package graph excludes them and that content/template/CSS core remain
+independent of typography and khipu.
+
+Preflight checks all groups before font resolution, glyph coverage, scaling,
+stream creation or shaping. Source policy comes from contributing processed text
+spans, with the first source owning collapsed whitespace. Omitted whitespace and
+structural markers contribute no policy; empty/object-only groups use the owner.
+Uniform `none` disables discovery while preserving authored soft-hyphen bytes.
+Uniform `manual` requires an explicitly supplied U+00AD hyphenator even without
+markers. Mixed policies and `auto` return `khipu.ErrUnsupportedPolicy`; missing
+services return `contracts.ErrIllegalArguments`. No policy is silently replaced.
+
+The current text profile requires normal whitespace/line-height. Bidi isolates
+use zero-byte markup with the original processed offsets. The upstream callback
+can encode one opening and one closing event per offset; coincident nested
+openings/closings fail preflight. This is an integration limit to address through
+a later uax/paragraph extension, not a permanent restriction on loaded content.
+
+For each group, the bridge converts DOM dimensions explicitly to typography DU,
+checking the finite range before narrowing. It resolves the owner's typography
+separately from the first text run, itemizes with `ItemizeInline`, and passes the
+returned styled text unchanged to `paragraph.Prepare`. Paint is retained only in
+the copied content metadata. Atomic occurrences select U+FFFC markers without
+font binding or interior flattening; an authored U+FFFC remains ordinary text.
+Each interior group is prepared independently. No receiving width, object size,
+vertical metrics, line breaking or geometry is computed during preparation.
+
+The private session handle retains `paragraph.Prepared`, copied source/atomic
+metadata, font bindings and normal line-height values for the later trial bridge.
+It exports no mutable paragraph accessor. Session Close drops these references;
+borrowed resolvers, fonts and factories are never closed. Selected resources must
+remain valid for frozen results. Serialize all session/shared-service operations.
+Streams belong to each shaping operation and are finished by the typography/
+khipu lifecycle, including unused streams after acceptance failure. A failing
+factory owns its cleanup and must return no stream. Original errors and paragraph
+stages remain reachable through `content.PreparationError`; known input-span
+errors retain decoded source ranges, while unlocated engine errors use the owner.
+
+Base preparation runs once per group. Manual alternatives may be shaped lazily
+later; this is not a promise of zero later service calls. Intrinsic measurement
+retains the upstream restriction to bounded explicit alternatives and reports
+unsupported multiple splits without changing source policy. The public intrinsic
+and whole-tree layout integrations remain PREP-03 and PREP-04.
+
+Tests exercise the real mapper/itemizer/paragraph pipeline with explicitly
+injected fake fonts and synthetic streams. They cover all eight preparation
+fixtures, owner struts, paint bypass, source/atomic mappings, lazy manual policy,
+late failures, stream finishing, reverse cleanup through content's session,
+retry, retained output after Close, and production dependency boundaries. They
+do not claim real-font visual proof or page composition; that remains PREP-05.

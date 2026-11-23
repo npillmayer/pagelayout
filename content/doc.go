@@ -21,8 +21,9 @@
 // metadata plus a separate PreparationSession owning backend handles. Banks and
 // source boxes stay unchanged. Session.WithGroup validates qualified identities;
 // callers serialize execution and Close. Cleanup releases owned handles in
-// reverse order and preserves causes through PreparationError. Real typography
-// adapters, sizing and page trials remain separate integration work.
+// reverse order and preserves causes through PreparationError. The optional
+// preparation/typography package supplies the typography backend; sizing and page
+// trials remain separate integration work.
 //
 // Executable examples demonstrate the sketch input, a channel/branch/group
 // report, persistent banks, additional stylesheets and structured failures.
