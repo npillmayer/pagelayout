@@ -16,6 +16,14 @@
 // phases. Readers remain caller-owned. LoadError exposes ordered, source-aware
 // diagnostics and preserves original causes.
 //
+// Prepare extracts detached GroupInput records and invokes an explicit Preparer
+// after whole-document preflight. Success publishes immutable PreparedSnapshot
+// metadata plus a separate PreparationSession owning backend handles. Banks and
+// source boxes stay unchanged. Session.WithGroup validates qualified identities;
+// callers serialize execution and Close. Cleanup releases owned handles in
+// reverse order and preserves causes through PreparationError. Real typography
+// adapters, sizing and page trials remain separate integration work.
+//
 // Executable examples demonstrate the sketch input, a channel/branch/group
 // report, persistent banks, additional stylesheets and structured failures.
 // The content README documents the handoff to the later preparation bridge;

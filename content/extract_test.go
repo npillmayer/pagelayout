@@ -16,7 +16,7 @@ import (
 	"github.com/npillmayer/w3c-dom/style/textstyle"
 )
 
-func extractKnownGroup(t *testing.T, box Box) *groupInput {
+func extractKnownGroup(t *testing.T, box Box) *GroupInput {
 	t.Helper()
 	index := slices.IndexFunc(box.owner.trees[box.tree].groups, func(g GroupInfo) bool { return g.Group == box })
 	g, err := box.owner.extractGroup(box.tree, index)
@@ -26,9 +26,9 @@ func extractKnownGroup(t *testing.T, box Box) *groupInput {
 	return g
 }
 
-func extractAllGroups(t *testing.T, d *Document) []*groupInput {
+func extractAllGroups(t *testing.T, d *Document) []*GroupInput {
 	t.Helper()
-	var result []*groupInput
+	var result []*GroupInput
 	for tree := 1; tree < len(d.material.trees); tree++ {
 		for _, group := range d.Groups(TreeID(tree)) {
 			g := extractKnownGroup(t, group.Group)
@@ -40,7 +40,7 @@ func extractAllGroups(t *testing.T, d *Document) []*groupInput {
 }
 
 // Verify byte-coordinate contracts independently of the extraction algorithm.
-func checkExtractedRanges(t *testing.T, g *groupInput) {
+func checkExtractedRanges(t *testing.T, g *GroupInput) {
 	t.Helper()
 	valid := func(text string, start, end uint64) {
 		t.Helper()

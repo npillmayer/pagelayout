@@ -1145,8 +1145,9 @@ PREP-00 has pinned service/session ownership and initial policy, with
 BOX-PREP-01 supplies shared core group enumeration, now used by content's index
 with its existing source-context validation and qualified handles. PREP-01 now
 extracts detached processed text, source/style/policy mappings, isolate scopes
-and atomic occurrences from content's private normalized trees. Its types remain
-private until PREP-02 adds the neutral preparation protocol. The public bank
+and atomic occurrences from content's private normalized trees. PREP-02 publishes
+the detached GroupInput values through an explicit Preparer protocol, with an
+immutable PreparedSnapshot and separate serialized PreparationSession. The public bank
 retains immutable branch-root Box handles throughout.
 
 Do not require general fragmentation before completing content loading. Equally,

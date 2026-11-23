@@ -293,9 +293,12 @@ PREP-00 now pins preparation ownership, services, failure cleanup and the initia
 hyphenation policy, with [acceptance fixtures](content/testdata/preparation/README.md).
 BOX-PREP-01's shared group enumeration is implemented and used by content's
 index. PREP-01 adds private detached text extraction with source/style/policy
-mapping, isolate scopes and atomic occurrences. PREP-02's neutral preparation
-protocol and isolated sessions are next; engine preparation, floats and page
-trials remain later work.
+mapping, isolate scopes and atomic occurrences. PREP-02 adds `content.Prepare`
+with an explicit backend, immutable coverage metadata, separate execution sessions,
+atomic publication and reverse-order cleanup. Fake-engine tests and an
+[executable example](content/prepare_example_test.go) verify the protocol.
+TYPE-PREP-01's typography bridge is next; real shaping, floats and page trials
+remain later work.
 
 See [the loading package and PR plan](doc/TEMPLATE-LOADING.md),
 [the broader design](doc/DESIGN.md), and

@@ -1,15 +1,16 @@
 # Preparation between CSS box construction and layout
 
 Date: 2026-11-23. Status: PREP-00 contract/fixtures, BOX-PREP-01 shared enumeration
-and PREP-01 private extraction complete. PREP-02's preparation protocol is next;
-engine preparation and session runtime remain unimplemented.
+and PREP-01 extraction complete. PREP-02's neutral preparation protocol and
+session lifecycle are implemented with fake engines. TYPE-PREP-01's real
+typography bridge is next; measurement, layout and page trials remain later work.
 
 This note develops the preparation phase introduced in [DESIGN.md](DESIGN.md).
 Preparing reusable content before page trials is established direction. The
 first-slice ownership and policy decisions in sections 11–12 are now pinned by
 PREP-00. BOX-PREP-01 implements shared structural enumeration; PREP-01 implements
-private detached extraction. Public preparation runtime APIs and the subsequent
-milestones remain unimplemented. Earlier
+detached extraction. PREP-02 publishes the neutral protocol and isolated sessions;
+the real typography bridge and subsequent milestones remain unimplemented. Earlier
 conceptual sketches yield to those decisions. The sibling modules are under our control;
 their current limitations identify integration work rather than permanent limits
 on this design.
@@ -149,7 +150,7 @@ handle plus immutable metadata to the orchestrator. Its request contains source
 text/styles, paragraph owner context and atomic identities, but no receiver width,
 height budget, used-value table or realized atomic dimensions. A typography bridge
 can wrap `paragraph.Prepared` privately; the core and loader need no khipu or
-concrete font types. Exact public signatures are PREP-00 work.
+concrete font types. PREP-02's public protocol is documented in section 13.
 
 The operations remain distinct:
 
@@ -453,7 +454,7 @@ can be finalized in the assigned PR without reopening ownership or policy.
 | --- | --- | --- |
 | Register payload | Keep `RegisterBank[content.Box]`; readiness belongs to a separate snapshot/session pair | No mixed raw/prepared queue items or destructive conversion |
 | Preparation scope | Eager, whole-document, atomic publication, including residual and nested groups | Partial/lazy preparation and bounded working sets later |
-| Tree access and package boundary | A backend-neutral `content.Prepare` entry point owns private tree access and extraction; the optional `pagelayout/preparation/typography` bridge implements its preparer protocol | No mutable LayoutNodes in public inspection and no typography import in content/core; exported signatures arrive in PREP-02 |
+| Tree access and package boundary | A backend-neutral `content.Prepare` entry point owns private tree access and extraction; the optional `pagelayout/preparation/typography` bridge implements its preparer protocol | No mutable LayoutNodes in public inspection and no typography import in content/core; PREP-02 publishes the protocol |
 | Core traversal | Shared group enumeration in css-box-layout; effectful driver in pagelayout orchestration | Refines the earlier proposal to put the entire preparation driver in the box core |
 | Font selection | Caller supplies preloaded selection/resolver and matching shaper services; reuse `khipu/contracts.FontFace` and `FontInstance` inside the bridge | Discovery/configuration remain application concerns; no new font wrapper or default OpenType backend |
 | Trial result ownership | Retain typed paragraph trials/results in a fresh adapter invocation collector; return them alongside fresh CSS geometry | No `any` paragraph payload in core geometry; no last-result map on a prepared group |
@@ -559,7 +560,8 @@ source/decoded range when available; otherwise use the owner's source context.
 Anonymous groups get no fabricated source NodeID. Lifecycle/identity errors
 without a valid source report that absence. Trial failure returns no candidate
 and leaves previous results and the session reusable; a closed session is not
-implicitly recreated. Exact exported diagnostic names arrive with PREP-02.
+implicitly recreated. PREP-02 publishes `PreparationError` and `PreparationStage`;
+backends can add precise stage/source details while preserving the cause.
 
 ### Acceptance fixtures and scoped follow-up
 
@@ -570,11 +572,12 @@ one channel plus another channel and residual, manual markers, multiple manual
 markers, mixed-policy rejection and auto rejection. Expected processed text,
 source-byte mapping, atomic offsets, preparation order and service-call counts
 are explicit. Current tests verify loading/structure, manifest consistency and
-actual PREP-01 extraction against the unchanged expectations. Engine calls,
-cleanup and two-width results belong to later PRs. The fixture tests do not
-simulate a preparation engine or its service counts.
+actual PREP-01 extraction against the unchanged expectations. PREP-02 tests now
+verify fake-engine call counts, policy preflight, failure cleanup, identity
+isolation and snapshot/session lifetime. Real typography calls, measurement and
+two-width results still belong to later PRs.
 
-With PREP-01 implemented, no unresolved first-slice decision blocks PREP-02.
+With PREP-02 implemented, no unresolved first-slice decision blocks TYPE-PREP-01.
 Wider span-level/automatic hyphenation and intrinsic support require KHIPU-PREP
 work; ordinary-inline edges,
 percentage-atomic sizing cycles, font discovery, concurrent sessions sharing
@@ -595,9 +598,9 @@ package imports; separate adapter modules would be independent packaging work.
 ## 13. Step-by-step PR plan
 
 PREP-00 is complete as a contract/fixture milestone; BOX-PREP-01's shared
-enumeration/content-index migration and PREP-01's extraction are implemented.
-PREP-02 and later entries
-are unimplemented runtime work. Cross-module changes must follow each sibling's
+enumeration/content-index migration, PREP-01's extraction and PREP-02's neutral
+protocol/session lifecycle are implemented. TYPE-PREP-01 and later entries are
+unimplemented integration work. Cross-module changes must follow each sibling's
 instructions. Each PR has a narrow acceptance
 boundary; do not label the full phase complete after the first preparation call.
 
@@ -661,7 +664,7 @@ preparation remains later work.
 **Owner:** pagelayout/content, consuming BOX-PREP-01.
 
 The private `snapshot.extractGroup(tree, index)` uses normalized trees and source
-snapshots to build copied `groupInput` records:
+snapshots to build copied `GroupInput` records (exported by PREP-02):
 processed UTF-8 text, source spans, computed text styles, separate paint, paragraph
 owner context, bidi isolates, hyphenation policy spans and atomic occurrences.
 It reuses `css-box-layout/text.NormalizeNormal` and follows tytui's established
@@ -684,8 +687,8 @@ scopes add no markup, and atomic interiors do not leak into outer scopes.
 All slices are independently owned; source references/styles are detached values
 and boxes retain immutable snapshots. No raw tree or mutable source pointer
 escapes. Private extraction errors retain group/owner, source/range where known
-and original causes, returning no partial group. PREP-02 will publish the neutral
-protocol and diagnostics; no public Extract/Prepare API is added by this step.
+and original causes, returning no partial group. PREP-02 now wraps them in public
+PreparationError diagnostics; the extractor itself remains private.
 
 **Exit satisfied:** actual extraction matches all eight acceptance manifests,
 including exact processed bytes, source ranges and atomic offsets. Tests cover
@@ -695,26 +698,53 @@ checked failures, independent snapshots and concurrent detached extraction.
 Inputs, banks and prior outputs remain unchanged; no sibling-module changes or
 font/typography dependencies are required.
 
-### PREP-02 — Publish preparation snapshots and isolated sessions
+### PREP-02 — Publish preparation snapshots and isolated sessions (implemented)
 
 **Owner:** pagelayout/content; fake engine only at first.
 
-Add the neutral entry point and preparer protocol with detached GroupInput values,
-no raw public tree accessor and no typography imports. Implement whole-document
-orchestration, stable preparation identity, an immutable coverage manifest and a
-separate private session table of executable handles. Construct both privately;
-publish only after every expected group succeeds. Validate returned group/owner
-identity and completeness, and define disposal of failed working handles.
+`content.Prepare(document, preparer)` returns `(*PreparedSnapshot,
+*PreparationSession, error)`. It extracts and validates every GroupInput before
+calling the backend's `Preflight([]GroupInput) error` once. Preflight owns
+backend-specific service and policy admission and must make no font/shaping/layout
+calls. `PrepareGroup(GroupInput) (GroupPreparation, error)` then runs once per
+group in residual-first/global-branch/preorder order. Each callback receives
+independent slices; backend mutation cannot change the manifest or later input.
 
-Preparation must not call bank.Take/Prepend or resolve receiving dimensions.
-Keep bank handles pointing only to the content snapshot. Validate that trials
-use the matching preparation/session and source handles, including when raw BoxIDs
-happen to collide. No mutable session pointer is stored in a public value payload.
+GroupPreparation echoes qualified Group/Owner handles and transfers an exclusive
+GroupHandle with `Release() error`. Nil handles and mismatched identities fail;
+even a handle returned with an error is defensively released. Nothing is published
+until complete coverage succeeds. All acquired handles are released in reverse
+creation order on failure, continuing after errors and joining original causes.
+Neither bank operations nor receiving geometry are involved.
 
-**Exit:** fake-engine tests prove one preparation per group, deterministic order,
-no layout calls, unchanged original bank/tree, no partial publication after a
-late failure, and two coexisting preparations of the same source. Foreign or
-mismatched handles fail before service work.
+PreparedSnapshot retains source and immutable input/coverage data, with a fresh
+opaque comparable PreparationID. Its Groups/Input methods return copies, Covers
+checks source identity, and Document returns an independent source handle. The
+snapshot never references its session, backend or executable handles.
+
+PreparationSession keeps the private handle table. WithGroup checks the exact
+snapshot/session pair and group/owner before borrowing the backend handle for
+one callback. Callers retain typed/frozen results, never the handle itself.
+Backend execution errors preserve the session for retry. Serialized operations
+are required; reentrancy is rejected without promising concurrent execution.
+Close releases in reverse order, clears owned references even after cleanup
+failure, and returns the same error on repeated calls. Wrapper copies share the
+lifecycle. Borrowed fonts/resolvers/services are never closed.
+
+PreparationError retains stage, qualified group/owner, source/range where known
+and the original cause. Backend errors can supply precise itemization/layout
+stages. Invalid identity/lifecycle errors without a valid source report its
+absence; errors.Is/As preserve initiating and cleanup causes.
+
+**Exit satisfied:** fake-engine tests prove exact fixture call counts, complete
+preflight before all preparation, deterministic order, unchanged material/banks,
+late failure and retry, reverse cleanup despite errors, detached backend inputs,
+two coexisting pairs, foreign/colliding-ID rejection before callbacks, repeatable
+Close, and concurrent immutable inspection after closure. A public executable
+[recording-backend example](../content/prepare_example_test.go) exercises the API.
+The fake policy models none/manual admission and rejects mixed/auto; real font
+service validation and typography preparation remain TYPE-PREP-01. No typography
+or font imports, public tree accessor or mutable register payload is introduced.
 
 ### TYPE-PREP-01 — Implement the typography preparation bridge
 

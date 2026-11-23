@@ -13,37 +13,39 @@ import (
 	"github.com/npillmayer/w3c-dom/style/textstyle"
 )
 
-// groupInput is private until PREP-02 publishes the neutral preparer protocol.
+// GroupInput is detached, backend-neutral input for one normalized group.
 // Every range addresses Text's processed UTF-8 bytes. Source ranges instead
 // address individual decoded text nodes, never HTML markup or rune offsets.
 // Slices are independently owned; only immutable Box handles retain the source.
 // TextStyle remains the DOM snapshot (including line-height and hyphens); no
 // typography conversion or policy admission happens here. Paint is also supplied
 // separately so a later shaping bridge need not use color as a style boundary.
-type groupInput struct {
+type GroupInput struct {
 	GroupInfo
 	Text        string
-	Styles      []groupStyleSpan
-	Paint       []groupPaintSpan
-	Hyphens     []groupPolicySpan // Contributing text only, never atomic markers.
-	Isolates    []groupIsolate    // Structural postorder, including equal nested ranges.
-	TextSources []groupTextSpan
-	Occurrences []groupAtomic
+	Styles      []TextStyleSpan
+	Paint       []TextPaintSpan
+	Hyphens     []HyphenationSpan // Contributing text only, never atomic markers.
+	Isolates    []IsolateSpan     // Structural postorder, including equal nested ranges.
+	TextSources []TextSourceSpan
+	Occurrences []AtomicOccurrence
 }
 
-type groupStyleSpan struct {
+// TextStyleSpan describes source typography and text policy in processed bytes.
+type TextStyleSpan struct {
 	Start, End uint64
 	Style      textstyle.Style
 }
 
-type groupPaintSpan struct {
+// TextPaintSpan supplies foreground paint separately from shaping input.
+type TextPaintSpan struct {
 	Start, End uint64
 	Color      color.NRGBA
 }
 
-// A policy span retains the first contributing source range, even for a space
+// HyphenationSpan retains the first contributing source range, even for a space
 // collapsed across several sources. Omitted source policies remain in TextSources.
-type groupPolicySpan struct {
+type HyphenationSpan struct {
 	Start, End uint64
 	Policy     string
 	Box        Box
@@ -51,13 +53,16 @@ type groupPolicySpan struct {
 	Range      boxtext.TextRange
 }
 
-type groupIsolate struct {
+// IsolateSpan describes a nonempty structural bidi scope in processed bytes.
+type IsolateSpan struct {
 	Start, End uint64
 	Direction  textstyle.Direction
 	Source     SourceRef
 }
 
-type groupTextSpan struct {
+// TextSourceSpan maps processed bytes to decoded source bytes. Multiple collapsed
+// source fragments may map to the same space; omitted fragments map to no bytes.
+type TextSourceSpan struct {
 	Start, End uint64
 	Box        Box
 	Source     SourceRef
@@ -66,17 +71,18 @@ type groupTextSpan struct {
 	Style      textstyle.Style
 }
 
-// ID is one-based occurrence order within this group, independent of BoxID.
+// AtomicOccurrence identifies an inserted marker. ID is one-based occurrence
+// order within this group, independent of BoxID.
 // Authored U+FFFC is ordinary text and never creates an occurrence.
-type groupAtomic struct {
+type AtomicOccurrence struct {
 	ID         uint64
 	Start, End uint64
 	Box        Box
 	Source     SourceRef
 }
 
-// Extraction failures are private, source-associated causes for PREP-02 to wrap
-// in its public stage diagnostics. No partial group input accompanies an error.
+// Extraction failures become public stage diagnostics at the Prepare boundary.
+// No partial group input accompanies an error.
 type extractionError struct {
 	Group, Owner Box
 	Source       SourceRef
@@ -106,13 +112,13 @@ type extractionScope struct {
 // extractGroup consumes the existing normalized group index, not source DOM
 // children. Tree order is residual first then global branch order; group indices
 // follow InlineGroups preorder. It does no font, service, bank or layout work.
-func (s *snapshot) extractGroup(tree TreeID, index int) (*groupInput, error) {
+func (s *snapshot) extractGroup(tree TreeID, index int) (*GroupInput, error) {
 	if s == nil || tree == 0 || uint64(tree) >= uint64(len(s.trees)) || index < 0 || index >= len(s.trees[tree].groups) {
 		return nil, &extractionError{Err: fmt.Errorf("unknown normalized group")}
 	}
 	info := s.trees[tree].groups[index]
 	info.Atomics = slices.Clone(info.Atomics)
-	g := &groupInput{GroupInfo: info}
+	g := &GroupInput{GroupInfo: info}
 	fail := func(source SourceRef, ref *boxtext.TextRange, err error) error {
 		e := &extractionError{Group: info.Group, Owner: info.Owner, Source: source, Err: err}
 		if ref != nil {
@@ -202,16 +208,16 @@ func (s *snapshot) extractGroup(tree TreeID, index int) (*groupInput, error) {
 				if len(g.Occurrences) >= len(info.Atomics) || p.box != info.Atomics[len(g.Occurrences)] {
 					return nil, fail(p.source, nil, fmt.Errorf("atomic occurrence differs from group index"))
 				}
-				g.Occurrences = append(g.Occurrences, groupAtomic{uint64(len(g.Occurrences) + 1), start, end, p.box, p.source})
+				g.Occurrences = append(g.Occurrences, AtomicOccurrence{uint64(len(g.Occurrences) + 1), start, end, p.box, p.source})
 			} else {
-				g.appendTextSource(groupTextSpan{start, end, p.box, p.source, ref, tr.Kind, p.style})
+				g.appendTextSource(TextSourceSpan{start, end, p.box, p.source, ref, tr.Kind, p.style})
 			}
 			// First-unit ownership applies consistently to style, paint, policy
 			// and isolate scopes. All raw contributors still have source spans.
 			if start < end && (tr.Kind == "" || tr.Kind == "collapsed" && from == tr.SourceStart) {
 				g.appendStyle(start, end, p.style)
 				if !p.atomic {
-					g.Hyphens = append(g.Hyphens, groupPolicySpan{start, end, p.style.Hyphens, p.box, p.source, ref})
+					g.Hyphens = append(g.Hyphens, HyphenationSpan{start, end, p.style.Hyphens, p.box, p.source, ref})
 				}
 			}
 		}
@@ -222,26 +228,26 @@ func (s *snapshot) extractGroup(tree TreeID, index int) (*groupInput, error) {
 	for _, scope := range scopes {
 		start, end, found := projectExtractionScope(transforms, scope.start, scope.end)
 		if found {
-			g.Isolates = append(g.Isolates, groupIsolate{start, end, scope.direction, scope.source})
+			g.Isolates = append(g.Isolates, IsolateSpan{start, end, scope.direction, scope.source})
 		}
 	}
 	return g, nil
 }
 
-func (g *groupInput) appendStyle(start, end uint64, style textstyle.Style) {
+func (g *GroupInput) appendStyle(start, end uint64, style textstyle.Style) {
 	if n := len(g.Styles); n > 0 && g.Styles[n-1].End == start && g.Styles[n-1].Style == style {
 		g.Styles[n-1].End = end
 	} else {
-		g.Styles = append(g.Styles, groupStyleSpan{start, end, style})
+		g.Styles = append(g.Styles, TextStyleSpan{start, end, style})
 	}
 	if n := len(g.Paint); n > 0 && g.Paint[n-1].End == start && g.Paint[n-1].Color == style.Foreground {
 		g.Paint[n-1].End = end
 	} else {
-		g.Paint = append(g.Paint, groupPaintSpan{start, end, style.Foreground})
+		g.Paint = append(g.Paint, TextPaintSpan{start, end, style.Foreground})
 	}
 }
 
-func (g *groupInput) appendTextSource(span groupTextSpan) {
+func (g *GroupInput) appendTextSource(span TextSourceSpan) {
 	if n := len(g.TextSources); n > 0 {
 		last := &g.TextSources[n-1]
 		if last.Box == span.Box && last.Source == span.Source && last.Style == span.Style && last.Range.End == span.Range.Start && last.Kind == span.Kind &&

@@ -79,9 +79,8 @@ cascade. [PREP-00](../doc/PREPARATION.md#12-prep-00-decisions-and-deferred-exten
 now pins session/service ownership and initial policy. Its
 [fixtures](testdata/preparation/README.md) distinguish today's loaded structure
 and extracted text from future preparation results. BOX-PREP-01's shared group
-enumeration and PREP-01's private detached extraction are implemented. PREP-02's
-neutral preparer protocol and isolated sessions are next; engine preparation
-remains unimplemented.
+enumeration, PREP-01's detached extraction and PREP-02's neutral preparation
+protocol are implemented. TYPE-PREP-01's real typography adapter is next.
 
 | Published material | Use at the preparation boundary |
 | --- | --- |
@@ -108,7 +107,60 @@ first contributing source's style/policy while recording all source fragments.
 Atomic interiors remain separate; authored U+FFFC stays text. Empty groups retain
 the owner's defaults. Extraction changes no source, bank or used geometry and
 admits no engine policy: even mixed/automatic hyphenation remains inspectable.
-The types/entry point stay private until PREP-02 defines the public protocol.
+PREP-02 publishes these values as `GroupInput` to the explicit backend and through
+prepared-snapshot inspection; the normalized tree remains private.
+
+### Preparation protocol
+
+```go
+prepared, session, err := content.Prepare(doc, backend)
+if err != nil {
+    return err // Both results are nil; acquired handles have been released.
+}
+defer session.Close()
+```
+
+The caller-supplied `Preparer` implements `Preflight([]GroupInput) error` and
+`PrepareGroup(GroupInput) (GroupPreparation, error)`. Content extracts and validates
+all input before preflight. The backend validates its complete service/policy
+requirements there, without invoking fonts, shaping or layout. It then prepares
+each group once in residual-first/global-branch/preorder order, including empty
+groups. Every callback gets independent input slices. This neutral protocol
+chooses no font backend or hyphenation fallback; the forthcoming typography
+bridge must enforce its none/manual admission and explicit-service requirements.
+
+Each `GroupPreparation` echoes its qualified Group/Owner and transfers an
+exclusively owned `GroupHandle`, whose `Release()` method drops owned execution
+state. A failed operation must clean its own in-progress work. Content also
+defensively releases a nonnil handle returned with an error. Any failure returns
+neither snapshot nor session and releases acquired handles in reverse order,
+continuing after cleanup failures. `PreparationError` carries stage, group/owner,
+source/range where known and the original cause; `errors.Is/As` reach cleanup
+causes as well as the initiating error.
+
+`PreparedSnapshot.ID()` identifies this successful preparation. `Groups()` and
+`Input(group)` return copied metadata; `Covers(box)` checks whether a source box
+belongs to the completely covered document. `Document()` returns a fresh handle
+to the unchanged source. The snapshot contains no session or execution handles.
+Two preparations of one document have the same source Boxes and distinct IDs.
+
+`session.WithGroup(prepared, group, owner, callback)` checks the exact pair and
+qualified identities before invoking a callback with its backend's `GroupHandle`.
+The callback may use a typed backend API and retain frozen results, but must not
+retain/release the borrowed handle or reenter the session. Execution failure
+leaves the session usable. No geometry or paragraph-result type is added to the
+neutral protocol; those belong to the later bridge/trial work.
+
+Serialize all session operations and shared-service use, including `Close`.
+Closing releases handles in reverse order, drops references even on failure and
+never closes borrowed services. Repeated Close returns the same error without
+repeating cleanup. Copies of the session wrapper share one lifecycle. Snapshot
+inspection remains safe concurrently and valid after Close. These guarantees
+assume backend methods honor the ownership contract; panics are not recovered.
+
+See the [recording-backend example](prepare_example_test.go), executable with
+`go test ./content -run '^ExamplePrepare$' -v`. The fake-engine tests prove the
+neutral lifecycle; they make no claim about actual shaping or two-width layout.
 
 The proposed two-width experiment should load once, extract/prepare once, then
 use the same group and atomic identities for two independent layout results.

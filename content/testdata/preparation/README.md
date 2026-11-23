@@ -1,9 +1,9 @@
 # PREP-00 acceptance inputs
 
 Status: contract and fixtures pinned on 2026-11-23. All eight inputs load and
-PREP-01 extraction matches their expected text/source/atomic mappings. Engine
-preparation, policy admission and measurement results below remain **expected
-future results**.
+PREP-01 extraction matches their expected text/source/atomic mappings. PREP-02
+verifies fake-engine counts and policy admission. Real typography preparation
+and measurement results below remain **expected future results**.
 See [PREPARATION.md](../../../doc/PREPARATION.md#12-prep-00-decisions-and-deferred-extensions).
 
 `expected.json` pins raw decoded text, processed UTF-8, text-source spans, owner
@@ -11,8 +11,9 @@ and atomic identities, group order and expected backend `PrepareGroup` counts.
 `content/preparation_fixtures_test.go` checks loading/group structure, raw text
 and the internal byte-coordinate consistency of these expectations, and compares
 actual PREP-01 extraction with this unchanged manifest. It invokes no fonts and
-does not simulate preparation. PREP-02/TYPE-PREP-01 must compare actual service
-counts and policy failures. Additional `TestExtract` cases cover routing-created
+does not simulate preparation. `TestPrepareAcceptance` separately invokes a fake
+Preparer and checks the manifest's counts and initial policy failures. TYPE-PREP-01
+must repeat those checks with its real bridge. Additional `TestExtract` cases cover routing-created
 adjacency, split/nested isolate scopes, collapsed-space ownership, detached values
 and concurrent reads.
 
@@ -89,11 +90,13 @@ Use `branches.html` for later-group failure injection: fail group b's fourth
 PrepareGroup call after three successes. Release completed handles in reverse
 order, publish neither snapshot nor session, retain the original bank and an
 older preparation, and preserve the injected cause plus #b/group identity.
-Retry uses a fresh working session, not the failed partial table. The current
-tests do not claim to execute this future lifecycle contract.
+Retry uses a fresh working session, not the failed partial table. PREP-02's fake
+tests execute this lifecycle contract, including independent input copies and
+cleanup causes. Real typography resource lifetimes still need the later bridge.
 
 Also use it for two coexisting preparations: identical source Box handles,
 different preparation identities; foreign groups/owners and a mismatched session
 are rejected before service calls. Close is idempotent and serialized with session
 operations; frozen outputs keep stable font resources, not the closed session.
-These counts and checks belong to PREP-02/TYPE-PREP-01/PREP-05.
+PREP-02 verifies these identities and the serialized lifecycle with fake handles;
+real service/frozen-output checks continue in TYPE-PREP-01/PREP-05.
