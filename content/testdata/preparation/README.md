@@ -1,17 +1,20 @@
 # PREP-00 acceptance inputs
 
-Status: contract and fixtures pinned on 2026-11-23. All eight inputs load today.
-Extraction, engine preparation and measurement results below are **expected
-future results**, not claims that those operations have been implemented.
+Status: contract and fixtures pinned on 2026-11-23. All eight inputs load and
+PREP-01 extraction matches their expected text/source/atomic mappings. Engine
+preparation, policy admission and measurement results below remain **expected
+future results**.
 See [PREPARATION.md](../../../doc/PREPARATION.md#12-prep-00-decisions-and-deferred-extensions).
 
 `expected.json` pins raw decoded text, processed UTF-8, text-source spans, owner
 and atomic identities, group order and expected backend `PrepareGroup` counts.
-`content/preparation_fixtures_test.go` checks current loading/group structure,
-raw text and the internal byte-coordinate consistency of these expectations.
-It does not implement a second extractor, invoke fonts or simulate preparation.
-PREP-01 must compare actual extraction with this manifest; PREP-02/TYPE-PREP-01
-must compare actual service counts and policy failures.
+`content/preparation_fixtures_test.go` checks loading/group structure, raw text
+and the internal byte-coordinate consistency of these expectations, and compares
+actual PREP-01 extraction with this unchanged manifest. It invokes no fonts and
+does not simulate preparation. PREP-02/TYPE-PREP-01 must compare actual service
+counts and policy failures. Additional `TestExtract` cases cover routing-created
+adjacency, split/nested isolate scopes, collapsed-space ownership, detached values
+and concurrent reads.
 
 Run from the module root:
 

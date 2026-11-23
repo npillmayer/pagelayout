@@ -78,9 +78,10 @@ Preparation starts from this published snapshot, not from another parse or
 cascade. [PREP-00](../doc/PREPARATION.md#12-prep-00-decisions-and-deferred-extensions)
 now pins session/service ownership and initial policy. Its
 [fixtures](testdata/preparation/README.md) distinguish today's loaded structure
-from future extraction/preparation results. BOX-PREP-01's shared group enumeration
-is implemented and used by the content index. PREP-01's detached group extraction
-and source mapping are next; engine preparation remains unimplemented.
+and extracted text from future preparation results. BOX-PREP-01's shared group
+enumeration and PREP-01's private detached extraction are implemented. PREP-02's
+neutral preparer protocol and isolated sessions are next; engine preparation
+remains unimplemented.
 
 | Published material | Use at the preparation boundary |
 | --- | --- |
@@ -94,11 +95,20 @@ and source mapping are next; engine preparation remains unimplemented.
 `SourceInfo.Children` describes original DOM ancestry, including routed or
 excluded descendants. It is **not** a normalized paragraph stream. The public
 inspection API intentionally exposes no mutable tree or general box-child
-traversal. PREP-01's bridge inside `content` will extract processed groups from
-the private normalized trees, preserving text transformations and source maps.
+traversal. PREP-01's private extractor inside `content` reads processed groups from
+the normalized trees, preserving text transformations and source maps.
 The index already uses `layout.InlineGroups` for group ownership and atomic
 relationships, with source-context validation remaining inside `content`.
 The core's borrowed node pointers never escape through the public content API.
+
+Extraction reuses `text.NormalizeNormal` and returns copied UTF-8 text, source
+maps, DOM style spans, separate foreground paint, hyphenation policies, bidi
+isolate scopes and qualified atomic occurrences. Collapsed whitespace uses its
+first contributing source's style/policy while recording all source fragments.
+Atomic interiors remain separate; authored U+FFFC stays text. Empty groups retain
+the owner's defaults. Extraction changes no source, bank or used geometry and
+admits no engine policy: even mixed/automatic hyphenation remains inspectable.
+The types/entry point stay private until PREP-02 defines the public protocol.
 
 The proposed two-width experiment should load once, extract/prepare once, then
 use the same group and atomic identities for two independent layout results.

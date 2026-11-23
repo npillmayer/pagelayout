@@ -1,13 +1,15 @@
 # Preparation between CSS box construction and layout
 
-Date: 2026-11-23. Status: PREP-00 contract/fixtures and BOX-PREP-01 shared group
-enumeration complete; preparation runtime not implemented. PREP-01 is next.
+Date: 2026-11-23. Status: PREP-00 contract/fixtures, BOX-PREP-01 shared enumeration
+and PREP-01 private extraction complete. PREP-02's preparation protocol is next;
+engine preparation and session runtime remain unimplemented.
 
 This note develops the preparation phase introduced in [DESIGN.md](DESIGN.md).
 Preparing reusable content before page trials is established direction. The
 first-slice ownership and policy decisions in sections 11–12 are now pinned by
-PREP-00. BOX-PREP-01 implements shared structural enumeration; preparation runtime
-APIs and the subsequent milestones remain unimplemented. Earlier
+PREP-00. BOX-PREP-01 implements shared structural enumeration; PREP-01 implements
+private detached extraction. Public preparation runtime APIs and the subsequent
+milestones remain unimplemented. Earlier
 conceptual sketches yield to those decisions. The sibling modules are under our control;
 their current limitations identify integration work rather than permanent limits
 on this design.
@@ -322,8 +324,8 @@ optimization that callers must understand.
 Start from one `content.Load` snapshot, following the
 [CONT-05 handoff](../content/README.md#handoff-to-preparation). Its `Groups(tree)`
 identifies normalized groups, owner context and atomic boundaries. Source-child
-lists describe original DOM ancestry, not extracted paragraphs; the planned
-PREP-01 bridge must read the private normalized structure. Keep bank payloads and
+lists describe original DOM ancestry, not extracted paragraphs; PREP-01's private
+extractor reads the normalized structure. Keep bank payloads and
 source styles unchanged, and choose `hyphens:none` explicitly in the experiment's
 input rather than overriding retained policy during preparation.
 
@@ -567,11 +569,12 @@ text-only, nested auto-width atomics, empty/atomic-only groups, two branches in
 one channel plus another channel and residual, manual markers, multiple manual
 markers, mixed-policy rejection and auto rejection. Expected processed text,
 source-byte mapping, atomic offsets, preparation order and service-call counts
-are explicit. Current tests verify loading/structure and manifest consistency;
-actual extraction, engine calls, cleanup and two-width results belong to later
-PRs. No runtime preparation has been implemented by the fixture tests.
+are explicit. Current tests verify loading/structure, manifest consistency and
+actual PREP-01 extraction against the unchanged expectations. Engine calls,
+cleanup and two-width results belong to later PRs. The fixture tests do not
+simulate a preparation engine or its service counts.
 
-With BOX-PREP-01 implemented, no unresolved first-slice decision blocks PREP-01.
+With PREP-01 implemented, no unresolved first-slice decision blocks PREP-02.
 Wider span-level/automatic hyphenation and intrinsic support require KHIPU-PREP
 work; ordinary-inline edges,
 percentage-atomic sizing cycles, font discovery, concurrent sessions sharing
@@ -592,7 +595,8 @@ package imports; separate adapter modules would be independent packaging work.
 ## 13. Step-by-step PR plan
 
 PREP-00 is complete as a contract/fixture milestone; BOX-PREP-01's shared
-enumeration and content-index migration are implemented. PREP-01 and later entries
+enumeration/content-index migration and PREP-01's extraction are implemented.
+PREP-02 and later entries
 are unimplemented runtime work. Cross-module changes must follow each sibling's
 instructions. Each PR has a narrow acceptance
 boundary; do not label the full phase complete after the first preparation call.
@@ -649,24 +653,47 @@ nested atomics, replaced leaves, unchanged input and stable preorder. Independen
 trees with colliding local IDs, descriptor slice ownership, subtree boundaries,
 early termination and concurrent reads are covered. Existing content tests retain
 their group/source-context results. No typography, DOM or font imports are added
-by the iterator. PREP-01 extraction and effectful preparation remain separate work.
+by the iterator. PREP-01 extraction is implemented separately below; effectful
+preparation remains later work.
 
-### PREP-01 — Extract detached group input and source mappings
+### PREP-01 — Extract detached group input and source mappings (implemented)
 
 **Owner:** pagelayout/content, consuming BOX-PREP-01.
 
-Use private normalized trees and source snapshots to build copied group inputs:
+The private `snapshot.extractGroup(tree, index)` uses normalized trees and source
+snapshots to build copied `groupInput` records:
 processed UTF-8 text, source spans, computed text styles, separate paint, paragraph
 owner context, bidi isolates, hyphenation policy spans and atomic occurrences.
-Reuse `css-box-layout/text.NormalizeNormal`; follow tytui's established extraction
-contract, not its application package dependency. Map collapsed/omitted bytes,
-NBSP, soft hyphens and entities back to decoded source ranges. Insert one U+FFFC
-only for a structural atomic occurrence; distinguish an authored U+FFFC. Keep
-occurrence-to-qualified-box mappings and independent interior group identities.
+It reuses `css-box-layout/text.NormalizeNormal` and follows tytui's established
+extraction contract without importing that application. Collapsed/omitted bytes,
+NBSP, soft hyphens and entities map back to decoded source ranges. One U+FFFC is
+inserted for each structural atomic occurrence; authored U+FFFC remains ordinary
+text. Occurrence IDs are one-based and local to a group, with qualified Box
+mappings and independent interior group identities. Atomic percentages remain
+unresolved. Existing source owner context remains separate from text-run styles.
 
-**Exit:** extraction is a pure transform, returns copies, has no font calls, and
-handles text adjacency after routing and owner defaults even with no text runs.
-Isolate and style ranges address the same processed bytes as atomic anchors.
+Style, separate foreground paint, policy and isolate ranges all address the same
+processed UTF-8 bytes. A collapsed space belongs to its first contributing source
+unit; source maps retain every contributor, including omitted source policies.
+Processed policy spans contain text only, excluding structural markers and
+omitted bytes. Empty/object-only groups retain the owner's policy for later
+preflight. Mixed/auto source policies are extracted unchanged, without admission
+or font calls. Isolate scopes follow normalized structural postorder; empty
+scopes add no markup, and atomic interiors do not leak into outer scopes.
+
+All slices are independently owned; source references/styles are detached values
+and boxes retain immutable snapshots. No raw tree or mutable source pointer
+escapes. Private extraction errors retain group/owner, source/range where known
+and original causes, returning no partial group. PREP-02 will publish the neutral
+protocol and diagnostics; no public Extract/Prepare API is added by this step.
+
+**Exit satisfied:** actual extraction matches all eight acceptance manifests,
+including exact processed bytes, source ranges and atomic offsets. Tests cover
+routing adjacency, split/anonymous owners, empty/suppressed groups, nested and
+collapsed-space isolate scopes, policy provenance, nonzero source-range origins,
+checked failures, independent snapshots and concurrent detached extraction.
+Inputs, banks and prior outputs remain unchanged; no sibling-module changes or
+font/typography dependencies are required.
 
 ### PREP-02 — Publish preparation snapshots and isolated sessions
 

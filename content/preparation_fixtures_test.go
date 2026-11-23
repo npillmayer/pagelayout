@@ -13,9 +13,9 @@ import (
 	"golang.org/x/net/html"
 )
 
-// PREP-00 pins inputs and future acceptance results, not an extraction or
-// preparation implementation. Check today's loader and the byte-coordinate
-// consistency of the authored expectations; PREP-01/02 will test actual results.
+// PREP-00 pins inputs and future acceptance results. PREP-01 now checks actual
+// extraction against that unchanged manifest. Engine calls, policy admission
+// and measurement remain future checks, not simulated by this test.
 type preparationFixture struct {
 	File         string
 	Channels     []string
@@ -110,6 +110,11 @@ func TestPreparationAcceptanceInputs(t *testing.T) {
 			}
 			for i, want := range tc.Groups {
 				g := groups[i]
+				extracted := extractKnownGroup(t, g.Group)
+				if extracted.Text != want.Text || !reflect.DeepEqual(extracted.GroupInfo, g) {
+					t.Fatalf("extraction group %d = %q, want %q", i, extracted.Text, want.Text)
+				}
+				checkExtractedRanges(t, extracted)
 				s := materialSource(t, d, want.Owner)
 				info, _ := g.Group.Info()
 				if g.Source != s.Source || info.Tree != trees[want.Tree] || g.TextStyle.FontSize != dimen.DU(want.FontPx)*dimen.PX || g.TextStyle.Hyphens != want.Policy {
@@ -125,11 +130,15 @@ func TestPreparationAcceptanceInputs(t *testing.T) {
 						t.Fatal("parent atomic")
 					}
 				}
-				if len(g.Atomics) != len(want.Atomics) {
+				if len(g.Atomics) != len(want.Atomics) || len(extracted.Occurrences) != len(want.Atomics) {
 					t.Fatal("atomic count")
 				}
 				covered := make([]bool, len(want.Text))
 				for j, atom := range want.Atomics {
+					occurrence := extracted.Occurrences[j]
+					if occurrence.ID != uint64(j+1) || occurrence.Box != g.Atomics[j] || occurrence.Start != uint64(atom.Offset) || occurrence.End != uint64(atom.Offset+3) {
+						t.Fatal("extracted atomic correspondence", occurrence)
+					}
 					info, _ := g.Atomics[j].Info()
 					if info.Source != materialSource(t, d, atom.Owner).Source {
 						t.Fatal("atomic identity/order")
@@ -142,11 +151,32 @@ func TestPreparationAcceptanceInputs(t *testing.T) {
 						covered[k] = true
 					}
 				}
-				for _, span := range want.Spans {
+				if len(extracted.TextSources) != len(want.Spans) {
+					t.Fatalf("extracted spans = %+v, want %+v", extracted.TextSources, want.Spans)
+				}
+				for j, span := range want.Spans {
 					if span.Node <= 0 || span.Node > len(tc.Raw[span.Owner]) {
 						t.Fatal("unknown raw source")
 					}
 					raw := fixtureRange(t, tc.Raw[span.Owner][span.Node-1], span.Source)
+					owner := materialSource(t, d, span.Owner)
+					var textNodes []SourceInfo
+					for _, child := range owner.Children {
+						source, _ := d.NodeSource(child)
+						if source.Kind == html.TextNode {
+							textNodes = append(textNodes, source)
+						}
+					}
+					got := extracted.TextSources[j]
+					kind := got.Kind
+					if kind == "" {
+						kind = "identity"
+					}
+					if got.Source != textNodes[span.Node-1].Source || got.Style != textNodes[span.Node-1].TextStyle ||
+						got.Range.Start != uint64(span.Source[0]) || got.Range.End != uint64(span.Source[1]) ||
+						got.Start != uint64(span.Processed[0]) || got.End != uint64(span.Processed[1]) || kind != span.Kind {
+						t.Fatalf("extracted source span %d: %+v, want %+v", j, got, span)
+					}
 					for k := span.Source[0]; k < span.Source[1]; k++ {
 						rawCoverage[span.Owner][span.Node-1][k]++
 					}

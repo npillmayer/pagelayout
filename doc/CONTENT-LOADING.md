@@ -1143,9 +1143,11 @@ it must not be used as a substitute for normalized paragraph extraction.
 PREP-00 has pinned service/session ownership and initial policy, with
 [preparation acceptance fixtures](../content/testdata/preparation/README.md).
 BOX-PREP-01 supplies shared core group enumeration, now used by content's index
-with its existing source-context validation and qualified handles. PREP-01 will
-extract detached processed text and source mappings from content's private normalized
-trees. The public bank retains immutable branch-root Box handles throughout.
+with its existing source-context validation and qualified handles. PREP-01 now
+extracts detached processed text, source/style/policy mappings, isolate scopes
+and atomic occurrences from content's private normalized trees. Its types remain
+private until PREP-02 adds the neutral preparation protocol. The public bank
+retains immutable branch-root Box handles throughout.
 
 Do not require general fragmentation before completing content loading. Equally,
 do not call this material prepared paragraphs: no fonts have been selected,
