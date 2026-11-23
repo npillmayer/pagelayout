@@ -75,8 +75,11 @@ source styles remain unchanged by these queue operations.
 ## Handoff to preparation
 
 Preparation starts from this published snapshot, not from another parse or
-cascade. The [preparation plan](../doc/PREPARATION.md) remains proposed work;
-PREP-00 still needs to settle its session/service and policy choices.
+cascade. [PREP-00](../doc/PREPARATION.md#12-prep-00-decisions-and-deferred-extensions)
+now pins session/service ownership and initial policy. Its
+[fixtures](testdata/preparation/README.md) distinguish today's loaded structure
+from future extraction/preparation results. Runtime implementation starts with
+BOX-PREP-01's shared group enumeration.
 
 | Published material | Use at the preparation boundary |
 | --- | --- |
@@ -102,7 +105,7 @@ retain their `manual` policy. Do not silently alter it in the loader. Frame widt
 are inputs to later measurement/layout, never to `Load` or the source cascade.
 
 Content's immutable bank payloads remain boxes throughout. Prepared metadata and
-effectful engine sessions belong to the separately proposed preparation layer.
+effectful engine sessions belong to the separately specified preparation layer.
 Float placement, residual binding, within-box continuation and page publication
 remain later decisions. No pgtmpl content UI or visual proof is part of this
 loading milestone.

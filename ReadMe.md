@@ -289,8 +289,10 @@ requirements. CONT-05 adds five [executable examples](content/example_test.go)
 and a [content loading guide](content/README.md) with an auditable material report
 and preparation handoff. Run `go test ./content -run '^Example' -v` from the module
 root. No preparation or sizing is needed to inspect loaded material.
-Floats and page trials remain later work; PREP-00 is the next preparation
-decision gate.
+PREP-00 now pins preparation ownership, services, failure cleanup and the initial
+hyphenation policy, with [acceptance fixtures](content/testdata/preparation/README.md).
+Preparation runtime remains unimplemented; BOX-PREP-01's shared group enumeration
+is next. Floats and page trials remain later work.
 
 See [the loading package and PR plan](doc/TEMPLATE-LOADING.md),
 [the broader design](doc/DESIGN.md), and

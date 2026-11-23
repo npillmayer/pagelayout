@@ -1140,7 +1140,8 @@ should consume this material without rebuilding or restyling it. The
 published API to that boundary. `SourceInfo.Children` retains source ancestry;
 it must not be used as a substitute for normalized paragraph extraction.
 
-PREP-00 remains the next decision gate for service/session ownership and policy.
+PREP-00 has pinned service/session ownership and initial policy, with
+[preparation acceptance fixtures](../content/testdata/preparation/README.md).
 BOX-PREP-01 will supply shared core group enumeration; PREP-01 will extract
 detached processed text and source mappings from content's private normalized
 trees. The public bank retains immutable branch-root Box handles throughout.

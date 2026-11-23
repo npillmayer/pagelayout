@@ -1,0 +1,606 @@
+[
+  {
+    "file": "text-only.html",
+    "channels": [],
+    "branches": [],
+    "prepare_calls": 1,
+    "raw": {
+      "text": [
+        "  Café ",
+        " ￼ ok.  "
+      ],
+      "em": [
+        "  & tea"
+      ]
+    },
+    "groups": [
+      {
+        "owner": "text",
+        "tree": "residual",
+        "text": "Café & tea ￼ ok.",
+        "font_px": 20,
+        "policy": "none",
+        "parent_atomic": "",
+        "atomics": [],
+        "spans": [
+          {
+            "owner": "text",
+            "node": 1,
+            "source": [
+              0,
+              2
+            ],
+            "processed": [
+              0,
+              0
+            ],
+            "kind": "omitted"
+          },
+          {
+            "owner": "text",
+            "node": 1,
+            "source": [
+              2,
+              7
+            ],
+            "processed": [
+              0,
+              5
+            ],
+            "kind": "identity"
+          },
+          {
+            "owner": "text",
+            "node": 1,
+            "source": [
+              7,
+              8
+            ],
+            "processed": [
+              5,
+              6
+            ],
+            "kind": "collapsed"
+          },
+          {
+            "owner": "em",
+            "node": 1,
+            "source": [
+              0,
+              2
+            ],
+            "processed": [
+              5,
+              6
+            ],
+            "kind": "collapsed"
+          },
+          {
+            "owner": "em",
+            "node": 1,
+            "source": [
+              2,
+              7
+            ],
+            "processed": [
+              6,
+              11
+            ],
+            "kind": "identity"
+          },
+          {
+            "owner": "text",
+            "node": 2,
+            "source": [
+              0,
+              9
+            ],
+            "processed": [
+              11,
+              20
+            ],
+            "kind": "identity"
+          },
+          {
+            "owner": "text",
+            "node": 2,
+            "source": [
+              9,
+              11
+            ],
+            "processed": [
+              20,
+              20
+            ],
+            "kind": "omitted"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "nested.html",
+    "channels": [],
+    "branches": [],
+    "prepare_calls": 3,
+    "raw": {
+      "outer": [
+        "Before ",
+        " after."
+      ],
+      "wide": [
+        "Wide "
+      ],
+      "inner": [
+        "Inner."
+      ]
+    },
+    "groups": [
+      {
+        "owner": "outer",
+        "tree": "residual",
+        "text": "Before ￼ after.",
+        "font_px": 20,
+        "policy": "none",
+        "parent_atomic": "",
+        "atomics": [
+          {
+            "owner": "wide",
+            "offset": 7
+          }
+        ],
+        "spans": [
+          {
+            "owner": "outer",
+            "node": 1,
+            "source": [
+              0,
+              7
+            ],
+            "processed": [
+              0,
+              7
+            ],
+            "kind": "identity"
+          },
+          {
+            "owner": "outer",
+            "node": 2,
+            "source": [
+              0,
+              7
+            ],
+            "processed": [
+              10,
+              17
+            ],
+            "kind": "identity"
+          }
+        ]
+      },
+      {
+        "owner": "wide",
+        "tree": "residual",
+        "text": "Wide ￼",
+        "font_px": 12,
+        "policy": "none",
+        "parent_atomic": "wide",
+        "atomics": [
+          {
+            "owner": "inner",
+            "offset": 5
+          }
+        ],
+        "spans": [
+          {
+            "owner": "wide",
+            "node": 1,
+            "source": [
+              0,
+              5
+            ],
+            "processed": [
+              0,
+              5
+            ],
+            "kind": "identity"
+          }
+        ]
+      },
+      {
+        "owner": "inner",
+        "tree": "residual",
+        "text": "Inner.",
+        "font_px": 12,
+        "policy": "none",
+        "parent_atomic": "inner",
+        "atomics": [],
+        "spans": [
+          {
+            "owner": "inner",
+            "node": 1,
+            "source": [
+              0,
+              6
+            ],
+            "processed": [
+              0,
+              6
+            ],
+            "kind": "identity"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "empty-atomic.html",
+    "channels": [],
+    "branches": [],
+    "prepare_calls": 3,
+    "raw": {
+      "object": [
+        " \t",
+        " "
+      ]
+    },
+    "groups": [
+      {
+        "owner": "empty",
+        "tree": "residual",
+        "text": "",
+        "font_px": 20,
+        "policy": "none",
+        "parent_atomic": "",
+        "atomics": [],
+        "spans": []
+      },
+      {
+        "owner": "object",
+        "tree": "residual",
+        "text": "￼",
+        "font_px": 20,
+        "policy": "none",
+        "parent_atomic": "",
+        "atomics": [
+          {
+            "owner": "blank",
+            "offset": 0
+          }
+        ],
+        "spans": [
+          {
+            "owner": "object",
+            "node": 1,
+            "source": [
+              0,
+              2
+            ],
+            "processed": [
+              0,
+              0
+            ],
+            "kind": "omitted"
+          },
+          {
+            "owner": "object",
+            "node": 2,
+            "source": [
+              0,
+              1
+            ],
+            "processed": [
+              3,
+              3
+            ],
+            "kind": "omitted"
+          }
+        ]
+      },
+      {
+        "owner": "blank",
+        "tree": "residual",
+        "text": "",
+        "font_px": 12,
+        "policy": "none",
+        "parent_atomic": "blank",
+        "atomics": [],
+        "spans": []
+      }
+    ]
+  },
+  {
+    "file": "branches.html",
+    "channels": [
+      "main",
+      "notes"
+    ],
+    "branches": [
+      "a",
+      "note",
+      "b"
+    ],
+    "prepare_calls": 4,
+    "raw": {
+      "residual": [
+        "Residual."
+      ],
+      "a": [
+        "First."
+      ],
+      "note": [
+        "Note."
+      ],
+      "b": [
+        "Second."
+      ]
+    },
+    "groups": [
+      {
+        "owner": "residual",
+        "tree": "residual",
+        "text": "Residual.",
+        "font_px": 20,
+        "policy": "none",
+        "parent_atomic": "",
+        "atomics": [],
+        "spans": [
+          {
+            "owner": "residual",
+            "node": 1,
+            "source": [
+              0,
+              9
+            ],
+            "processed": [
+              0,
+              9
+            ],
+            "kind": "identity"
+          }
+        ]
+      },
+      {
+        "owner": "a",
+        "tree": "a",
+        "text": "First.",
+        "font_px": 20,
+        "policy": "none",
+        "parent_atomic": "",
+        "atomics": [],
+        "spans": [
+          {
+            "owner": "a",
+            "node": 1,
+            "source": [
+              0,
+              6
+            ],
+            "processed": [
+              0,
+              6
+            ],
+            "kind": "identity"
+          }
+        ]
+      },
+      {
+        "owner": "note",
+        "tree": "note",
+        "text": "Note.",
+        "font_px": 20,
+        "policy": "none",
+        "parent_atomic": "",
+        "atomics": [],
+        "spans": [
+          {
+            "owner": "note",
+            "node": 1,
+            "source": [
+              0,
+              5
+            ],
+            "processed": [
+              0,
+              5
+            ],
+            "kind": "identity"
+          }
+        ]
+      },
+      {
+        "owner": "b",
+        "tree": "b",
+        "text": "Second.",
+        "font_px": 20,
+        "policy": "none",
+        "parent_atomic": "",
+        "atomics": [],
+        "spans": [
+          {
+            "owner": "b",
+            "node": 1,
+            "source": [
+              0,
+              7
+            ],
+            "processed": [
+              0,
+              7
+            ],
+            "kind": "identity"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "manual.html",
+    "channels": [],
+    "branches": [],
+    "prepare_calls": 1,
+    "raw": {
+      "manual": [
+        "co­operate"
+      ]
+    },
+    "groups": [
+      {
+        "owner": "manual",
+        "tree": "residual",
+        "text": "co­operate",
+        "font_px": 20,
+        "policy": "manual",
+        "parent_atomic": "",
+        "atomics": [],
+        "spans": [
+          {
+            "owner": "manual",
+            "node": 1,
+            "source": [
+              0,
+              11
+            ],
+            "processed": [
+              0,
+              11
+            ],
+            "kind": "identity"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "manual-many.html",
+    "channels": [],
+    "branches": [],
+    "prepare_calls": 1,
+    "measure_error": "unsupported-policy",
+    "raw": {
+      "many": [
+        "co­op­erate"
+      ]
+    },
+    "groups": [
+      {
+        "owner": "many",
+        "tree": "residual",
+        "text": "co­op­erate",
+        "font_px": 20,
+        "policy": "manual",
+        "parent_atomic": "",
+        "atomics": [],
+        "spans": [
+          {
+            "owner": "many",
+            "node": 1,
+            "source": [
+              0,
+              13
+            ],
+            "processed": [
+              0,
+              13
+            ],
+            "kind": "identity"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "mixed_err.html",
+    "channels": [],
+    "branches": [],
+    "prepare_calls": 0,
+    "prepare_error": "mixed-hyphens",
+    "error_source": "manual",
+    "raw": {
+      "mixed": [
+        "ab"
+      ],
+      "manual": [
+        "cd­ef"
+      ]
+    },
+    "groups": [
+      {
+        "owner": "mixed",
+        "tree": "residual",
+        "text": "abcd­ef",
+        "font_px": 20,
+        "policy": "none",
+        "parent_atomic": "",
+        "atomics": [],
+        "spans": [
+          {
+            "owner": "mixed",
+            "node": 1,
+            "source": [
+              0,
+              2
+            ],
+            "processed": [
+              0,
+              2
+            ],
+            "kind": "identity"
+          },
+          {
+            "owner": "manual",
+            "node": 1,
+            "source": [
+              0,
+              6
+            ],
+            "processed": [
+              2,
+              8
+            ],
+            "kind": "identity"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "auto_err.html",
+    "channels": [],
+    "branches": [],
+    "prepare_calls": 0,
+    "prepare_error": "automatic-hyphens",
+    "error_source": "auto",
+    "raw": {
+      "auto": [
+        "automatic"
+      ]
+    },
+    "groups": [
+      {
+        "owner": "auto",
+        "tree": "residual",
+        "text": "automatic",
+        "font_px": 20,
+        "policy": "auto",
+        "parent_atomic": "",
+        "atomics": [],
+        "spans": [
+          {
+            "owner": "auto",
+            "node": 1,
+            "source": [
+              0,
+              9
+            ],
+            "processed": [
+              0,
+              9
+            ],
+            "kind": "identity"
+          }
+        ]
+      }
+    ]
+  }
+]

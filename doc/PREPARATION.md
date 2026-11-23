@@ -1,11 +1,13 @@
 # Preparation between CSS box construction and layout
 
-Date: 2026-11-23. Status: proposed implementation plan; preparation not implemented.
+Date: 2026-11-23. Status: PREP-00 contract and acceptance fixtures complete;
+preparation runtime not implemented. BOX-PREP-01 is the next implementation step.
 
 This note develops the preparation phase introduced in [DESIGN.md](DESIGN.md).
 Preparing reusable content before page trials is established direction. The
-interfaces, pass driver and ownership details below are **proposals**, not agreed
-APIs or implemented capabilities. The sibling modules are under our control;
+first-slice ownership and policy decisions in sections 11–12 are now pinned by
+PREP-00. Runtime APIs and the subsequent milestones remain unimplemented; earlier
+conceptual sketches yield to those decisions. The sibling modules are under our control;
 their current limitations identify integration work rather than permanent limits
 on this design.
 
@@ -20,8 +22,9 @@ generic registers are implemented. CONT-04 now supplies normalization/group
 indexing and public immutable material. CONT-05 supplies
 [executable examples](../content/example_test.go) and the
 [published material handoff](../content/README.md#handoff-to-preparation).
-The preparation interfaces remain proposals. Sections 11–14 add the recommended
-register/session model, decision gates, PR sequence and acceptance tests. They
+Sections 11–14 specify the register/session model, scoped extensions, PR sequence
+and acceptance tests. PREP-00 establishes the implementation contract; it does
+not add a preparer, font service or layout operation. These sections
 refine the earlier callback/driver sketch where functional ownership requires it.
 
 ## Recommendation
@@ -290,7 +293,7 @@ no shaping service can ever run again. See the
 
 ## 9. Ownership and lifetime rules
 
-Proposed rules for the new phase (with the snapshot/session split in section 11):
+PREP-00 ownership rules for the new phase (with the split in section 11):
 
 - A successful pass publishes a complete snapshot/session pair for the document.
   Failure publishes no partially ready set. Internal completed caches need not
@@ -334,7 +337,7 @@ This experiment would establish the phase and its lifetime before adding the
 harder fragmentation contract. The direct geometry-only path for empty template
 frames remains separate: it has no horizontal content to prepare.
 
-Before implementation, refine:
+PREP-00 pins the initial choices in section 12. Implementation must preserve:
 
 - The prepared-handle interface and compatibility with the existing callbacks.
 - The representation and ownership of retained paragraph trial results.
@@ -343,13 +346,13 @@ Before implementation, refine:
 - Record `FitInline` for partial results and continuation as a later decision,
   not a prerequisite for the whole-group experiment.
 
-Sections 11–13 recommend concrete answers and sequence their implementation.
-The remaining decisions are explicit review gates, not unspecified prerequisites
-for every PR. This note does not implement APIs or authorize sibling changes.
+Sections 11–13 establish the first-slice choices and sequence implementation.
+Wider policies and page-level fitting remain separate decisions. Completing
+PREP-00 does not implement or authorize all subsequent sibling changes at once.
 
 ## 11. Registers, prepared snapshots and functional ownership
 
-**Recommendation (2026-11-23; review in PREP-00): keep the register payload
+**PREP-00 decision (2026-11-23): keep the register payload
 `content.Box` throughout preparation.** That is the adopted content-loading
 payload, not a new mixed interface or a box with a mutable readiness flag.
 BOX-CONT-02 implements generic registers; CONT-04 now supplies content.Box and
@@ -432,29 +435,30 @@ The split follows [css-box-layout's functional rules](../../css-box-layout/doc/F
   but cannot mutate published material or earlier results.
 
 Strict referential transparency of every font-service call is not claimed by
-this proposal. The functional guarantee applies to material, banks and published
+this contract. The functional guarantee applies to material, banks and published
 results; the effectful service layer is explicit. Requiring discovery itself to
 be a persistent value would be additional khipu work, not necessary for this
 milestone or a reason to weaken the register payload contract.
 
-## 12. Recommended choices and open decisions
+## 12. PREP-00 decisions and deferred extensions
 
-These recommendations make the PR plan reviewable; they are not automatically
-adopted APIs. PREP-00 should settle the first-slice choices before implementation.
+The following choices are the implementation target for the first preparation
+slice. They do not claim that the APIs already exist. Exact method/type spelling
+can be finalized in the assigned PR without reopening ownership or policy.
 
-| Decision | Recommended first implementation | Remaining boundary |
+| Decision | Pinned first implementation | Deferred boundary |
 | --- | --- | --- |
 | Register payload | Keep `RegisterBank[content.Box]`; readiness belongs to a separate snapshot/session pair | No mixed raw/prepared queue items or destructive conversion |
 | Preparation scope | Eager, whole-document, atomic publication, including residual and nested groups | Partial/lazy preparation and bounded working sets later |
-| Tree access and package boundary | A backend-neutral preparation entry point on `content` owns private tree access and source extraction; an optional `pagelayout/preparation/typography` bridge implements its preparer contract | Names are provisional; do not expose mutable LayoutNodes through public inspection or import typography into the loader |
+| Tree access and package boundary | A backend-neutral `content.Prepare` entry point owns private tree access and extraction; the optional `pagelayout/preparation/typography` bridge implements its preparer protocol | No mutable LayoutNodes in public inspection and no typography import in content/core; exported signatures arrive in PREP-02 |
 | Core traversal | Shared group enumeration in css-box-layout; effectful driver in pagelayout orchestration | Refines the earlier proposal to put the entire preparation driver in the box core |
 | Font selection | Caller supplies preloaded selection/resolver and matching shaper services; reuse `khipu/contracts.FontFace` and `FontInstance` inside the bridge | Discovery/configuration remain application concerns; no new font wrapper or default OpenType backend |
 | Trial result ownership | Retain typed paragraph trials/results in a fresh adapter invocation collector; return them alongside fresh CSS geometry | No `any` paragraph payload in core geometry; no last-result map on a prepared group |
 | Initial text/box profile | Normal whitespace and CSS normal line height; zero ordinary-inline edges; nested auto/fixed-width atomics in the trial experiment | Loading/preparation retain percentages; unsupported intrinsic dependencies fail explicitly in the trial, not by rewriting material |
 | Breaker and alignment | Start the experiment with explicit FirstFit, zero side skips, CSS line boxes and bottom-margin-edge atomic alignment | Additional breaker policies can follow without changing bank payloads |
-| Hyphenation | First experiment explicitly uses source `hyphens:none`; production bridge admits uniform none and supported uniform manual with an injected explicit hyphenator | Mixed per-span policies and automatic intrinsic measurement need further contracts; never silently force manual/auto to none |
+| Hyphenation | Experiment uses source `hyphens:none`; bridge admits uniform none and uniform manual with an injected explicit-marker hyphenator. Mixed/auto groups fail whole-document preflight | Manual intrinsic measurement can still reject multiple eligible splits/variants; retain that upstream failure and do not silently downgrade policy |
 | Partial fitting | Defer CSS-level fitting and whole-page transactions to a later plan | Reuse existing paragraph Trial/Checkpoint/Continuation APIs where their restrictions fit; general block fragmentation is unsolved |
-| Concurrency/lifetime | Serialize session/shared-service use; release session after reflow is no longer needed; frozen output retains only its required stable resources | No concurrent-trial promise or document-wide permanent cache |
+| Concurrency/lifetime | Caller serializes session and shared-service operations, including Close; session owns executable handles and has idempotent Close; frozen output retains stable resources independently | No concurrent-trial promise, internal global lock, implicit reprepare or permanent cache |
 
 The hyphenation boundary is substantive. Content loading preserves none/manual/
 auto per source span, with manual as its default. Khipu currently fixes one
@@ -465,6 +469,113 @@ source/group-associated unsupported-policy errors where necessary. Do not split
 one paragraph into separate paragraphs to simulate span-level policy. Broader
 admission requires a separately scoped KHIPU-PREP extension and matching
 paragraph tests; this is an integration limitation, not a permanent CSS rule.
+
+### Policy admission and preflight
+
+Extract and validate every group before any backend preparation/font work.
+Determine group policy from nonempty processed **text** spans, using the source
+of the first contributing byte for a collapsed space. Omitted whitespace does
+not create a policy conflict. Structural atomic markers do not import interior
+policy; interiors are checked as independent groups. With no text spans, use the
+paragraph owner's policy. Owner strut style is always resolved separately.
+Retain all source policies in the extracted records, including rejected inputs.
+
+- Uniform `none` maps to `khipu.NoHyphenation`. Preserve soft-hyphen source bytes;
+  disabling discretionary discovery is not permission to delete source mappings.
+- Uniform `manual` maps to `khipu.ExplicitHyphenation` and requires an explicitly
+  supplied hyphenator, even if this group has no markers. Its U+00AD request
+  follows the sibling's [explicit-marker protocol](../../khipu/hyphenation.go).
+  There is no implicit ASCII hyphen or dictionary.
+- Mixed none/manual/auto within a paragraph, and uniform auto, fail before any
+  group's engine preparation. Do not split paragraphs or silently choose none.
+  Uniform policies may differ between independent groups.
+- Manual preparation does not promise arbitrary intrinsic measurement. The
+  sibling [MeasureIntrinsic contract](../../typography/glyphing/paragraph/measure.go)
+  supports bounded explicit alternatives; multiple eligible positions/variants
+  can fail later at measurement with the original unsupported-policy cause.
+  Do not run intrinsic measurement during preparation to test eligibility.
+
+Other deterministic preflight checks include supported inline edges/text policy,
+valid UTF-8 source maps/style/isolate ranges, qualified group/owner/atomic
+correspondence, complete group coverage, and explicit required service inputs.
+Use the first failure in residual-first/global-branch/preorder traversal, then
+processed-span order, for deterministic diagnostics. Validate all groups before
+starting the first effectful group operation. A policy error in the last group
+therefore has zero backend preparation calls.
+
+### Services, failure publication and cleanup
+
+`Prepare` targets a complete immutable snapshot plus a separate execution
+session. The session retains the snapshot; the snapshot never retains the
+session. Give each successful pair a new opaque preparation identity. Existing
+content Boxes, source trees and banks remain unchanged. Reject a foreign source,
+group/owner, preparation ID or closed session before service work. A retry of a
+failed whole-document preparation starts fresh working state; there is no
+published partial manifest or reusable half-built session.
+
+The neutral preparer protocol has an all-input preflight followed by one
+PrepareGroup operation per ordered group, including empty groups. Returned
+execution capabilities belong privately to the session. Backend-specific typed
+results stay in the optional bridge; no `any` paragraph payload enters core
+geometry or a bank. PREP-02 implements the neutral protocol with fake services;
+TYPE-PREP-01 adds the typography adapter. No target width, used-value table,
+frame style, receiver height or live cursor is a preparation input.
+
+Caller-supplied selected fonts/resolver, coverage, shaper factory and supported
+hyphenator are borrowed and remain stable. Never select paragraph.Prepare's
+synthetic zero-config backend implicitly. The caller retains ownership of font
+resources needed by frozen output; session closure must not close shared faces,
+resources, the resolver or factories. No new font representation is introduced:
+the optional bridge reuses `contracts.FontFace`/`FontInstance` and typography's
+selected-resource contracts, without concrete OpenType types in neutral APIs.
+
+Preparation failures return neither snapshot nor session. The backend cleans up
+its in-progress operation and returns no live handle on error. The orchestrator
+releases successful owned handles in reverse creation order, including when
+final coverage validation fails. Cleanup proceeds after a cleanup error; retain
+the initiating error and any cleanup causes with `errors.Is/As` (for example,
+through `errors.Join`). No callback panic recovery is promised. Borrowed services
+may retain complete memoized work; rollback of their caches is not required.
+
+Session `Close` is serialized and idempotent, releases owned handles once and
+drops session/service references even if release reports an error. Repeated Close
+does not repeat cleanup; subsequent execution fails as closed. Source inspection,
+prepared metadata and earlier frozen outputs remain valid. The current
+`paragraph.Prepared` has no Close method: its adapter release drops references.
+Streams are operation-owned and obey `StreamingShaper.Finish`, not a newly
+invented font/paragraph close API. Factories return fresh exclusive streams;
+factory errors own their cleanup, and successful streams are finished after
+producer/consumer completion, including unused preflight failures. Reuse
+[the existing stream contract](../../khipu/contracts/shaping_stream.go) and
+[StreamingConfig ownership](../../khipu/config.go).
+
+Errors carry preparation stage (preflight, extraction, itemization/font,
+preparation, measurement, layout or release as applicable), qualified group and
+owner handles, source locator and the original cause. Use the offending span's
+source/decoded range when available; otherwise use the owner's source context.
+Anonymous groups get no fabricated source NodeID. Lifecycle/identity errors
+without a valid source report that absence. Trial failure returns no candidate
+and leaves previous results and the session reusable; a closed session is not
+implicitly recreated. Exact exported diagnostic names arrive with PREP-02.
+
+### Acceptance fixtures and scoped follow-up
+
+The [PREP-00 fixture contract](../content/testdata/preparation/README.md) and
+[`expected.json`](../content/testdata/preparation/expected.json) pin eight inputs:
+text-only, nested auto-width atomics, empty/atomic-only groups, two branches in
+one channel plus another channel and residual, manual markers, multiple manual
+markers, mixed-policy rejection and auto rejection. Expected processed text,
+source-byte mapping, atomic offsets, preparation order and service-call counts
+are explicit. Current tests verify loading/structure and manifest consistency;
+actual extraction, engine calls, cleanup and two-width results belong to later
+PRs. No runtime preparation has been implemented by the fixture tests.
+
+No unresolved first-slice decision blocks BOX-PREP-01. Wider span-level/automatic
+hyphenation and intrinsic support require KHIPU-PREP work; ordinary-inline edges,
+percentage-atomic sizing cycles, font discovery, concurrent sessions sharing
+services, incremental preparation, residual receiver binding, floats, partial
+box fitting and page transactions remain scoped extensions. None narrows the
+loader's accepted unsized source material. PREP-00 changes no sibling APIs.
 
 No w3c-dom change is currently required: its source-style snapshots already carry
 font sizes, language, bidi and hyphenation policy. Convert DOM DU explicitly to
@@ -478,30 +589,31 @@ package imports; separate adapter modules would be independent packaging work.
 
 ## 13. Step-by-step PR plan
 
-All entries below are proposed work, not implemented milestones. Cross-module
+PREP-00 is complete as a contract/fixture milestone. All later entries are
+unimplemented runtime work. Cross-module
 changes must follow each sibling's instructions. Each PR has a narrow acceptance
 boundary; do not label the full phase complete after the first preparation call.
 
-### PREP-00 — Close prerequisites and pin the contract
+### PREP-00 — Close prerequisites and pin the contract (complete)
 
 **Owners:** pagelayout; prerequisite css-box-layout content work.
 
 BOX-CONT-01 (structured builder errors) and BOX-CONT-02 (generic registers) are
 complete, as are CONT-04 (normalization, group indexing, immutable public material)
-and CONT-05 (executable handoff). Review section 12, freeze snapshot/session ownership and
-choose the admitted hyphenation subset. The public content.Box remains the
-adopted branch handle. Agree service failure/cleanup and source error mapping;
-preparation must return neither a partial snapshot nor an accessible session.
+and CONT-05 (executable handoff). Section 12 now pins snapshot/session ownership,
+admitted hyphenation, service failure/cleanup and source error mapping. The
+public content.Box remains the branch payload; preparation cannot publish a
+partial pair or mutate source material.
 
-Add small acceptance inputs: text-only; an outer paragraph with nested auto-width
-atomic text; empty/atomic-only groups; two branches in one channel plus residual;
-manual soft hyphens and mixed/auto-policy rejection cases. Pin processed-text,
-source-map, group/atomic identity and expected preparation-call counts. Use
-explicit `hyphens:none` in the initial two-width experiment rather than overriding
-source policy in code. Preparation-specific fixtures belong beside its tests.
+Eight acceptance inputs and machine-readable future results live under
+`content/testdata/preparation`. Run
+`go test ./content -run '^TestPreparationAcceptanceInputs$' -v` for current
+loading/group and coordinate checks. The nested experiment explicitly uses
+`hyphens:none`.
 
-**Exit:** prerequisites pass; remaining policy choices are explicitly adopted or
-scoped out, and the fixtures distinguish source material, preparation and trials.
+**Exit satisfied:** prerequisites pass; first-slice choices are pinned or scoped
+out, and fixtures distinguish existing source material from future extraction,
+preparation and trials. No preparer/session runtime or sibling API is added.
 The intentionally omitted CONT-03 routing fuzz target is not reopened.
 
 ### BOX-PREP-01 — Enumerate normalized groups without sizing
@@ -663,7 +775,7 @@ BOX-PREP-02: independent terminology migration, before final handoff
 ```
 
 No new khipu or w3c-dom feature is a prerequisite for the restricted experiment.
-If PREP-00 requires wider hyphenation admission, schedule KHIPU-PREP-01 for
+For wider hyphenation admission beyond PREP-00's restricted profile, schedule KHIPU-PREP-01 for
 per-span policy and intrinsic-measurement support, with typography facade tests,
 before claiming that wider preparation profile. Percentage-atomic layout and
 CSS-level continuation are separate BOX/PAGE work; do not narrow the loader's
