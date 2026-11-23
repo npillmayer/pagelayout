@@ -303,8 +303,10 @@ preparation. Its tests use fake fonts with the real typography pipeline. PREP-03
 adds `MeasureIntrinsic`, reusing preparation for nested width measurements with
 checked signed atomic contributions. PREP-04 adds independent whole-tree Layout
 results with copied CSS geometry and frozen paragraphs, reusing the same session
-at multiple widths. PREP-05 real-font/lifetime proofs, floats and page trials
-remain later work.
+at multiple widths. PREP-05 adds a [real-font example](preparation/typography/example_test.go),
+[two-width outline proof](preparation/typography/testdata/two-widths.svg), bank
+persistence and GC lifetime tests. The restricted preparation slice is complete;
+floats, page trials and independent BOX-PREP-02 terminology cleanup remain later work.
 
 See [the loading package and PR plan](doc/TEMPLATE-LOADING.md),
 [the broader design](doc/DESIGN.md), and

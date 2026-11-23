@@ -5,7 +5,7 @@ PREP-01 extraction matches their expected text/source/atomic mappings. PREP-02
 verifies fake-engine counts and policy admission. TYPE-PREP-01 repeats preparation
 with the real typography pipeline and explicit fake fonts/streams. PREP-03
 exercises public intrinsic measurement and reuse. PREP-04 exercises independent
-whole-tree layout results; real-font and GC lifetime proofs remain PREP-05.
+whole-tree layout results; PREP-05 adds real-font and GC lifetime proofs.
 See [PREPARATION.md](../../../doc/PREPARATION.md#12-prep-00-decisions-and-deferred-extensions).
 
 `expected.json` pins raw decoded text, processed UTF-8, text-source spans, owner
@@ -87,7 +87,8 @@ For the implemented two-width trial, use `nested.html` unchanged: source `hyphen
 is explicit. Load once and prepare all three groups once. Measure/layout at 120px
 and 240px using the same snapshot/session pair and explicit services. Repeated
 trials add **zero** group preparation calls; target widths never enter Prepare.
-The bridge tests use explicit fake fonts/streams; real-font acceptance follows.
+The bridge tests use both explicit fake fonts/streams and, in PREP-05, pinned
+sibling real-font fixtures. See the [outline proof and provenance](../../../preparation/typography/testdata/README.md).
 Each candidate owns its geometry and paragraph results; rejecting one leaves the
 other and the original bank unchanged.
 
@@ -111,7 +112,8 @@ older preparation, and preserve the injected cause plus #b/group identity.
 Retry uses a fresh working session, not the failed partial table. PREP-02's fake
 tests execute this lifecycle contract, including independent input copies and
 cleanup causes. TYPE-PREP-01 also checks real bridge/stream cleanup and retained
-synthetic output; real-font resource proofs remain PREP-05.
+synthetic output; PREP-05 repeats late preparation failure with real font services
+and checks retained outlines after session/working-state collection.
 
 Also use it for two coexisting preparations: identical source Box handles,
 different preparation identities; foreign groups/owners and a mismatched session
@@ -119,4 +121,7 @@ are rejected before service calls. Close is idempotent and serialized with sessi
 operations; frozen outputs keep stable font resources, not the closed session.
 PREP-02 verifies these identities and the serialized lifecycle with fake handles;
 TYPE-PREP-01 verifies its stream lifecycle and synthetic frozen-output retention;
-real-font checks continue in PREP-05.
+PREP-05 verifies real-font resource changes, source-style/policy reloads, persistent
+bank versions and colliding local group IDs across source snapshots. GC checks
+cover both none and populated manual discovery with a dropped or retained closed
+session wrapper. These checks add no page selection, fitting or bank commits.

@@ -78,12 +78,14 @@ Preparation starts from this published snapshot, not from another parse or
 cascade. [PREP-00](../doc/PREPARATION.md#12-prep-00-decisions-and-deferred-extensions)
 now pins session/service ownership and initial policy. Its
 [fixtures](testdata/preparation/README.md) distinguish today's loaded structure
-and extracted text from future preparation results. BOX-PREP-01's shared group
+and extracted text from prepared and laid-out results. BOX-PREP-01's shared group
 enumeration, PREP-01's detached extraction and PREP-02's neutral preparation
 protocol are implemented. TYPE-PREP-01's optional
 [typography backend](../preparation/typography/README.md) now supplies itemization
 and paragraph preparation with explicit services. PREP-03 adds intrinsic
 measurement using the same pair; PREP-04 adds independent whole-tree layout.
+PREP-05 proves real-font reuse, persistent banks and retained output after session
+release; see the [executable handoff](../preparation/typography/example_test.go).
 
 | Published material | Use at the preparation boundary |
 | --- | --- |
@@ -185,7 +187,8 @@ See the [recording-backend example](prepare_example_test.go), executable with
 `go test ./content -run '^ExamplePrepare$' -v`. The fake-engine tests prove the
 neutral lifecycle. The typography bridge separately tests the real paragraph
 pipeline with explicit fake fonts/streams, including two-width layout and late
-failure/retry. The unchanged nested fixture uses source `hyphens:none`; manual
+failure/retry. PREP-05 adds real-font outline and GC lifetime proofs through that
+optional bridge. The unchanged nested fixture uses source `hyphens:none`; manual
 fixtures keep their authored policy. Never silently alter it in the loader.
 Receiving widths are layout inputs, never inputs to `Load` or the source cascade.
 

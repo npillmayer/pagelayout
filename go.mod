@@ -18,6 +18,7 @@ require (
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/jolestar/go-commons-pool v2.0.0+incompatible // indirect
 	github.com/npillmayer/cords v0.1.2-alpha.3 // indirect
+	github.com/npillmayer/opentype v0.0.0 // indirect
 	github.com/npillmayer/schuko v0.2.0-alpha.3.0.20211209143531-2d524c4964ff // indirect
 	github.com/npillmayer/tree v0.0.0-20260127205735-9aa4bb66c981 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
@@ -37,7 +38,7 @@ replace github.com/npillmayer/tree => ../tree
 replace github.com/npillmayer/schuko => ../schuko
 
 // Optional typography preparation uses the sibling development modules.
-// OpenType is in typography's module graph, not the bridge's package imports.
+// OpenType supports explicit test adapters, not the bridge's production imports.
 replace github.com/npillmayer/typography => ../typography
 
 replace github.com/npillmayer/khipu => ../khipu

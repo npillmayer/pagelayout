@@ -5,7 +5,9 @@ and PREP-01 extraction complete. PREP-02's neutral preparation protocol and
 session lifecycle are implemented. TYPE-PREP-01 connects the real typography
 pipeline with explicit fake-font/stream integration tests. PREP-03 reuses that
 preparation for intrinsic measurement. PREP-04 now publishes independent whole-tree
-layout results. PREP-05's real-font/lifetime proofs and page trials remain later work.
+layout results. PREP-05 proves real-font reuse, bank persistence and release of
+working state. The restricted preparation slice is complete; page trials and
+BOX-PREP-02's independent terminology cleanup remain later work.
 
 This note develops the preparation phase introduced in [DESIGN.md](DESIGN.md).
 Preparing reusable content before page trials is established direction. The
@@ -13,7 +15,8 @@ first-slice ownership and policy decisions in sections 11–12 are now pinned by
 PREP-00. BOX-PREP-01 implements shared structural enumeration; PREP-01 implements
 detached extraction. PREP-02 publishes the neutral protocol and isolated sessions;
 TYPE-PREP-01 adds the typography bridge; PREP-03 adds intrinsic measurement.
-PREP-04 adds whole-tree layout integration; subsequent milestones remain unimplemented. Earlier
+PREP-04 adds whole-tree layout integration; PREP-05 adds real-font/lifetime proofs
+and an executable handoff. Wider policies and page composition remain unimplemented. Earlier
 conceptual sketches yield to those decisions. The sibling modules are under our control;
 their current limitations identify integration work rather than permanent limits
 on this design.
@@ -582,9 +585,11 @@ preparation with injected fake fonts/streams, retaining lazy manual measurement
 restrictions. PREP-03 exercises public measurement, nested atomic contributions,
 signed margins, request-sensitive answers and failure/retry without base reshaping.
 PREP-04 verifies two-width results, exact atomic geometry and late assembly
-failure/retry using the same synthetic services.
+failure/retry using the same synthetic services. PREP-05 adds explicitly selected
+real fonts, two-width outline proofs, persistent bank versions, changed fonts/styles/
+policies and GC checks while retaining frozen output and source material.
 
-With PREP-04 implemented, no unresolved first-slice decision blocks PREP-05.
+The restricted preparation slice through PREP-05 is implemented.
 Wider span-level/automatic hyphenation and intrinsic support require KHIPU-PREP
 work; ordinary-inline edges,
 percentage-atomic sizing cycles, font discovery, concurrent sessions sharing
@@ -607,8 +612,9 @@ package imports; separate adapter modules would be independent packaging work.
 PREP-00 is complete as a contract/fixture milestone; BOX-PREP-01's shared
 enumeration/content-index migration, PREP-01's extraction and PREP-02's neutral
 protocol/session lifecycle, TYPE-PREP-01's typography bridge and PREP-03's
-intrinsic integration and PREP-04's whole-tree results are implemented. PREP-05 and later entries are
-unimplemented integration work. Cross-module changes must follow each sibling's
+intrinsic integration, PREP-04's whole-tree results and PREP-05's real-font/lifetime
+proofs are implemented. BOX-PREP-02 terminology cleanup and wider extensions
+remain separate work. Cross-module changes must follow each sibling's
 instructions. Each PR has a narrow acceptance
 boundary; do not label the full phase complete after the first preparation call.
 
@@ -806,8 +812,8 @@ manual admission/lazy discovery, auto/mixed/service rejection, late itemization/
 factory/acceptance/shaping failures, stream finishing, cleanup, retry and retained
 output after Close. Production dependency tests exclude OpenType/fontfind/tytui
 from the bridge and typography/khipu from content/template/CSS core. Public
-measurement is implemented in PREP-03 and whole-tree trial integration in PREP-04; real-font visual proof is
-PREP-05. See the [bridge guide](../preparation/typography/README.md).
+measurement is implemented in PREP-03 and whole-tree trial integration in PREP-04;
+PREP-05 adds real-font visual proof. See the [bridge guide](../preparation/typography/README.md).
 
 ### PREP-03 — Consume preparation during intrinsic measurement (implemented)
 
@@ -890,8 +896,8 @@ Close preserve them. Tests cover source-tree/bank/manifest stability, subtree an
 session identity, reentrancy, incomplete coverage, callback rejection, exact
 atomic borders/margins/coordinates, zero width/empty groups, request and finite
 range validation, percentage-cycle failure, and late vertical-metric failure
-followed by successful retry. Real-font proofs, executable handoff and GC lifetime
-evidence remain PREP-05; BOX-PREP-02 terminology cleanup remains independent.
+followed by successful retry. PREP-05 adds real-font proofs, executable handoff
+and GC lifetime evidence; BOX-PREP-02 terminology cleanup remains independent.
 
 ### BOX-PREP-02 — Clarify names for realized atomics
 
@@ -907,19 +913,49 @@ a staged migration, remove them after the known consumers migrate.
 between reusable horizontal preparation and trial-specific atomic realization.
 This PR is independent of PREP-03/04 and must not block the contract experiment.
 
-### PREP-05 — Prove lifetime, bank persistence and the handoff
+### PREP-05 — Prove lifetime, bank persistence and the handoff (implemented)
 
 **Owner:** pagelayout; cross-module regression checks for touched boundaries.
 
-Add an executable two-width example and an integration test using caller-supplied
-real font services. Document the initial policy limits and session serialization.
-Exercise old/new bank versions during preparation, trial rejection and later
-successful trials. Banks retain original content only; inspection is unchanged
-and session release does not invalidate frozen output. Add lifecycle tests that
-retained output does not keep discovery/preparation/workspaces alive, following
-typography's existing lifetime regressions.
+The [executable two-width example](../preparation/typography/example_test.go)
+selects a checked-in Gentium Plus font and concrete services explicitly, prepares
+once, lays out one branch at 120px and 240px, and retains output after Close.
+Its four prepared groups include the empty residual group. The unchanged nested
+acceptance fixture separately produces three groups and the
+[two-width outline proof](../preparation/typography/testdata/two-widths.svg).
+The proof renders retained glyph paths and CSS geometry; it performs no layout.
+See [fixture provenance and regeneration](../preparation/typography/testdata/README.md).
 
-**Exit:** the acceptance matrix below passes. No automatic frame assignment,
+Real-font integration tests verify repeated measurement/layout without base
+reshaping under `hyphens:none`, discarded and later successful candidates,
+original/derived bank persistence, late preparation failure with no partial
+publication, and new preparations of the same boxes with different font resources.
+A sibling capability-reduced Gentium derivative changes font identity without
+changing the ASCII source; resource identity cannot be cached by HTML alone.
+Separate reloads with changed source size/paint or manual policy preserve old
+metadata/results. Their identical structure deliberately collides in local
+BoxIDs/TreeIDs, proving that snapshot-qualified groups cannot alias.
+
+GC tests retain both two-width results, the manifest and source bank. They check
+that closed group handles, paragraph preparations, backend, session wrapper (when
+dropped), shaping streams and per-call collector become collectible. Both a
+retained closed wrapper and a dropped wrapper are exercised. Manual policy first
+populates lazy discovery; a weak factory/hyphenator canary proves release of its
+transitive recipe/discovery ownership without exposing sibling internals. The
+sibling paragraph lifetime suite checks raw discovery/trial/workspace pointers.
+After GC, a fresh explicit outline adapter still renders glyphs from the retained
+font resources. No finalizer timing, unsafe access or production GC hooks are used.
+
+Concrete OpenType/render imports are confined to tests and the executable example.
+Production dependency checks still enforce neutral content/core and no concrete
+font backend in the optional bridge. The indirect OpenType module dependency
+supports those test adapters. No production or sibling API changes were required.
+Session and shared-service operations remain caller-serialized, including Close;
+manual alternatives may invoke services lazily. Initial policy/atomic limits in
+section 12 and the [bridge guide](../preparation/typography/README.md) still apply.
+
+**Exit satisfied:** the acceptance matrix below is covered by the combined
+PREP-00 through PREP-05 tests. No automatic frame assignment,
 page-template selection, bank commit, within-box remainder or general FitInline
 is implied. Preparation is complete for its explicitly admitted profile; page
 trials and wider policy support have their own milestones.
@@ -930,7 +966,7 @@ trials and wider policy support have their own milestones.
 BOX-CONT-01 + BOX-CONT-02 -> CONT-04 -> CONT-05 -> PREP-00
 PREP-00 -> BOX-PREP-01 -> PREP-01 -> PREP-02 -> TYPE-PREP-01
 TYPE-PREP-01 -> PREP-03 -> PREP-04 -> PREP-05
-BOX-PREP-02: independent terminology migration, before final handoff
+BOX-PREP-02: independent terminology migration, still pending
 ```
 
 No new khipu or w3c-dom feature is a prerequisite for the restricted experiment.
@@ -945,7 +981,7 @@ accepted unsized material to hide these integration limits.
 | Test | Required observation |
 | --- | --- |
 | Load then prepare | No fonts during loading; no geometry during preparation; existing bank and source inspection unchanged |
-| Two branches with colliding local BoxIDs | Qualified group identity keeps preparations and results distinct |
+| Two branches with colliding local BoxIDs (identically structured source snapshots) | Qualified group identity keeps preparations and results distinct; branches within one snapshot are also tested |
 | Two preparations of one content snapshot | Same content.Box payloads, distinct preparation identities; session mixing rejected |
 | Nested auto-width atomic | Outer preparation contains only occurrence; inner group prepared separately before any measurement |
 | Empty/atomic-only paragraph | Owner source typography supplies strut context; first text run is never the default |

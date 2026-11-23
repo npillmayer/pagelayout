@@ -146,12 +146,55 @@ Tests exercise the real mapper/itemizer/paragraph pipeline with explicitly
 injected fake fonts and synthetic streams. They cover all eight preparation
 fixtures, owner struts, paint bypass, source/atomic mappings, lazy manual policy,
 late failures, stream finishing, reverse cleanup through content's session,
-retry, retained output after Close, and production dependency boundaries. They
-do not claim real-font visual proof or page composition; that remains PREP-05.
+retry, retained output after Close, and production dependency boundaries.
 Measurement tests also cover the acceptance fixtures, nested auto widths, signed
 and fractional contributions, request changes, percentage-cycle errors and lazy
 manual discovery failure/retry without repeating base shaping.
 Layout tests check independent two-width results, exact atomic geometry, source
 and bank stability, detached accessors, identity/coverage/reentrancy, failed core
-validation and late assembly failures followed by retry. Real-font visual and GC
-lifetime proofs remain PREP-05.
+validation and late assembly failures followed by retry.
+
+## Real-font handoff and lifetime proofs
+
+PREP-05's [executable example](example_test.go) explicitly selects Gentium Plus
+from the sibling OpenType fixtures, a StyleMapper and fresh OpenType streams.
+It loads routed content, prepares once, produces two widths from the same pair,
+and retains a paragraph after session Close. Run it from the module root:
+
+```sh
+go test ./preparation/typography -run '^ExampleLayout$' -v
+go test ./preparation/typography -run '^TestRealFont' -count=1
+```
+
+The [two-width outline proof](testdata/two-widths.svg) uses the unchanged nested
+fixture and retained glyph paths. The [fixture guide](testdata/README.md) records
+font provenance, hashes and regeneration. All concrete adapter/render imports
+are test-only. Normal tests read checked-in resources without font discovery,
+installation, downloads or proof-file writes.
+
+Real-font tests count stream creation, base shaping, finishing and coverage to
+verify reuse under `hyphens:none`. They retain original/derived banks across late
+preparation failure and successful trials; selecting different font bytes makes
+a distinct preparation of the same content.Box payloads. CSS reloads change size,
+paint or policy without altering earlier metadata or results. Identical source
+structure deliberately collides in local IDs across snapshots, exercising the
+full qualified identity. Discarding a candidate is simply dropping its result;
+there is no page transaction or bank advancement in this slice.
+
+Weak-pointer GC tests retain both results, the manifest and the source bank,
+with and without a retained closed session wrapper. Group handles, paragraph
+preparations, shaping streams, the backend and invocation collector must collect.
+A factory/hyphenator canary detects transitive discovery-recipe retention; the
+manual case populates lazy discovery before closing. A fresh outline adapter
+then renders the retained fonts after GC. These tests complement typography's
+direct discovery/trial/workspace lifetime regressions without exposing raw
+preparations or adding production lifetime hooks.
+
+The supported concurrency protocol remains serialization of **all** operations
+sharing a session or borrowed services, including Prepare, MeasureIntrinsic,
+Layout and Close. Separate sessions do not make shared font/shaper/hyphenator
+services safe for concurrent use. Copied immutable metadata may be inspected
+concurrently. Manual alternatives may still shape lazily; automatic/mixed policy,
+percentage-atomic cycles, page fitting and within-box continuation remain outside
+the restricted preparation profile. BOX-PREP-02's terminology migration remains
+independent work.
