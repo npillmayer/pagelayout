@@ -270,7 +270,9 @@ and original-document styling, with inert/resource boundaries and structured
 diagnostics. CONT-02 adds private authored/effective profile validation and a
 detached, typed unsized projection with source typography, paint, edges, text
 ranges and suppression classifications. Run `go test ./content` for these checks.
-Public material loading, normalization and routing remain pending. DOM-CONT-01
+CONT-03 validates route ownership and partitions independent channel branches
+and residual material, preserving source order, styles and emptied ancestors.
+Public material loading and normalization remain pending. DOM-CONT-01
 adds the shared
 `w3c-dom/style/textstyle` source snapshots, and TY-CONT-01 migrates tytui's
 compatibility facade. DOM-CONT-02 adds checked source-font border resolution,

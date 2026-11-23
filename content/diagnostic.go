@@ -25,6 +25,7 @@ type cssLocation struct {
 type diagnostic struct {
 	stage, code string
 	source      sourceRef
+	related     sourceRef // Conflicting route root/ancestor, when applicable.
 	css         cssLocation
 	message     string
 	cause       error

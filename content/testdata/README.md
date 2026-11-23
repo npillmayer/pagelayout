@@ -4,15 +4,17 @@ Date: 2026-11-22. Status: adopted acceptance contract. These files accompany
 [CONTENT-LOADING.md](../../doc/CONTENT-LOADING.md). CONT-01's private source
 parser/inspector/styler and CONT-02's typed projection/profile are implemented.
 Tests cover source styles, typography, paint, typed lengths, decoded text ranges,
-unsized atomics and participation classifications. The full normalized/routed
-results below remain requirements for CONT-03 through CONT-05, not
+unsized atomics and participation classifications. CONT-03 tests ordered channel
+branches, exclusive source ownership and residual projections. Normalized trees,
+groups and public results below remain requirements for CONT-04/05, not
 captured output from a public material loader. These are content documents,
 not template collections accepted by `pgtmpl`.
 
 Run `go test ./content` from the module root for source and projection checks.
 `loadSource` retains both `_err` files as styled source. `loadProjection` rejects
 `float_err.html` with the expected authored profile diagnostic; nested-flow
-ownership remains a CONT-03 check. No channel/register publication is implemented.
+ownership fails in CONT-03's `loadPartition` with both conflicting sources.
+Channel partitions are private; public documents/registers remain unimplemented.
 Route-free builder contract tests verify anonymous-owner font context; the
 production loader does not yet normalize or index horizontal groups.
 

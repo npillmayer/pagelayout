@@ -1,10 +1,10 @@
 # Content loading and routing implementation plan
 
-Date: 2026-11-22. Status: CONT-00 adopted and complete; CONT-01 private source
-parsing, inspection and styling and CONT-02 typed projection/effective profile
-are implemented. DOM-CONT-01's shared text-style
+Date: 2026-11-23. Status: CONT-00 adopted and complete. CONT-01 source parsing,
+inspection and styling, CONT-02 typed projection/effective profile, and CONT-03
+route ownership/partitioning are implemented. DOM-CONT-01's shared text-style
 service, TY-CONT-01's tytui migration and DOM-CONT-02's source-font border helper
-are implemented. The public material loader, normalization/routing and BOX-CONT
+are implemented. The public material loader, normalization and BOX-CONT
 work remain pending.
 Floats remain explicitly deferred.
 
@@ -27,7 +27,7 @@ CONT-00 adopts concrete `content.Box` handles as payloads and a generic conversi
 of those existing queues, preserving their persistent behavior.
 
 Section 11 records the adopted decisions separately from later open questions.
-CONT-03 onward and the BOX-CONT items remain implementation
+CONT-04 onward and the BOX-CONT items remain implementation
 work. References describe checked-out implementations; code sketches describe
 the adopted target API unless explicitly identified as implemented.
 
@@ -88,10 +88,38 @@ computed value across font changes. No receiving geometry or font service is
 consulted. Tests cover fixture typography/edges/paint/text, nested atomics,
 suppression, source detachment, diagnostics and independent concurrent loads.
 Route-free builder contract tests verify anonymous-owner font context, but the
-production projection does not normalize boxes. Routing/partitioning remain
-CONT-03 and public material publication remains CONT-04. `float_err.html` now
+production projection does not normalize boxes. Routing/partitioning are implemented separately in CONT-03; public material
+publication remains CONT-04. `float_err.html` now
 fails projection's authored profile check; `nested-flow_err.html` still projects
-successfully for CONT-03 to reject its route ownership.
+successfully at this boundary; CONT-03 rejects its route ownership.
+
+### Implemented CONT-03 boundary
+
+Private [`loadPartition` / `partitionSource`](../content/route.go) validate effective
+named roots before copying any destination trees. Only non-nested block flow or
+block flow-root branches under block ancestry can be extracted. Active html/body
+roots, inline/inline-block roots, extraction within inline/atomic ancestry, and
+nested names (including identical names or explicit inheritance) fail atomically.
+Routing diagnostics carry the original source, effective flow name and, for
+conflicts, a structured related source plus both paths in the message.
+
+The private partition retains independent render trees for each branch and a
+separate residual tree. Branches retain global source order; channels retain
+first-occurrence order and ordered branch indices. Case-sensitive unmatched
+names are preserved without a template catalog or an implicit main channel.
+An ownership map assigns every active element/text source either to its branch
+root source ID or to residual (zero). Suppressed/inert/metadata nodes stay in
+the copied source ledger without material ownership. Coverage validation rejects
+duplicate or missing material before returning a result.
+
+Extraction preserves typed styles, paint in source records, decoded text ranges,
+unsized atomic interiors and each root's own edges. Residual ancestors remain even
+when emptied, while text on either side of a removed branch becomes adjacent in
+source order. The input projection is unchanged and destination render nodes,
+styles, text references and ledger slices are independently copied. No selectors,
+normalization, font services, used geometry, registers or public API are involved.
+Acceptance tests cover base/override channel membership, residual structure,
+suppression, empty documents, diagnostics and concurrent partitions.
 
 ## 1. Deliverable and boundaries
 
@@ -336,7 +364,8 @@ consider a bulk constructor only if realistic collection sizes justify it.
 The canonical inputs and assertion tables now live alongside the content package
 in [content/testdata](../content/testdata/README.md). They specify required future
 material-loader results. CONT-01/02 tests exercise source/style, typed projection,
-text ranges and participation classification. Channel, normalized box/group and
+text ranges and participation classification. CONT-03 tests verify ordered channel
+branches, exclusive ownership and residual projections. Normalized box/group and
 publication assertions await the subsequent phases.
 
 | Fixture | Acceptance purpose |
@@ -541,7 +570,7 @@ from the serialized-use contract of future prepared paragraph handles.
 
 These choices were adopted in CONT-00. They are staged scope, not permanent
 restrictions inferred from sibling code. CONT-02 implements the audit below with
-checked sibling parsers; routing restrictions remain CONT-03.
+checked sibling parsers; CONT-03 implements the routing restrictions.
 
 | Concern | Adopted first slice | Later extension or decision |
 | --- | --- | --- |
@@ -905,16 +934,18 @@ percentage preservation, paint, decoded UTF-8 ranges and anonymous-owner context
 Independent concurrent projections and no-partial-result diagnostics are tested.
 No frame/catalog/used-value input, normalization or route partition is introduced.
 
-### CONT-03 — Route ownership and partition projections
+### CONT-03 — Route ownership and partition projections (implemented)
 
-Discover eligible effective flow roots, reject nested/unsupported routing,
-construct ordered channel branch sequences and a residual projection, and check
-exclusive ownership. Retain untouched source context and residual ancestors.
-Implement routing before invoking any box normalization.
+Private `loadPartition`/`partitionSource` discover eligible effective flow roots,
+reject nested/unsupported routing, construct ordered channel branch sequences
+and a residual projection, and verify exclusive source ownership. The source
+context and residual ancestors remain intact; no normalization occurs here.
 
-Exit: the principal fixture has the exact expected branches and residual
-material; repeated flow names preserve root order; hidden content is classified;
-unmatched channels and residual content are retained without inventing cursors.
+Exit satisfied: the principal fixture and override have the expected branches,
+channel order and residual material. Repeated names preserve root order; hidden
+content stays classified; unmatched channels and residual content are retained.
+Tests cover invalid roots/ancestry, inherited and same-name nesting, no partial
+results, emptied decorated ancestors, independent copies and concurrent calls.
 
 ### BOX-CONT-01 — Builder diagnostics and independent-tree contracts
 
