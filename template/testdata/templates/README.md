@@ -1,29 +1,22 @@
-# Template-loading fixtures
+# Template collection examples
 
-- `sketch.html` is the complete two-template collection from
-  [`doc/SKETCH.md`](../../../doc/SKETCH.md). It exercises the full loader,
-  including its `border: 0` and `background: #ffffff` shorthands, millimetre units,
-  both flow channels and all five receiving frames. Executable Go examples embed
-  it; an integration test checks that the documented HTML stays synchronized.
-- `invalid-overlap.html` contains a valid definition followed by overlapping
-  receivers in a second definition. The diagnostics example and reload tests
-  demonstrate atomic rejection of the whole collection.
-- `two-pages.html` is a source-stage fixture with two page definitions,
-  ordered head styles and ignored
-  non-page storage. Frame HTML IDs deliberately recur across definitions because
-  each definition will have its own active styling document.
-- `repaired.html` deliberately omits document/end tags and closes a template
-  without first closing its DIVs. The tests assert the repaired HTML tree and the
-  parser's representation of template contents.
+Use these HTML files with the [`template` loaders](../../README.md). From the
+module directory, preview the complete collection with:
 
-`two-pages.html` and `repaired.html` intentionally lack complete geometry and are
-not examples of valid compiled collections. Additional structural failure cases
-are kept beside their expectations in `template/source_test.go`.
+```sh
+go run ./pgtmpl serve template/testdata/templates/sketch.html
+```
 
-[`../content/article.html`](../content/article.html) is the separate content
-document for the sketch. Its `flow-into` rules belong to Cont-Doc; only receiving
-`flow-from` rules belong in the collection. Content preparation and rendering are
-not implemented, and the content file is not an input to `template.Load`.
+| File | How to use it |
+| --- | --- |
+| [sketch.html](sketch.html) | A complete collection with two templates, millimetre dimensions, two flow channels and five receiving frames. Inspect page sizes, solid paint and source-ordered frame chains. |
+| [invalid-overlap.html](invalid-overlap.html) | Load to inspect overlap diagnostics. A valid first definition followed by invalid overlapping receivers rejects the entire collection. |
+| [two-pages.html](two-pages.html) | Read as an example of two definitions, head styles and ignored non-page storage. It omits required geometry and is not a loadable catalog. |
+| [repaired.html](repaired.html) | Read as an example of omitted document/end tags and unclosed DIVs. It also omits required geometry and is not a loadable catalog. |
 
-From the module root, run `go test ./template -run '^(Example|TestIntegration)' -v`
-to execute the public examples and integration checks.
+The separate [article document](../content/article.html) uses `flow-into` and
+loads with `content.Load`. It is not an input to `template.Load` or `pgtmpl`.
+Only receiving `flow-from` rules belong in the collection.
+
+For additional complete collections and stylesheet overrides, see the
+[module examples](../../../examples/README.md).

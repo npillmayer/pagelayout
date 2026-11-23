@@ -61,11 +61,12 @@ interoperable web feature; experimental and shipped implementations did exist.
 
 ## Lessons for this Go package
 
-The following are design proposals, not decisions to implement the CSS draft:
+The implementation adopts selected ideas, not the whole CSS draft:
 
-- Separate **content streams**, **region geometry**, and **flow order**. Our page
-  templates can create the regions; bindings can connect HTML content to them.
-- Return explicit continuation and overflow information. Do not treat clipping
+- **Implemented:** separate content registers, compiled frame geometry and
+  source-ordered receiver chains. The restricted loaders use `flow-into` and
+  `flow-from`, preserving original styling and source identities.
+- **Still required for page fitting:** explicit continuation and overflow information. Do not treat clipping
   as successful consumption of content.
 - Preserve source identities and logical reading order independently of visual
   placement, including in any future accessible output.
@@ -74,4 +75,5 @@ The following are design proposals, not decisions to implement the CSS draft:
   fragmentation, and cyclic bindings before expanding the contract.
 
 CSS Regions is useful conceptual prior art for linked frames. Reusing that model
-does not require adopting its CSS syntax or claiming browser compatibility.
+does not imply browser compatibility. This framework adopts the two flow
+properties in its own validated profile; page-level fragmentation is still deferred.

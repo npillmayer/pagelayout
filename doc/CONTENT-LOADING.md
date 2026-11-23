@@ -8,7 +8,8 @@ are implemented, as are BOX-CONT-01's structured builder-error/partition contrac
 and BOX-CONT-02's generic persistent registers. CONT-04 implements normalization,
 group indexing and the public immutable material loader. CONT-05 completes the
 executable integration examples and preparation handoff. Content loading chunk 1
-is complete; preparation remains a separate proposed phase.
+is complete. The separate restricted preparation phase is also implemented;
+see PREPARATION.md for its snapshot/session and whole-tree layout APIs.
 Floats remain explicitly deferred.
 
 This plan develops the content-input phase of [DESIGN.md](DESIGN.md), following
@@ -32,7 +33,8 @@ CONT-04 supplies the content handles and initial bank.
 
 Section 11 records the adopted decisions separately from later open questions.
 All content-loading slices are implemented. References describe checked-out
-implementations; the later preparation and page-trial proposals remain separate.
+implementations; preparation has its own completed milestones, while page
+composition remains separate design work.
 
 ### Implemented CONT-01 boundary
 
@@ -175,7 +177,7 @@ page-layout demonstration.
 `tytui` is especially useful because it separates **source context** from
 **normalized layout structure**. Its group context comes from the owning block,
 not from the first text run. That matters for empty paragraphs, object-only
-groups, inherited language and future line-height/strut calculation.
+groups, inherited language and preparation-time line-height/strut context.
 
 ### Where direct reuse would be wrong
 
@@ -385,7 +387,7 @@ boxes/groups, source context, atomic associations, publication and bank lifetime
 The expectation document pins source-root and channel order, ownership, group
 owners, effective styles, retained constraints, raw decoded text and register
 persistence. HTML IDs label source nodes for review; they do not replace NodeIDs
-or freeze numeric TreeIDs/BoxIDs. Future tests must identify anonymous groups
+or freeze numeric TreeIDs/BoxIDs. Tests identify anonymous groups
 through their source owners and qualified handles rather than hard-coded IDs.
 
 CONT-05's `ExampleLoad` also uses the
@@ -445,7 +447,7 @@ Walk source ancestry before detaching anything. Capture:
 - Checked display, position, visibility, flow name and box-sizing values.
 - Typed unsized widths/edges and source-computed font size/white-space.
 - Font family/weight/style, language, direction, supported bidi context and
-  line-height policy needed by future paragraph preparation.
+  line-height policy used by paragraph preparation.
 - Effective text paint and supported box paint, independent of frame paint.
 - Decoded text storage and source references; no flattening into paragraphs yet.
 
@@ -569,7 +571,7 @@ No committed cursor, receiver, current width or cached accepted result belongs
 to this snapshot. Publish its initial persistent register bank with private,
 read-only branch payloads; callers may derive independent banks without changing
 the loaded document. Concurrent read-only inspection may be supported separately
-from the serialized-use contract of future prepared paragraph handles.
+from the serialized-use contract of prepared paragraph handles.
 
 ## 6. Adopted initial profile
 
@@ -903,7 +905,8 @@ work; no sibling source code is changed by this milestone.
 
 Exit satisfied at the design level: reviewers can state which source material
 each output owns and which operations must not occur during loading. Fixtures
-are inputs to future executable tests, not evidence of a working content loader.
+were the design-stage inputs. CONT-01–05 now execute their loader assertions;
+PREP-00–05 separately verify extraction, preparation and whole-tree layout.
 
 ### CONT-01 — Parse, inspect and style the content source (implemented)
 
@@ -1126,16 +1129,16 @@ Still open beyond CONT-00:
 
 The channel inventory supplements the bank with source/order metadata. Detailed
 diagnostic prose and implementation helper signatures may evolve without
-reopening these ownership and scope decisions. Broader PREPARATION.md and page
-trial proposals are not adopted by completing CONT-00.
+reopening these ownership and scope decisions. Preparation was adopted and implemented in its own milestones; completing
+CONT-00 did not by itself adopt page-trial APIs.
 
 ## 12. Handoff to preparation
 
 Chunk 1 supplies normalized groups, stable source typography/text, qualified
 owner identities, branch order and atomic interior associations. Chunk 2 adds
 reusable preparations and independent retained trial results, as described in
-[PREPARATION.md](PREPARATION.md). The first two-width preparation experiment
-should consume this material without rebuilding or restyling it. The
+[PREPARATION.md](PREPARATION.md). The implemented two-width preparation experiment
+consumes this material without rebuilding or restyling it. The
 [content guide's handoff](../content/README.md#handoff-to-preparation) maps the
 published API to that boundary. `SourceInfo.Children` retains source ancestry;
 it must not be used as a substitute for normalized paragraph extraction.
@@ -1148,7 +1151,10 @@ extracts detached processed text, source/style/policy mappings, isolate scopes
 and atomic occurrences from content's private normalized trees. PREP-02 publishes
 the detached GroupInput values through an explicit Preparer protocol, with an
 immutable PreparedSnapshot and separate serialized PreparationSession. The public bank
-retains immutable branch-root Box handles throughout.
+retains immutable branch-root Box handles throughout. TYPE-PREP-01 and PREP-03–05
+add the optional typography bridge, intrinsic measurement, independent whole-tree
+layout, real-font proofs and GC lifetime checks. BOX-PREP-02 distinguishes
+`RealizedAtomic` geometry from reusable paragraph preparation.
 
 Do not require general fragmentation before completing content loading. Equally,
 do not call this material prepared paragraphs: no fonts have been selected,

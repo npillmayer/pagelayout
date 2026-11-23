@@ -1,4 +1,4 @@
-# Template loading: package proposal and PR plan
+# Template loading: implemented contract and milestone record
 
 Date: 2026-11-22. Status: TPL-01 through TPL-05, DOM-01/02/03 and BOX-01 implemented.
 The first template-loading milestone is complete; later extensions remain proposed.
@@ -17,8 +17,8 @@ The `template` subpackage exposes [Load](../template/load.go) and an immutable
 [source profile checks](../template/profile.go), [typed adaptation](../template/adapt.go)
 and [geometry compilation](../template/compile.go).
 It uses Go 1.25.6 and `golang.org/x/net` v0.49.0, plus the sibling `w3c-dom` DOM-01
-reporting APIs. See [ReadMe.md](../ReadMe.md) for development dependencies and
-reviewed revisions. The reader/catalog API, `LoadFS`, `LoadFile` and the host `IO`
+reporting APIs. See [go.mod](../go.mod) for module requirements and local replacement
+paths, and the [template guide](../template/README.md) for client usage. The reader/catalog API, `LoadFS`, `LoadFile` and the host `IO`
 boundary are implemented. [Executable examples](../template/example_test.go)
 and [integration tests](../template/integration_test.go) exercise the public API.
 
@@ -46,7 +46,7 @@ content-side phase.
 **Decision:** encapsulate template loading in package `template`, imported as
 `github.com/npillmayer/pagelayout/template`. This package owns discovery, source
 identities, styling, profile validation, geometry compilation, diagnostics and
-the eventual compiled catalog. Its tests and fixtures live under `template/`.
+the compiled catalog. Its tests and fixtures live under `template/`.
 
 The root package `pagelayout` is reserved for broader page composition and will
 consume the compiled catalog. Keep dependencies directed from page composition
@@ -240,7 +240,7 @@ checker. Verify the chosen parser's representation of template contents with a
 fixture rather than assuming a browser's `HTMLTemplateElement.content` API exists
 on the Go node type. [Go HTML parser documentation](https://pkg.go.dev/golang.org/x/net/html).
 
-Proposed initial collection profile:
+Implemented initial collection profile:
 
 - Page definitions are direct body children named `<template data-type="page">`.
   They have nonempty, whitespace-free, unique IDs. Diagnose marked definitions
@@ -260,7 +260,7 @@ Proposed initial collection profile:
   error in this collection format. Scripts are not evaluated; unsupported active
   markup is diagnosed by the profile.
 
-These are proposed authoring policies, not restrictions imposed by sibling APIs.
+These are enforced template authoring policies, not limitations of sibling APIs.
 Assign stable source identities before cloning. A compiled frame identity is
 local to its template and independent of HTML IDs or CSS class names. If HTML IDs
 are used, validate uniqueness within each active styling document; repeated
@@ -376,11 +376,11 @@ belongs to the separate content document.
 Source diagnostics retain CSS rule/declaration/line/column locations. Effective
 diagnostics identify the original template/node and property without fabricating
 the location of a winning declaration. Independent failures are sorted by source
-node, then check order. Final stretch dimensions, bounds and overlaps require
-TPL-04 using BOX-01; overconstrained and out-of-page inputs remain unresolved here.
+node, then check order. Final stretch dimensions, bounds and overlaps are checked by the implemented
+TPL-04 compiler using BOX-01, after this typed-adaptation stage.
 
 Ordinary shorthand forms used by the sketch, including `border: 0` and
-`background: #fff`, should work by completing the relevant `w3c-dom` support.
+`background: #fff`, work through the implemented DOM-03 shorthand support.
 Expansion must preserve omitted-component resets, source order and `!important`;
 recognizing a shorthand as an alias for one longhand is insufficient.
 [CSS shorthand semantics](https://www.w3.org/TR/css-cascade-5/#shorthand).
@@ -493,7 +493,7 @@ The plan comprises **five pagelayout slices and four upstream slices**, all now
 implemented with focused tests. The identifiers below are planning labels, not
 links to hosted pull requests. The original task lists describe each slice's scope.
 
-![Dependencies between the proposed template-loading PRs](diagrams/template-loading-prs.svg)
+![Dependencies between the completed template-loading milestones](diagrams/template-loading-prs.svg)
 
 [Graphviz DOT source](diagrams/template-loading-prs.dot)
 
@@ -505,7 +505,7 @@ Repository: `pagelayout`. Dependencies: none.
 the parsed HTML structure, preserves original nodes and source order, assigns
 collection-local source IDs and template-local frame IDs, and publishes no
 partial model on failure. ID and formatting-whitespace checks use HTML ASCII
-whitespace rules. Element ID uniqueness includes the future html/body context,
+whitespace rules. Element ID uniqueness includes the active html/body context,
 but excludes template storage wrappers and other definitions. TPL-02 adds CSS
 inspection/styling; the public loader remains for a later milestone.
 
@@ -644,7 +644,7 @@ limits, parity, ownership, replay/concurrency and a public example. The downstre
 test in `template/geometry_input_test.go` passes TPL-03 inputs directly to this API;
 catalog compilation and policy checks remain TPL-04.
 
-- Extract a shared typed fixed-sizing kernel and expose the proposed direct
+- Extract a shared typed fixed-sizing kernel and expose the direct
   geometry service. Preserve the existing `FixedLayout` path and behavior.
 - Return complete border/content geometry with explicit invalid-input,
   unsupported static-position and content-dependency outcomes.
@@ -739,7 +739,7 @@ in the collection; template and content cascades are separate.
 
 Validation includes package examples, integration/unit tests, the race detector,
 vet/build, `w3c-dom`'s full regression suite and `css-box-layout/layout`'s suite.
-The tested upstream revisions are recorded in [ReadMe.md](../ReadMe.md).
+Module requirements and local replacement paths are recorded in [go.mod](../go.mod).
 
 - Add `template.LoadFS` and `LoadFile` with host `IO`, a package
   example and self-contained collection fixtures.
@@ -754,9 +754,9 @@ The tested upstream revisions are recorded in [ReadMe.md](../ReadMe.md).
   Run package tests/vet and the relevant sibling regression suites against the
   recorded dependency revisions.
 
-Exit achieved: a documented, usable loading milestone. Pagination, content
-preparation/rendering, CLI actions and configured shared repositories remain
-separate work.
+Exit achieved: a documented, usable loading milestone. Content loading/preparation and the pgtmpl CLI are implemented as separate
+consumers. Pagination, production page rendering and configured shared
+repositories remain later work.
 
 ### Dependencies and review order
 

@@ -3,7 +3,8 @@
 Two alternatives below describe the same page and frame geometry: a custom XML
 template and an HTML/CSS template. CSS assigns HTML content to named flows and
 connects frames to those flows, following the approach described in
-[REGIONS.md](REGIONS.md). These are working sketches, not implemented formats.
+[REGIONS.md](REGIONS.md). The custom XML and standalone HTML examples are historical sketches. The HTML/CSS
+collection format in the final section is adopted and implemented by `template`.
 The final section extends the HTML/CSS approach into a collection of reusable
 page templates in one HTML file.
 
@@ -135,7 +136,7 @@ the chain. Content retains its source styling as it flows. These short paragraph
 illustrate the binding; longer content would be needed to exercise overflow.
 
 The `flow-into` and `flow-from` properties are draft Regions syntax, used here as
-the proposed interface for our framework. See the
+the implemented routing/binding syntax in our restricted profile. See the
 [CSS Regions draft](https://www.w3.org/TR/css-regions-1/) for their original model.
 
 When the last frame cannot fit the remaining content, layout should report the
@@ -229,7 +230,8 @@ stylesheet to its active page and frame DIVs. Fixed frames are resolved against
 the page's own viewport; the `.page` DIV's ancestry alone does not establish that
 viewport. The resulting catalog supports selection by template ID without
 restyling or recalculating geometry. The collection alone displays no pages in a
-browser; a preview would also need to instantiate the stored fragments.
+browser. `pgtmpl serve` supplies a one-template-at-a-time SVG preview from the
+compiled catalog, with navigation and channel-colored frame outlines.
 
 Content belongs to a separate document (Cont-Doc), styled in its own ancestry.
 The content's stylesheet supplies its routing rules:
@@ -241,9 +243,10 @@ The content's stylesheet supplies its routing rules:
 
 These rules accompany the heading and article HTML from the earlier example;
 they do not belong in the template collection. Frame `flow-from` values identify
-the receiving channels. Later content preparation and page trials will connect
-those channels without merging the two CSS cascades or reparenting the content
-DOM. Content layout and continuation remain future work.
+the receiving channels. `content.Load` routes the source branches into named Box registers, and
+`content.Prepare` plus the optional typography bridge supports reusable
+preparation and whole-tree layout without merging cascades. Connecting those
+registers to frames, finite-height fitting and continuation remain future work.
 
 The collection above is kept in sync with the executable fixture
 [`sketch.html`](../template/testdata/templates/sketch.html). A separate

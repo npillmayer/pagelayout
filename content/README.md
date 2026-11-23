@@ -1,199 +1,252 @@
-# Loading content material
+# content
 
-`content.Load` reads a complete HTML body, styles it in its original document
-context, routes named block branches and normalizes each branch through
-`css-box-layout`. The result is immutable, unsized box material with source
-typography, paint and decoded text. Content loading through CONT-05 is complete;
-preparation and page trials are separate phases.
+`content` loads styled HTML into immutable, unsized box material. Use
+`flow-into` to route block branches into named channels, inspect their source
+styles and groups, and derive register banks without changing the document.
+The package also provides preparation, measurement and layout operations for
+caller-supplied backends.
 
-## Executable examples
-
-From the module root:
-
-```sh
-go test ./content -run '^Example' -v
-go test ./content
+```go
+import "github.com/npillmayer/pagelayout/content"
 ```
 
-The [examples](example_test.go) use only the public API. Go runs them in the
-package directory, so their file paths refer to checked-in fixtures. The caller
-opens and closes each HTML reader and reads any additional CSS explicitly.
-There is no repository search, implicit CSS fetching or font-service setup.
+## Load and route HTML
 
-| Example | Input and observable result |
+This complete program loads two `main` branches and takes one from a derived
+bank:
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+	"strings"
+
+	"github.com/npillmayer/pagelayout/content"
+)
+
+func main() {
+	const source = `<body style="font-size:16px;hyphens:none">
+      <p>Content outside named channels.</p>
+      <section style="flow-into:main"><p>First article.</p></section>
+      <aside style="flow-into:notes">A note.</aside>
+      <section style="flow-into:main"><p>Second article.</p></section>
+    </body>`
+	doc, err := content.Load(strings.NewReader(source), content.LoadOptions{
+		SourceName: "article.html",
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("channels:", doc.Channels())
+	fmt.Println("main branches:", len(doc.Branches("main")))
+
+	initial := doc.Bank()
+	first, remaining, ok := initial.Take("main")
+	if !ok {
+		log.Fatal("main is empty")
+	}
+	originalFirst, _ := initial.First("main")
+	second, _ := remaining.First("main")
+	fmt.Println("original bank unchanged:", originalFirst == first)
+	fmt.Println("derived bank advanced:", second.Valid() && second != first)
+	fmt.Println("residual available:", doc.Residual().Root.Valid())
+}
+```
+
+Output:
+
+```text
+channels: [main notes]
+main branches: 2
+original bank unchanged: true
+derived bank advanced: true
+residual available: true
+```
+
+`Load` reads a complete UTF-8 HTML document. The caller owns and closes the
+reader. To load a file, open it with `os.Open`, defer its `Close`, and pass the
+file to `Load`; the package does not search for files or fetch resources.
+An error returns a nil `Document`, even if earlier branches were valid.
+
+Content is styled in its original HTML context. Selectors and inheritance use
+that document, including ancestors outside a routed branch. Receiving frames
+and template styles have no effect on these source styles.
+
+## Work with channels and residual content
+
+`Channels()` returns names in first-occurrence order. `Branches(name)` returns
+that channel's branches in source order. Names are case-sensitive; branches
+with the same name remain separate items. Each `BranchInfo.Order` records the
+branch's global source order across all channels.
+
+`Bank()` returns a persistent `RegisterBank[content.Box]` containing whole
+branch roots. `First` inspects an item; `Take` returns the item, a derived bank,
+and a success flag. `Prepend` can restore an unchanged whole item:
+
+```go
+restored := remaining.Prepend("main", first)
+```
+
+These operations do not change the original bank or `Document.Channels()`.
+Taking a branch does not lay it out, prove that it fits or represent a partial
+remainder. A `Box` is a comparable handle: compare complete handles, not bare
+numeric IDs. It retains its source material independently of the public
+`Document` handle.
+
+`Residual()` holds content outside all named branches. It is not placed in an
+implicit `main` channel. An empty body is valid and has a residual root and an
+empty group. A completely `display:none` body has a residual tree identity but
+no root or groups; check `Root.Valid()` before using it.
+
+Named flow roots must be non-nested block branches under block ancestry.
+Routing html/body, inline elements, inline-blocks or descendants inside an
+inline-block fails. `flow-into:none` leaves a descendant with its enclosing
+branch; it does not extract another branch.
+
+## Inspect boxes, groups and source text
+
+| Accessor | Returned information |
 | --- | --- |
-| `ExampleLoad` | The existing [sketch content](../template/testdata/content/article.html) loads independently of its template collection: `heading-flow` has one branch/group, `article-flow` has one branch/two groups, and residual body retains its whitespace-only group. |
-| `ExampleDocument` | [routing.html](testdata/routing.html) prints two channels, three branches, their source paths and six normalized group owners, including the separate atomic interior and two residual groups. |
-| `ExampleDocument_Bank` | Consumes whole article branches in a derived bank, preserves notes and the original bank, and restores an unchanged whole item with `Prepend`. |
-| `ExampleLoad_stylesheets` | [routing-override.css](testdata/routing-override.css) changes routing, source typography, paint and computed edges in a new snapshot; the original snapshot stays intact and percentage width stays unresolved. |
-| `ExampleLoadError` | A nested named root fails with both original source paths and no published Document, including no earlier successful branch. |
+| `box.Info()` | Copied constraints, paint, source context and text reference; false for an invalid handle. Widths can still be auto or percentages. |
+| `doc.Groups(tree)` | Groups in normalized preorder, including empty groups and inline-block interiors. |
+| `GroupInfo.Owner` / `TextStyle` | The paragraph owner's box and source typography, also for empty groups. |
+| `GroupInfo.Atomics` / `ParentAtomic` | Immediate inline-block boundaries and the nearest containing inline-block. Interior text belongs to its own group. |
+| `doc.NodeSource(id)` | Original source ancestry, attributes, classification and resolved source typography. |
+| `doc.TextSource(id)` | Raw decoded UTF-8 text, including excluded or omitted source text. |
 
-The example-local `describeMaterial` function is a diagnostic report assembled
-from `Channels`, `Branches`, `Residual`, `Groups`, `Box.Info` and `NodeSource`.
-It is not a new public report/serialization API. HTML IDs are human labels;
-source paths and branch order make ownership auditable. Group ordinals are
-local to each printed tree, and `inside` identifies the nearest atomic ancestor.
-`Box` equality, rather than these labels or a bare numeric BoxID, carries identity.
+For example, after loading `doc`:
 
-The report groups branches by channel, so branch 3 can print before branch 2
-in another channel. `BranchInfo.Order` preserves their global source order.
-`Document.Channels()` remains the original inventory after a derived bank drains.
+```go
+for _, branch := range doc.Branches("main") {
+	fmt.Printf("branch %d: %s\n", branch.Order, branch.Source.Path)
+	for _, group := range doc.Groups(branch.Tree) {
+		fmt.Printf("  owner=%s atomics=%d\n", group.Source.Path, len(group.Atomics))
+	}
+}
+```
 
-## Supported loading contract
+Inspection returns copies and is safe concurrently. `SourceInfo.Children`
+describes original DOM ancestry, including routed and excluded descendants;
+it is not a paragraph's text sequence. No mutable box tree is exposed.
+
+Source text ranges use byte offsets in decoded UTF-8 text, not HTML offsets or
+rune indices. Source font sizes use DOM `dimen.DU`; box lengths use CSS pixels
+or typed auto/percentage constraints. Do not treat the numeric font size as a
+pixel value. Source-font `em`/`rem` lengths are resolved during loading; receiving
+widths and line breaks are supplied separately during layout.
+
+## Supply additional CSS
+
+Read any extra stylesheet yourself and pass its text in `LoadOptions`:
 
 ```go
 doc, err := content.Load(reader, content.LoadOptions{
-    SourceName: "article.html",
-    Stylesheets: []content.Stylesheet{
-        {SourceName: "reader.css", CSS: cssText},
-    },
+	SourceName: "article.html",
+	Stylesheets: []content.Stylesheet{
+		{SourceName: "reader.css", CSS: cssText},
+	},
 })
+if err != nil {
+	return err
+}
 ```
 
-On success, `doc.Bank()` is a persistent `RegisterBank[content.Box]`. Each item
-is the root of an entire routed branch, which can contain several paragraphs
-and atomic interiors. `doc.Residual()` holds everything outside named branches;
-there is no implicit `main` channel. Empty bodies are valid, and entirely
-display-suppressed bodies have a residual TreeID with no root or groups.
+Sheets follow head CSS in the supplied order, with normal specificity, inline
+and `!important` precedence. Extra CSS can change source styles and routing.
+Loading again gives a separate document; retained boxes and banks keep their
+original styles. Content CSS is never applied to a template collection implicitly.
 
-| Concern | Implemented behavior |
-| --- | --- |
-| Input | Caller-owned UTF-8 reader; repaired HTML document, whole body scope; no content `LoadFS`/`LoadFile` or template repository search. |
-| CSS | Original-document cascade; ordered additional author sheets; ordinary specificity, inline and importance rules. Losing/nonmatching declarations are audited too. |
-| Profile | Supported ordinary block/inline flow and inline-block interiors, static positioning and content-box sizing; normal whitespace/line-height, positive source fonts, retained hyphenation metadata. The exact element/property list and defaults are in [section 6 of the plan](../doc/CONTENT-LOADING.md#6-adopted-initial-profile). |
-| Routing | Non-nested block/flow-root branches under block ancestry; names are case-sensitive. Repeated names retain separate branch trees. No receiver/template validation occurs while loading. |
-| Exclusion | `display:none`, inert contents and metadata remain classified in source records. Unsupported active resources and floats are diagnosed; no scripts run or resources are fetched. |
-| Values | Source-font em/rem lengths are resolved; percentages and auto widths remain constraints. Box paint and paragraph source typography are retained separately from template paint. |
-| Text | Raw decoded UTF-8 with byte ranges, including NBSP and soft hyphens. Omitted collapsible runs remain in the source ledger. No processed paragraph text, atomic text markers or shaping is produced. |
-| Publication | All trees/indexes succeed before a Document is returned. `LoadError.Diagnostics()` supplies ordered copied source/CSS locations and related roots; `errors.Is/As` retain upstream causes. |
-| Lifetime | Comparable Box handles retain the snapshot and qualify tree-local IDs. Inspection returns copies; normalized trees stay private. Independent reads and bank derivations are safe concurrently. |
+The accepted profile includes static block/inline flow, inline-block interiors,
+content-box sizing, positive font sizes, normal whitespace and normal
+line-height. Hyphenation metadata is preserved as authored. Floats, image/table
+content, constrained heights and unsupported resource requirements produce errors.
+Scripts do not execute and no resources are fetched.
 
-`Take` consumes a whole branch from a derived bank. It does not fit that branch
-into a frame or encode a partially consumed remainder. The initial bank and all
-source styles remain unchanged by these queue operations.
+Losing and nonmatching active CSS declarations are checked too. `display:none`
+removes material but does not exempt its declarations from validation. Inert
+`template` contents and metadata retain source records without becoming active
+material. See the [content examples](testdata/README.md) for routing, suppression,
+source coordinates, stylesheet overrides and expected errors.
+
+## Report errors
+
+Use `errors.As` with `*content.LoadError` to inspect individual diagnostics
+(import `errors` and `fmt`):
+
+```go
+var loadErr *content.LoadError
+if errors.As(err, &loadErr) {
+	for _, diagnostic := range loadErr.Diagnostics() {
+		fmt.Println(diagnostic.Error())
+	}
+}
+```
+
+Each diagnostic includes `Stage`, `Code`, `Message`, `Source` and `CSS`.
+`Related` identifies a conflicting route root when applicable. Source paths
+refer to the parsed HTML tree; CSS locations refer to stylesheet text.
+Additional CSS uses its own source label. `errors.Is` and `errors.As` preserve
+access to original reader, parser and other underlying causes.
 
 ## Handoff to preparation
 
-Preparation starts from this published snapshot, not from another parse or
-cascade. [PREP-00](../doc/PREPARATION.md#12-prep-00-decisions-and-deferred-extensions)
-now pins session/service ownership and initial policy. Its
-[fixtures](testdata/preparation/README.md) distinguish today's loaded structure
-and extracted text from prepared and laid-out results. BOX-PREP-01's shared group
-enumeration, PREP-01's detached extraction and PREP-02's neutral preparation
-protocol are implemented. TYPE-PREP-01's optional
-[typography backend](../preparation/typography/README.md) now supplies itemization
-and paragraph preparation with explicit services. PREP-03 adds intrinsic
-measurement using the same pair; PREP-04 adds independent whole-tree layout.
-PREP-05 proves real-font reuse, persistent banks and retained output after session
-release; see the [executable handoff](../preparation/typography/example_test.go).
-
-| Published material | Use at the preparation boundary |
-| --- | --- |
-| `Branches(channel)` and `Residual()` | Enumerate independent trees. Each tree's groups are prepared once; preparing does not consume the bank. |
-| `Groups(tree)` | Deterministic normalized preorder, including empty groups. `Group` and `Owner` are qualified handles, not source-tag guesses. |
-| `GroupInfo.Source` / `TextStyle` | Original paragraph-owner context, also for anonymous or object-only groups; never infer defaults from the first text run or a receiving frame. |
-| `Atomics` / `ParentAtomic` | Immediate inline-block boundaries and separate interior groups. Outer extraction must not flatten interior text. |
-| `NodeSource` / `TextSource` | Original provenance, source typography and raw decoded bytes for diagnostics/source mapping. DOM DU font sizes require explicit conversion at the typography bridge. |
-| `Box.Info` | Copied unsized constraints and paint. Used sizes, atomic realization and accepted geometry remain later trial results. |
-
-`SourceInfo.Children` describes original DOM ancestry, including routed or
-excluded descendants. It is **not** a normalized paragraph stream. The public
-inspection API intentionally exposes no mutable tree or general box-child
-traversal. PREP-01's private extractor inside `content` reads processed groups from
-the normalized trees, preserving text transformations and source maps.
-The index already uses `layout.InlineGroups` for group ownership and atomic
-relationships, with source-context validation remaining inside `content`.
-The core's borrowed node pointers never escape through the public content API.
-
-`MeasureIntrinsic(prepared, session, root, context, measurer)` traverses a covered
-block container through the CSS core, returning border-box width bounds in CSS
-pixels, excluding its own margins. The optional typography package supplies the
-four-argument convenience entry point with its `GroupMeasurer`. This neutral
-contract receives the existing group handle, qualified group/owner Boxes, and
-borrowed value-returning edge/atomic views. It exposes no raw tree, creates no
-used geometry and consumes no bank. The whole invocation reserves the exact pair;
-missing coverage, closed sessions and reentrancy fail without re-preparation.
-Each call has fresh scratch; failures publish zero bounds and preserve causes.
-
-`Layout(prepared, session, root, width, layouter)` reserves the pair for CSS used
-resolution, recursive measurement and complete subtree flow. An explicit fresh
-`GroupLayouter` receives existing handles and borrowed value views. Every requested
-group must have preparation coverage before service work; final callbacks may run
-only once per invocation. Success returns copied CSS geometry keyed by qualified
-Boxes and group descriptions. Errors return nil. The optional typography bridge
-collects frozen paragraph/source/paint output and publishes it with the geometry
-only after complete success. Neither tree pointers nor typography types enter
-the neutral contract. Page fitting and bank advancement remain separate.
-
-Extraction reuses `text.NormalizeNormal` and returns copied UTF-8 text, source
-maps, DOM style spans, separate foreground paint, hyphenation policies, bidi
-isolate scopes and qualified atomic occurrences. Collapsed whitespace uses its
-first contributing source's style/policy while recording all source fragments.
-Atomic interiors remain separate; authored U+FFFC stays text. Empty groups retain
-the owner's defaults. Extraction changes no source, bank or used geometry and
-admits no engine policy: even mixed/automatic hyphenation remains inspectable.
-PREP-02 publishes these values as `GroupInput` to the explicit backend and through
-prepared-snapshot inspection; the normalized tree remains private.
-
-### Preparation protocol
+Pass the loaded document and an explicit `Preparer` to `Prepare`:
 
 ```go
 prepared, session, err := content.Prepare(doc, backend)
 if err != nil {
-    return err // Both results are nil; acquired handles have been released.
+	return err
 }
 defer session.Close()
 ```
 
-The caller-supplied `Preparer` implements `Preflight([]GroupInput) error` and
-`PrepareGroup(GroupInput) (GroupPreparation, error)`. Content extracts and validates
-all input before preflight. The backend validates its complete service/policy
-requirements there, without invoking fonts, shaping or layout. It then prepares
-each group once in residual-first/global-branch/preorder order, including empty
-groups. Every callback gets independent input slices. This neutral protocol
-chooses no font backend or hyphenation fallback; the optional typography
-bridge must enforce its none/manual admission and explicit-service requirements.
+The [typography package guide](../preparation/typography/README.md) supplies a
+complete example of font selection, backend setup, measurement and layout.
+Preparation covers all groups, residual first and then branches in global source
+order, including empty groups and inline-block interiors. It takes no receiving
+width and consumes no register items. Keep using the same source `Box` handles.
 
-Each `GroupPreparation` echoes its qualified Group/Owner and transfers an
-exclusively owned `GroupHandle`, whose `Release()` method drops owned execution
-state. A failed operation must clean its own in-progress work. Content also
-defensively releases a nonnil handle returned with an error. Any failure returns
-neither snapshot nor session and releases acquired handles in reverse order,
-continuing after cleanup failures. `PreparationError` carries stage, group/owner,
-source/range where known and the original cause; `errors.Is/As` reach cleanup
-causes as well as the initiating error.
+`prepared.Groups()` lists covered groups; `prepared.Input(group)` returns copied
+processed text, source maps, style and paint spans, policies and atomic occurrences.
+Ranges in processed text are UTF-8 byte ranges. Whitespace can collapse or be
+omitted, while source maps retain its provenance. A structural atomic marker
+has an occurrence record; an authored U+FFFC remains text. Atomic interiors
+are separate groups.
 
-`PreparedSnapshot.ID()` identifies this successful preparation. `Groups()` and
-`Input(group)` return copied metadata; `Covers(box)` checks whether a source box
-belongs to the completely covered document. `Document()` returns a fresh handle
-to the unchanged source. The snapshot contains no session or execution handles.
-Two preparations of one document have the same source Boxes and distinct IDs.
+Keep each `PreparedSnapshot` with its matching `PreparationSession`.
+`content.MeasureIntrinsic(prepared, session, root, context, measurer)` returns
+border-box width bounds in CSS pixels, excluding the root's own margins.
+`content.Layout(prepared, session, root, width, layouter)` returns copied geometry
+for a complete subtree. Pass a fresh per-invocation callback object to each
+operation. The typography backend provides convenience functions that also
+return frozen paragraphs. Neither operation advances banks or fits a subtree
+to a finite frame height.
 
-`session.WithGroup(prepared, group, owner, callback)` checks the exact pair and
-qualified identities before invoking a callback with its backend's `GroupHandle`.
-The callback may use a typed backend API and retain frozen results, but must not
-retain/release the borrowed handle or reenter the session. Execution failure
-leaves the session usable. Layout's CSS geometry result is separate from the
-preparation snapshot; concrete paragraph results belong to the optional bridge.
+Serialize session operations and any use of shared font/shaping services,
+including `Close`. Closing is idempotent and releases owned execution handles;
+it does not close borrowed services. Prepared metadata remains inspectable
+and frozen results remain usable after closure, provided their font resources
+remain valid. Execution failures leave a successful preparation usable for
+another request. Preparation failure returns neither snapshot nor session.
 
-Serialize all session operations and shared-service use, including `Close`.
-Closing releases handles in reverse order, drops references even on failure and
-never closes borrowed services. Repeated Close returns the same error without
-repeating cleanup. Copies of the session wrapper share one lifecycle. Snapshot
-inspection remains safe concurrently and valid after Close. These guarantees
-assume backend methods honor the ownership contract; panics are not recovered.
+### Supply a custom backend
 
-See the [recording-backend example](prepare_example_test.go), executable with
-`go test ./content -run '^ExamplePrepare$' -v`. The fake-engine tests prove the
-neutral lifecycle. The typography bridge separately tests the real paragraph
-pipeline with explicit fake fonts/streams, including two-width layout and late
-failure/retry. PREP-05 adds real-font outline and GC lifetime proofs through that
-optional bridge. The unchanged nested fixture uses source `hyphens:none`; manual
-fixtures keep their authored policy. Never silently alter it in the loader.
-Receiving widths are layout inputs, never inputs to `Load` or the source cascade.
+A `Preparer` has two methods:
 
-Content's immutable bank payloads remain boxes throughout. Prepared metadata and
-effectful engine sessions belong to the separately specified preparation layer.
-Float placement, residual binding, within-box continuation and page publication
-remain later decisions. No pgtmpl content UI or visual proof is part of this
-loading milestone.
+| Method | Caller contract |
+| --- | --- |
+| `Preflight([]GroupInput) error` | Validate all policies and required services before performing font, shaping or layout work. |
+| `PrepareGroup(GroupInput) (GroupPreparation, error)` | Return matching `Group`/`Owner` handles and an exclusively owned `GroupHandle` for each input. |
+
+Each call receives independent input slices. `GroupHandle.Release()` releases
+owned execution resources. On a preparation failure, acquired handles are
+released in reverse order. `*content.PreparationError` carries stage, qualified
+group/owner, source and range when known; wrapped causes include cleanup errors.
+
+Use `session.WithGroup(prepared, group, owner, callback)` to borrow a backend
+handle for one callback. Do not retain or release that handle or reenter the
+session from the callback. Immutable output may be retained. See the
+[recording-backend example](prepare_example_test.go) for a complete custom
+`Preparer` and its lifecycle.

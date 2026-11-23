@@ -1,127 +1,82 @@
-# PREP-00 acceptance inputs
+# Preparation examples and expected results
 
-Status: contract and fixtures pinned on 2026-11-23. All eight inputs load and
-PREP-01 extraction matches their expected text/source/atomic mappings. PREP-02
-verifies fake-engine counts and policy admission. TYPE-PREP-01 repeats preparation
-with the real typography pipeline and explicit fake fonts/streams. PREP-03
-exercises public intrinsic measurement and reuse. PREP-04 exercises independent
-whole-tree layout results; PREP-05 adds real-font and GC lifetime proofs.
-See [PREPARATION.md](../../../doc/PREPARATION.md#12-prep-00-decisions-and-deferred-extensions).
+Load these HTML documents with `content.Load`, then pass the document and an
+explicit backend to `content.Prepare`. The
+[typography guide](../../../preparation/typography/README.md) shows font setup,
+measurement and layout. No template collection is needed.
 
-`expected.json` pins raw decoded text, processed UTF-8, text-source spans, owner
-and atomic identities, group order and expected backend `PrepareGroup` counts.
-`content/preparation_fixtures_test.go` checks loading/group structure, raw text
-and the internal byte-coordinate consistency of these expectations, and compares
-actual PREP-01 extraction with this unchanged manifest. It invokes no fonts and
-does not simulate preparation. `TestPrepareAcceptance` separately invokes a fake
-Preparer and checks the manifest's counts and initial policy failures.
-`preparation/typography/TestBridgeAcceptanceFixtures` repeats them with the real
-bridge. `TestMeasurementAcceptanceFixtures` measures accepted preparations through
-the public bridge, including the expected manual-many failure. Additional
-`TestExtract` cases cover routing-created
-adjacency, split/nested isolate scopes, collapsed-space ownership, detached values
-and concurrent reads.
+[`expected.json`](expected.json) describes raw decoded text, processed UTF-8,
+source spans, group owners, atomic boundaries and expected preparation calls.
+Use the tables below to interpret `PreparedSnapshot.Groups()` and `Input(group)`.
 
-Run from the module root:
+## Inputs
 
-```sh
-go test ./content -run '^TestPreparationAcceptanceInputs$' -v
-```
-
-## Inputs and expected results
-
-| Input | Group-owner order | Successful preparation calls | Expected behavior |
+| Input | Group-owner order | Prepared groups | Behavior |
 | --- | --- | --- | --- |
-| `text-only.html` | text | 1 | `Café & tea U+FFFC NBSP ok.` with the exact spacing in JSON. Collapse a whitespace run crossing a source-element boundary; preserve the authored U+FFFC as text, with **no** atomic anchor. |
-| `nested.html` | outer, wide, inner | 3 | Outer: `Before U+FFFC after.`; wide: `Wide U+FFFC`; inner: `Inner.`. Anchors point to wide at byte 7 and inner at byte 5 in their respective groups. Both atomics remain auto-width. |
-| `empty-atomic.html` | empty, object, blank | 3 | Empty group, atomic-only group and empty atomic interior all prepare once. Outer/object owner context is 20px; blank's own context is 12px. Only the structural occurrence inserts U+FFFC. |
-| `branches.html` | residual, a, note, b | 4 | Residual first, then global branch source order. Main contains a then b, notes contains note; no bank operation during preparation. |
-| `manual.html` | manual | 1 | Preserve `co\u00adoperate`; require an explicit-marker hyphenator. With the acceptance hyphenator below, bounded explicit intrinsic measurement succeeds. |
-| `manual-many.html` | many | 1 | Preserve both authored soft hyphens. Preparation succeeds; intrinsic measurement with the acceptance hyphenator returns upstream unsupported-policy for multiple eligible splits in one textbox. Session and old outputs remain usable. |
-| `mixed_err.html` | mixed | 0 | Loading/extraction succeed. Paragraph text mixes none and manual; whole-document policy preflight fails at #manual before any engine/font call. |
-| `auto_err.html` | auto | 0 | Loading/extraction succeed. Automatic policy fails preflight at #auto before any engine/font call. |
+| [text-only.html](text-only.html) | text | 1 | `Café & tea U+FFFC NBSP ok.` with exact spacing in JSON. Whitespace collapses across a source-element boundary. Authored U+FFFC remains text, with no atomic occurrence. |
+| [nested.html](nested.html) | outer, wide, inner | 3 | Outer: `Before U+FFFC after.`; wide: `Wide U+FFFC`; inner: `Inner.`. Atomic occurrences point to wide at byte 7 and inner at byte 5. Both inline-blocks have auto width. |
+| [empty-atomic.html](empty-atomic.html) | empty, object, blank | 3 | An empty group, atomic-only group and empty atomic interior. Outer/object owner context is 20px; blank's own context is 12px. Only the structural occurrence inserts U+FFFC. |
+| [branches.html](branches.html) | residual, a, note, b | 4 | Residual first, then global branch source order. Main contains a then b; notes contains note. Preparation leaves the bank unchanged. |
+| [manual.html](manual.html) | manual | 1 | Preserves `co­operate`. Requires an explicit-marker hyphenator. With the marker behavior below, intrinsic measurement succeeds. |
+| [manual-many.html](manual-many.html) | many | 1 | Preserves both soft hyphens. Preparation succeeds; intrinsic measurement with the marker behavior below reports unsupported policy for multiple eligible splits in one textbox. |
+| [mixed_err.html](mixed_err.html) | mixed | 0 | Loading succeeds. A group mixes none and manual; typography preparation fails at #manual before font or shaping calls. |
+| [auto_err.html](auto_err.html) | auto | 0 | Loading succeeds. Automatic hyphenation fails typography preparation at #auto before font or shaping calls. |
 
-The `_err` suffix denotes a **preparation policy** failure, not a loading error.
-JSON `policy` is the paragraph **owner's** policy; source-span policies must also
-be retained. A mixed-policy paragraph is not made uniform by using that field.
-For accepted cases the call count assumes valid explicit services. Missing
-resolver/shaper services, or a missing manual hyphenator, fail preflight with zero
-calls even when there is no U+00AD. Defaults must never select a synthetic backend.
+The `_err` suffix here denotes a **preparation-policy** failure, not a loading
+error. Accepted cases require explicit font and shaping services. Manual policy
+also requires a hyphenator even when a group has no U+00AD.
 
-The acceptance hyphenator is deterministic: a U+00AD request returns one
-permitting alternative with pre-break `-`, empty post-break and penalty 0. It
-does not find automatic word splits. This defines test policy only; the bridge
-must not install it as a production default. Hyphenator queries/discretionary
-shaping may be lazy; the count above is group preparation, not shaper-run count.
+For the manual examples, supply a hyphenator whose U+00AD request returns one
+permitted alternative: pre-break `-`, empty post-break and penalty 0. It does
+not discover automatic word splits. The package does not supply this service
+by default. Manual discovery and shaping of alternatives may occur lazily;
+prepared-group counts are not counts of all later shaping calls.
 
-## Identity and source-map conventions
+## Read identities and source maps
 
-Manifest labels are HTML IDs solely for readable expectations. Tests resolve
-them to original NodeIDs and then compare qualified `content.Box` handles; do
-not freeze numeric BoxID/TreeID allocation. `tree: residual` selects the residual
-tree, other tree labels identify a branch root. Group order is residual preorder,
-then branch trees in global source order with each tree's normalized preorder.
-`parent_atomic` is the nearest containing atomic, and `atomics` lists immediate
-boundaries only. No text from an atomic interior enters its outer group.
+Manifest labels use HTML IDs for readability, not numeric BoxID/TreeID values.
+`tree: residual` selects the residual tree; other tree labels identify branch
+roots. Group order is residual preorder, then branch trees in global source
+order, with normalized preorder within each tree. `parent_atomic` is the nearest
+containing inline-block, and `atomics` lists immediate boundaries only. Text
+inside an inline-block does not enter its outer group's text.
 
-Each `raw[owner]` array lists that element's immediate decoded text children in
+Each `raw[owner]` array lists the element's immediate decoded text children in
 source order. A span's `owner` and one-based `node` select one of those strings.
-`source` and `processed` are half-open **UTF-8 byte** ranges, never HTML byte or
-rune offsets. `identity` copies bytes, `collapsed` maps a whitespace run to one
-space, and `omitted` maps paragraph-edge whitespace to a zero-length interval.
-When a collapsed run crosses text nodes, both source fragments map to that same
-output space. Its style/paint/policy comes from the first contributing source
-unit. Empty groups have no invented textual span.
+`source` and `processed` are half-open **UTF-8 byte** ranges, not HTML byte or
+rune offsets:
 
-Every processed byte has text-source or atomic correspondence. Atomic markers
-occupy three bytes and have only their atomic-source record, not fabricated
-text-node bytes. Authored U+FFFC instead has an identity text span and no anchor.
-The text-only fixture records both dropped edges and the shared collapsed space.
-Raw NBSP and soft-hyphen bytes survive extraction; discovery and display policy
-remain downstream. Keep these files free of trailing document whitespace so
-changes to fixture source spans are intentional.
+| Mapping | Meaning |
+| --- | --- |
+| `identity` | Source bytes are copied into processed text. |
+| `collapsed` | A whitespace run contributes one space. |
+| `omitted` | Paragraph-edge whitespace maps to a zero-length processed interval. |
 
-## Reuse and failure acceptance
+When a collapsed run crosses text nodes, both source fragments map to the same
+output space. Its style, paint and policy come from the first contributing
+source unit. Empty groups have no invented text span. The JSON `policy` field
+is the **owner's** policy; source-span policies still apply to contributing text.
 
-For the implemented two-width trial, use `nested.html` unchanged: source `hyphens:none`
-is explicit. Load once and prepare all three groups once. Measure/layout at 120px
-and 240px using the same snapshot/session pair and explicit services. Repeated
-trials add **zero** group preparation calls; target widths never enter Prepare.
-The bridge tests use both explicit fake fonts/streams and, in PREP-05, pinned
-sibling real-font fixtures. See the [outline proof and provenance](../../../preparation/typography/testdata/README.md).
-Each candidate owns its geometry and paragraph results; rejecting one leaves the
-other and the original bank unchanged.
+Every processed byte has text-source or atomic correspondence. Inserted atomic
+markers occupy three UTF-8 bytes and have only atomic provenance. Authored
+U+FFFC has an ordinary text span and no atomic occurrence. NBSP and soft-hyphen
+bytes survive extraction.
 
-PREP-04 checks two-width layout, subsequent success/failure and retained output
-after Close with the real paragraph Trial/Assemble pipeline and synthetic fonts.
-It checks exact atomic dimensions/coordinates, qualified scope, immutable source
-trees and bank payloads, detached results, late metric failure and successful
-retry without base shaping. No page-level acceptance or bank commit is performed.
+## Reuse a preparation
 
-PREP-03 verifies the measurement part independently: nested auto bounds reuse all
-base preparations, changed atomic inputs are not cached as group-only answers,
-and no vertical metrics or final heights are queried. It also checks signed and
-fractional margins, finite range/summary rounding, percentage-cycle failures,
-late unsupported manual alternatives, and retry of failed lazy discovery. No
-measurement request is retained; returned widths and source/banks stay unchanged.
+For `nested.html`, load once and prepare the three groups once with the chosen
+fonts. Measure and lay out the residual root at 120 and 240 CSS pixels using
+the same snapshot/session pair and explicit `paragraph.FirstFit`. Both layout
+results can coexist; neither changes the source boxes or register bank. See
+[the two-width outline preview](../../../preparation/typography/testdata/README.md).
 
-Use `branches.html` for later-group failure injection: fail group b's fourth
-PrepareGroup call after three successes. Release completed handles in reverse
-order, publish neither snapshot nor session, retain the original bank and an
-older preparation, and preserve the injected cause plus #b/group identity.
-Retry uses a fresh working session, not the failed partial table. PREP-02's fake
-tests execute this lifecycle contract, including independent input copies and
-cleanup causes. TYPE-PREP-01 also checks real bridge/stream cleanup and retained
-synthetic output; PREP-05 repeats late preparation failure with real font services
-and checks retained outlines after session/working-state collection.
+For `branches.html`, the same prepared document covers main, notes and residual
+content. Taking a branch from a derived bank does not require another preparation.
+Use the returned whole-branch handle with the matching preparation pair.
 
-Also use it for two coexisting preparations: identical source Box handles,
-different preparation identities; foreign groups/owners and a mismatched session
-are rejected before service calls. Close is idempotent and serialized with session
-operations; frozen outputs keep stable font resources, not the closed session.
-PREP-02 verifies these identities and the serialized lifecycle with fake handles;
-TYPE-PREP-01 verifies its stream lifecycle and synthetic frozen-output retention;
-PREP-05 verifies real-font resource changes, source-style/policy reloads, persistent
-bank versions and colliding local group IDs across source snapshots. GC checks
-cover both none and populated manual discovery with a dropped or retained closed
-session wrapper. These checks add no page selection, fitting or bank commits.
+A failed measurement or layout publishes no result and leaves the pair usable.
+A failed `content.Prepare` publishes neither snapshot nor session and releases
+completed handles in reverse order. A successful session can be closed while
+retaining frozen output, provided the font resources remain valid. Two separate
+preparations of one document have different preparation identities but share
+the same source `Box` handles; do not mix their snapshot/session pairs.

@@ -9,7 +9,7 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(18 489.68)">
 <title>TemplateLoadingPRs</title>
 <polygon fill="white" stroke="none" points="-18,18 -18,-489.68 626.42,-489.68 626.42,18 -18,18"/>
-<text xml:space="preserve" text-anchor="middle" x="304.21" y="-455.33" font-family="Helvetica,sans-Serif" font-size="13.00">Proposed PR dependencies</text>
+<text xml:space="preserve" text-anchor="middle" x="304.21" y="-455.33" font-family="Helvetica,sans-Serif" font-size="13.00">Completed milestone dependencies</text>
 <text xml:space="preserve" text-anchor="middle" x="304.21" y="-441.83" font-family="Helvetica,sans-Serif" font-size="13.00">Arrows indicate prerequisites, not an execution schedule</text>
 <!-- tpl1 -->
 <g id="node1" class="node">

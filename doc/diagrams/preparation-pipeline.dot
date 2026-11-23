@@ -1,7 +1,7 @@
 digraph PreparationPipeline {
   graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.45, ranksep=0.45,
          fontname="Helvetica", fontsize=13, newrank=true,
-         label="Proposed content pipeline", labelloc=t];
+         label="Implemented preparation and layout; proposed page fitting", labelloc=t];
   node [shape=box, style="rounded,filled", fillcolor="#f1f5f9", color="#64748b",
         fontname="Helvetica", fontsize=12, margin="0.18,0.12"];
   edge [color="#475569", fontname="Helvetica", fontsize=10];
@@ -13,15 +13,15 @@ digraph PreparationPipeline {
 
     source [label="Style Cont-Doc\nKeep original source ancestry"];
     structure [label="Extract flow branches\nNormalize box structure and inline groups"];
-    prepare [label="PREPARATION (new pass)\nVisit all horizontal groups\nInclude nested atomic interiors",
+    prepare [label="content.Prepare (implemented)\nVisit all horizontal groups\nInclude nested atomic interiors",
              fillcolor="#dbeafe", color="#2563eb", penwidth=1.5];
-    prepared [label="Reusable prepared boxes\nRead-only roots + paragraph handles\nAtomic identities; used geometry deferred",
+    prepared [label="PreparedSnapshot: immutable metadata\nPreparationSession: executable handles\nOriginal boxes and banks unchanged",
               fillcolor="#dbeafe", color="#2563eb"];
 
     source -> structure -> prepare -> prepared;
   }
 
-  constraints [label="Receiving frame + cursor\nWidth, height budget, accepted prefix",
+  constraints [label="Implemented layout input: width\nProposed fitting: height + continuation",
                fillcolor="#fff7ed", color="#b45309"];
 
   subgraph cluster_trial {
@@ -42,7 +42,7 @@ digraph PreparationPipeline {
     paragraphs -> fit;
   }
 
-  choose [label="pagelayout coordinator\nAccumulate frame results; choose a page\nCommit all channel advances together",
+  choose [label="Proposed page coordinator\nAccumulate frame results; choose a page\nCommit all channel advances together",
           fillcolor="#e0f2fe", color="#0284c7"];
 
   { rank=same; prepared; constraints; }

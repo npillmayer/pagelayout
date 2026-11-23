@@ -9,7 +9,7 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(18 866.02)">
 <title>PreparationPipeline</title>
 <polygon fill="white" stroke="none" points="-18,18 -18,-866.02 625.61,-866.02 625.61,18 -18,18"/>
-<text xml:space="preserve" text-anchor="middle" x="303.8" y="-831.67" font-family="Helvetica,sans-Serif" font-size="13.00">Proposed content pipeline</text>
+<text xml:space="preserve" text-anchor="middle" x="303.8" y="-831.67" font-family="Helvetica,sans-Serif" font-size="13.00">Implemented preparation and layout; proposed page fitting</text>
 <g id="clust1" class="cluster">
 <title>cluster_loading</title>
 <path fill="white" stroke="#cbd5e1" d="M20,-485.4C20,-485.4 260,-485.4 260,-485.4 266,-485.4 272,-491.4 272,-497.4 272,-497.4 272,-806.52 272,-806.52 272,-812.52 266,-818.52 260,-818.52 260,-818.52 20,-818.52 20,-818.52 14,-818.52 8,-812.52 8,-806.52 8,-806.52 8,-497.4 8,-497.4 8,-491.4 14,-485.4 20,-485.4"/>
@@ -43,8 +43,8 @@
 <!-- prepare -->
 <g id="node3" class="node">
 <title>prepare</title>
-<path fill="#dbeafe" stroke="#2563eb" stroke-width="1.5" d="M221.96,-637.46C221.96,-637.46 58.04,-637.46 58.04,-637.46 52.04,-637.46 46.04,-631.46 46.04,-625.46 46.04,-625.46 46.04,-593.93 46.04,-593.93 46.04,-587.93 52.04,-581.93 58.04,-581.93 58.04,-581.93 221.96,-581.93 221.96,-581.93 227.96,-581.93 233.96,-587.93 233.96,-593.93 233.96,-593.93 233.96,-625.46 233.96,-625.46 233.96,-631.46 227.96,-637.46 221.96,-637.46"/>
-<text xml:space="preserve" text-anchor="middle" x="140" y="-617.42" font-family="Helvetica,sans-Serif" font-size="12.00">PREPARATION (new pass)</text>
+<path fill="#dbeafe" stroke="#2563eb" stroke-width="1.5" d="M223.08,-637.46C223.08,-637.46 56.92,-637.46 56.92,-637.46 50.92,-637.46 44.92,-631.46 44.92,-625.46 44.92,-625.46 44.92,-593.93 44.92,-593.93 44.92,-587.93 50.92,-581.93 56.92,-581.93 56.92,-581.93 223.08,-581.93 223.08,-581.93 229.08,-581.93 235.08,-587.93 235.08,-593.93 235.08,-593.93 235.08,-625.46 235.08,-625.46 235.08,-631.46 229.08,-637.46 223.08,-637.46"/>
+<text xml:space="preserve" text-anchor="middle" x="140" y="-617.42" font-family="Helvetica,sans-Serif" font-size="12.00">content.Prepare (implemented)</text>
 <text xml:space="preserve" text-anchor="middle" x="140" y="-604.67" font-family="Helvetica,sans-Serif" font-size="12.00">Visit all horizontal groups</text>
 <text xml:space="preserve" text-anchor="middle" x="140" y="-591.92" font-family="Helvetica,sans-Serif" font-size="12.00">Include nested atomic interiors</text>
 </g>
@@ -57,10 +57,10 @@
 <!-- prepared -->
 <g id="node4" class="node">
 <title>prepared</title>
-<path fill="#dbeafe" stroke="#2563eb" d="M250.84,-548.93C250.84,-548.93 29.16,-548.93 29.16,-548.93 23.16,-548.93 17.16,-542.93 17.16,-536.93 17.16,-536.93 17.16,-505.4 17.16,-505.4 17.16,-499.4 23.16,-493.4 29.16,-493.4 29.16,-493.4 250.84,-493.4 250.84,-493.4 256.84,-493.4 262.84,-499.4 262.84,-505.4 262.84,-505.4 262.84,-536.93 262.84,-536.93 262.84,-542.93 256.84,-548.93 250.84,-548.93"/>
-<text xml:space="preserve" text-anchor="middle" x="140" y="-528.89" font-family="Helvetica,sans-Serif" font-size="12.00">Reusable prepared boxes</text>
-<text xml:space="preserve" text-anchor="middle" x="140" y="-516.14" font-family="Helvetica,sans-Serif" font-size="12.00">Read&#45;only roots + paragraph handles</text>
-<text xml:space="preserve" text-anchor="middle" x="140" y="-503.39" font-family="Helvetica,sans-Serif" font-size="12.00">Atomic identities; used geometry deferred</text>
+<path fill="#dbeafe" stroke="#2563eb" d="M248.96,-548.93C248.96,-548.93 31.04,-548.93 31.04,-548.93 25.04,-548.93 19.04,-542.93 19.04,-536.93 19.04,-536.93 19.04,-505.4 19.04,-505.4 19.04,-499.4 25.04,-493.4 31.04,-493.4 31.04,-493.4 248.96,-493.4 248.96,-493.4 254.96,-493.4 260.96,-499.4 260.96,-505.4 260.96,-505.4 260.96,-536.93 260.96,-536.93 260.96,-542.93 254.96,-548.93 248.96,-548.93"/>
+<text xml:space="preserve" text-anchor="middle" x="140" y="-528.89" font-family="Helvetica,sans-Serif" font-size="12.00">PreparedSnapshot: immutable metadata</text>
+<text xml:space="preserve" text-anchor="middle" x="140" y="-516.14" font-family="Helvetica,sans-Serif" font-size="12.00">PreparationSession: executable handles</text>
+<text xml:space="preserve" text-anchor="middle" x="140" y="-503.39" font-family="Helvetica,sans-Serif" font-size="12.00">Original boxes and banks unchanged</text>
 </g>
 <!-- prepare&#45;&gt;prepared -->
 <g id="edge3" class="edge">
@@ -86,9 +86,9 @@
 <!-- constraints -->
 <g id="node5" class="node">
 <title>constraints</title>
-<path fill="#fff7ed" stroke="#b45309" d="M505.21,-542.55C505.21,-542.55 306.79,-542.55 306.79,-542.55 300.79,-542.55 294.79,-536.55 294.79,-530.55 294.79,-530.55 294.79,-511.77 294.79,-511.77 294.79,-505.77 300.79,-499.77 306.79,-499.77 306.79,-499.77 505.21,-499.77 505.21,-499.77 511.21,-499.77 517.21,-505.77 517.21,-511.77 517.21,-511.77 517.21,-530.55 517.21,-530.55 517.21,-536.55 511.21,-542.55 505.21,-542.55"/>
-<text xml:space="preserve" text-anchor="middle" x="406" y="-522.51" font-family="Helvetica,sans-Serif" font-size="12.00">Receiving frame + cursor</text>
-<text xml:space="preserve" text-anchor="middle" x="406" y="-509.76" font-family="Helvetica,sans-Serif" font-size="12.00">Width, height budget, accepted prefix</text>
+<path fill="#fff7ed" stroke="#b45309" d="M507.09,-542.55C507.09,-542.55 304.92,-542.55 304.92,-542.55 298.92,-542.55 292.92,-536.55 292.92,-530.55 292.92,-530.55 292.92,-511.77 292.92,-511.77 292.92,-505.77 298.92,-499.77 304.92,-499.77 304.92,-499.77 507.09,-499.77 507.09,-499.77 513.09,-499.77 519.09,-505.77 519.09,-511.77 519.09,-511.77 519.09,-530.55 519.09,-530.55 519.09,-536.55 513.09,-542.55 507.09,-542.55"/>
+<text xml:space="preserve" text-anchor="middle" x="406" y="-522.51" font-family="Helvetica,sans-Serif" font-size="12.00">Implemented layout input: width</text>
+<text xml:space="preserve" text-anchor="middle" x="406" y="-509.76" font-family="Helvetica,sans-Serif" font-size="12.00">Proposed fitting: height + continuation</text>
 </g>
 <!-- constraints&#45;&gt;sizing -->
 <g id="edge8" class="edge">
@@ -143,7 +143,7 @@
 <g id="node10" class="node">
 <title>choose</title>
 <path fill="#e0f2fe" stroke="#0284c7" d="M385.46,-55.53C385.46,-55.53 164.54,-55.53 164.54,-55.53 158.54,-55.53 152.54,-49.53 152.54,-43.53 152.54,-43.53 152.54,-12 152.54,-12 152.54,-6 158.54,0 164.54,0 164.54,0 385.46,0 385.46,0 391.46,0 397.46,-6 397.46,-12 397.46,-12 397.46,-43.53 397.46,-43.53 397.46,-49.53 391.46,-55.53 385.46,-55.53"/>
-<text xml:space="preserve" text-anchor="middle" x="275" y="-35.49" font-family="Helvetica,sans-Serif" font-size="12.00">pagelayout coordinator</text>
+<text xml:space="preserve" text-anchor="middle" x="275" y="-35.49" font-family="Helvetica,sans-Serif" font-size="12.00">Proposed page coordinator</text>
 <text xml:space="preserve" text-anchor="middle" x="275" y="-22.74" font-family="Helvetica,sans-Serif" font-size="12.00">Accumulate frame results; choose a page</text>
 <text xml:space="preserve" text-anchor="middle" x="275" y="-9.99" font-family="Helvetica,sans-Serif" font-size="12.00">Commit all channel advances together</text>
 </g>

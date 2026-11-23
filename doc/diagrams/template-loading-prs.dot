@@ -1,7 +1,7 @@
 digraph TemplateLoadingPRs {
   graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.45, ranksep=0.5,
          fontname="Helvetica", fontsize=13,
-         label="Proposed PR dependencies\nArrows indicate prerequisites, not an execution schedule", labelloc=t];
+         label="Completed milestone dependencies\nArrows indicate prerequisites, not an execution schedule", labelloc=t];
   node [shape=box, style="rounded,filled", fillcolor="#dbeafe", color="#2563eb",
         fontname="Helvetica", fontsize=12, margin="0.18,0.12"];
   edge [color="#475569", fontname="Helvetica", fontsize=10];

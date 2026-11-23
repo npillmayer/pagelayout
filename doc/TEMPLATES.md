@@ -1,8 +1,11 @@
 # Candidates for page templates
 
-Research date: 2026-11-17. This document records design inputs for the proposed
-Go page-layout framework. It does not select a template language or promise
-standards conformance. Examples are illustrative and have not been rendered.
+Research snapshot: 2026-11-17; implementation status updated 2026-11-23.
+This preserves the original standards comparison, not a current format-selection
+proposal or a standards-conformance claim. HTML/CSS template collections were
+adopted and implemented in TPL-01–05; see [TEMPLATE-LOADING.md](TEMPLATE-LOADING.md).
+The standards examples below remain illustrative. External research claims have
+not been re-audited as part of this repository documentation update.
 
 ## What we are comparing
 
@@ -178,27 +181,28 @@ implementation commitment.
 | Native Go framework | Extend our CSS integration at the page boundary. | Borrow concepts or parse a subset; using the formatter adds Java. |
 | Main integration work | Page-rule processing plus fragmentation. | Master interpretation plus content adaptation. |
 
-## Proposed next investigation
+## Outcome and remaining investigation
 
-Keep both candidates open. For the next prototype, consider a small internal
-model independent of input syntax:
+The format choice is settled: HTML/CSS collections with fixed frame DIVs.
+The internal model follows these concerns:
 
 1. A template defines page dimensions and named region geometry.
 2. Content bindings distinguish a continuing HTML stream from repeated content.
 3. A selection policy chooses the template for each page.
 4. A layout operation reports placed content, remaining content, and overflow.
 
-This is a proposal derived from our requirements, not a claim that either
-standard maps losslessly to such a model. Reuse the sibling projects for styling,
+Template geometry and source bindings are implemented. Repetition, selection
+and finite-height fitting in this model remain proposals; neither standard maps
+losslessly to our model. Reuse the sibling projects for styling,
 box layout, paragraph work, and rendering where their contracts fit; first
 investigate how they can expose resumable layout under finite region height.
 
-Evaluate both candidates against the same examples: one body region with a page
+Use the remaining page-composition examples to refine that model: one body region with a page
 number; a first-page variant; alternating margins; then one HTML stream flowing
 through two regions and onto another page. Add an oversized unbreakable item to
 make overflow and progress rules explicit.
 
-The main questions are whether we want a standard input format or only a model
-inspired by one, how independently styled HTML fragments bind to regions, and
-which layer owns fragmentation and continuation. These decisions should precede
-committing the public Go API to either vocabulary.
+Source styling, named-flow routing and compiled receiver bindings are now
+implemented in separate loaders. Remaining questions concern finite-height box
+fitting, page selection, repetition and continuation; see DESIGN.md. Neither an
+XSL-FO loader nor CSS `@page` support is implied by the chosen collection format.

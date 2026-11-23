@@ -37,9 +37,9 @@ and acceptance tests. PREP-00 establishes the implementation contract; it does
 not add a preparer, font service or layout operation. These sections
 refine the earlier callback/driver sketch where functional ownership requires it.
 
-## Recommendation
+## Implemented placement in the pipeline
 
-Introduce an explicit preparation stage **after box normalization and before
+The implementation provides an explicit preparation stage **after box normalization and before
 used-value resolution**. Reuse the result for both intrinsic measurement and
 layout. Keep group enumeration in the CSS core and effectful preparation in an
 explicit orchestrator/session, as detailed in sections 11–13.
@@ -83,9 +83,9 @@ and [layout orchestration](../../css-box-layout/layout/layout.go).
 
 The `tytui` adapter already calls a private `prepareGroup` from both callbacks.
 It extracts text, selects fonts, constructs bidi information and calls
-`paragraph.Prepare`, caching the result for that layout invocation. The proposed
-pass would promote this hidden, lazy operation into an explicit phase and extend
-its lifetime beyond one invocation.
+`paragraph.Prepare`, caching the result for that layout invocation. Pagelayout
+now makes preparation explicit and extends its lifetime beyond one invocation
+through `content.Prepare` and the separate snapshot/session pair.
 See [the preparation adapter](../../tytui/documentlayout/preparation.go),
 [measurement](../../tytui/documentlayout/measure.go) and
 [layout](../../tytui/documentlayout/layout.go).
@@ -154,8 +154,8 @@ immutable bank payload or structural tree. See section 11 for the lifetime model
 A neutral preparer receives detached group input and returns an executable engine
 handle plus immutable metadata to the orchestrator. Its request contains source
 text/styles, paragraph owner context and atomic identities, but no receiver width,
-height budget, used-value table or realized atomic dimensions. A typography bridge
-can wrap `paragraph.Prepared` privately; the core and loader need no khipu or
+height budget, used-value table or realized atomic dimensions. The optional typography bridge
+wraps `paragraph.Prepared` privately; the core and loader need no khipu or
 concrete font types. PREP-02's public protocol is documented in section 13.
 
 The operations remain distinct:
@@ -183,11 +183,11 @@ enumerates normalized horizontal groups, owners and atomic boundaries
 deterministically, including interior groups. It is a pure operation with no
 shaping or geometry work. Content's normalized group index now uses it.
 
-Place the effectful driver in pagelayout's orchestration layer. Conceptually:
+The effectful driver is `content.Prepare`, with an explicit `content.Preparer`:
 
 ```text
 layout.InlineGroups(root) -> iter.Seq[layout.InlineGroup]  // implemented
-Prepare(content document, explicit services/policy)
+content.Prepare(document, preparer)
     -> immutable prepared snapshot + separate serialized execution session
 ```
 
@@ -206,10 +206,10 @@ external services and their caches stay outside the pure passes.
 
 [Graphviz DOT source](diagrams/preparation-interactions.dot)
 
-The diagram shows the earlier conceptual preparation-handle interaction, not a
-final API or an assertion that executable handles are immutable payloads. For the
-planned ownership and driver placement, sections 11–13 take precedence. The
-measurement/layout dependencies remain valid, including recursive atomic sizing.
+The diagram shows the implemented snapshot/session split and bridge callbacks.
+Executable handles stay in the session; only copied metadata is published in the
+snapshot. Measurement/layout recursively consume atomic bounds/realizations.
+The separately marked box-fit step remains future work.
 
 ## 6. Nested inline-blocks demonstrate the boundary
 
@@ -272,7 +272,7 @@ containing objects needs the objects' intrinsic contributions, including
 applicable horizontal edges. Those contributions are not automatically known
 when the outer paragraph is prepared.
 
-Preparation should therefore produce **material that can be measured**, without
+Preparation therefore produces **material that can be measured**, without
 requiring every paragraph to have final min/max-content widths already.
 
 `khipu` already reflects this separation. `MeasureIntrinsic` operates on prepared
@@ -326,26 +326,27 @@ PREP-00 ownership rules for the new phase (with the split in section 11):
 These rules make preparation an architectural boundary rather than a cache
 optimization that callers must understand.
 
-## 10. First contract experiment and remaining decisions
+## 10. Completed contract experiment and remaining decisions
 
 Start from one `content.Load` snapshot, following the
 [CONT-05 handoff](../content/README.md#handoff-to-preparation). Its `Groups(tree)`
 identifies normalized groups, owner context and atomic boundaries. Source-child
 lists describe original DOM ancestry, not extracted paragraphs; PREP-01's private
 extractor reads the normalized structure. Keep bank payloads and
-source styles unchanged, and choose `hyphens:none` explicitly in the experiment's
+source styles unchanged, and use `hyphens:none` explicitly in the experiment's
 input rather than overriding retained policy during preparation.
 
 Prepare an outer paragraph and a nested auto-width inline-block, then lay them
-out at two receiving widths. Both groups should be prepared before any
-measurement or layout callback. Both candidates should coexist; rejecting either
+out at two receiving widths. All groups are prepared before any
+measurement or layout callback. Both candidates coexist; rejecting either
 must leave published material unchanged and the session reusable, although complete
-memoized discoveries may persist. Base text should not be reshaped for
+memoized discoveries may persist. Base text is not reshaped for
 the second width, while explicitly deferred alternatives remain permitted.
 
-This experiment would establish the phase and its lifetime before adding the
-harder fragmentation contract. The direct geometry-only path for empty template
-frames remains separate: it has no horizontal content to prepare.
+PREP-03–05 execute this experiment, including a nested inner atomic, real-font
+outline proofs and GC lifetime checks. The harder fragmentation contract remains
+separate. Empty template frames use the geometry-only resolver and have no
+horizontal content to prepare.
 
 PREP-00 pins the initial choices in section 12. Implementation must preserve:
 
@@ -629,15 +630,15 @@ admitted hyphenation, service failure/cleanup and source error mapping. The
 public content.Box remains the branch payload; preparation cannot publish a
 partial pair or mutate source material.
 
-Eight acceptance inputs and machine-readable future results live under
+Eight acceptance inputs and machine-readable expected results live under
 `content/testdata/preparation`. Run
 `go test ./content -run '^TestPreparationAcceptanceInputs$' -v` for current
 loading/group and coordinate checks. The nested experiment explicitly uses
 `hyphens:none`.
 
 **Exit satisfied:** prerequisites pass; first-slice choices are pinned or scoped
-out, and fixtures distinguish existing source material from future extraction,
-preparation and trials. No preparer/session runtime or sibling API is added.
+out. The fixtures now drive extraction, preparation and layout tests in later
+completed slices. PREP-00 itself added no runtime or sibling API.
 The intentionally omitted CONT-03 routing fuzz target is not reopened.
 
 ### BOX-PREP-01 — Enumerate normalized groups without sizing (implemented)
@@ -671,7 +672,7 @@ trees with colliding local IDs, descriptor slice ownership, subtree boundaries,
 early termination and concurrent reads are covered. Existing content tests retain
 their group/source-context results. No typography, DOM or font imports are added
 by the iterator. PREP-01 extraction is implemented separately below; effectful
-preparation remains later work.
+preparation is implemented in PREP-02 and TYPE-PREP-01.
 
 ### PREP-01 — Extract detached group input and source mappings (implemented)
 
@@ -931,7 +932,7 @@ Its four prepared groups include the empty residual group. The unchanged nested
 acceptance fixture separately produces three groups and the
 [two-width outline proof](../preparation/typography/testdata/two-widths.svg).
 The proof renders retained glyph paths and CSS geometry; it performs no layout.
-See [fixture provenance and regeneration](../preparation/typography/testdata/README.md).
+See [the visual example and font provenance](../preparation/typography/testdata/README.md).
 
 Real-font integration tests verify repeated measurement/layout without base
 reshaping under `hyphens:none`, discarded and later successful candidates,
@@ -1016,4 +1017,5 @@ dot -Tsvg doc/diagrams/preparation-pipeline.dot -o doc/diagrams/preparation-pipe
 dot -Tsvg doc/diagrams/preparation-interactions.dot -o doc/diagrams/preparation-interactions.svg
 ```
 
-The diagrams illustrate the proposal, not implemented public APIs.
+The diagrams distinguish implemented loading, preparation and whole-tree layout
+from proposed finite-height fitting and page-level transactions.

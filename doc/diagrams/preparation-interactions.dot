@@ -1,62 +1,29 @@
 digraph PreparationInteractions {
-  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=1.0, ranksep=0.65,
+  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.5, ranksep=0.5,
          fontname="Helvetica", fontsize=13,
-         label="Box core and typography: proposed integration\nSolid arrows: requests / orchestration; dashed: returns; dotted: reuse",
-         labelloc=t];
+         label="Implemented preparation ownership and layout reuse", labelloc=t];
   node [shape=box, style="rounded,filled", fillcolor="#f1f5f9", color="#64748b",
         fontname="Helvetica", fontsize=12, margin="0.18,0.12"];
   edge [color="#475569", fontname="Helvetica", fontsize=10];
-
-  subgraph cluster_preparation {
-    label="Preparation: no receiving width or sized atomic objects";
-    color="#93c5fd";
-    style=rounded;
-
-    core_prepare [group=core, label="css-box-layout\nPrepareBoxes (proposed)\nWalk normalized horizontal groups",
-                  fillcolor="#dbeafe", color="#2563eb"];
-    type_prepare [group=type, label="Typography adapter\nPrepareInline (proposed)\nExtract text, map source, itemize fonts\nCall existing paragraph.Prepare",
-                  fillcolor="#dbeafe", color="#2563eb"];
-    core_ready [group=core, label="PreparedBoxes (proposed)\nRead-only roots\nGroup identity -> prepared handle",
-                fillcolor="#dbeafe", color="#2563eb"];
-    type_ready [group=type, label="Adapter's PreparedInline handle\nWraps existing paragraph.Prepared\nKhipu, discovery, bidi and source mappings",
-                fillcolor="#dbeafe", color="#2563eb"];
-
-    { rank=same; core_prepare; type_prepare; }
-    { rank=same; core_ready; type_ready; }
-    core_prepare -> type_prepare [label="Group + OwnerID"];
-    type_prepare -> type_ready;
-    type_ready -> core_ready [label="prepared handle", style=dashed, constraint=false];
-    core_prepare -> core_ready [label="publish after all\ngroups succeed"];
-    core_ready -> type_ready [style=invis];
-  }
-
-  subgraph cluster_trials {
-    label="Trials: repeat with private constraints and results";
-    color="#d6a15f";
-    style=rounded;
-
-    core_measure [group=core, label="css-box-layout: intrinsic sizing\nWhen needed: resolve measurement edges\nand obtain nested atomic bounds",
-                  fillcolor="#fff7ed", color="#b45309"];
-    type_measure [group=type, label="PreparedInline.MeasureInline\nAdapter converts units and identities\nExisting Prepared.MeasureIntrinsic"];
-    core_layout [group=core, label="css-box-layout: actual sizing\nChoose widths; resolve descendants\nLay out atomic interiors recursively",
-                 fillcolor="#fff7ed", color="#b45309"];
-    type_layout [group=type, label="PreparedInline.LayoutInline\nAdapter binds current atomic geometry\nExisting Prepared.Trial + Assemble\nKeep each candidate independent"];
-    core_fit [group=core, label="Box fragment fitting (proposed)\nRetain candidate placements + cursor\nReturn to pagelayout for selection",
-              fillcolor="#fff7ed", color="#b45309"];
-
-    { rank=same; core_measure; type_measure; }
-    { rank=same; core_layout; type_layout; }
-
-    core_measure -> type_measure [label="edges + atomic bounds"];
-    type_measure -> core_layout [label="min / max contributions", style=dashed];
-    core_measure -> core_layout [style=invis];
-    core_layout -> type_layout [label="width + used values\n+ realized atomics"];
-    type_layout -> core_fit [label="extent + placements\n+ retained result handle", style=dashed];
-    core_layout -> core_fit [style=invis];
-    type_measure -> type_layout [style=invis];
-  }
-
-  core_ready -> core_measure [label="start a trial"];
-  type_ready -> type_measure [label="same preparation", style=dotted, color="#2563eb"];
-  type_ready -> type_layout [style=dotted, color="#2563eb", constraint=false];
+  doc [label="content.Document\nImmutable normalized boxes + source/group index\nRegisterBank[content.Box] retains source only"];
+  prepare [label="content.Prepare\nExtract detached GroupInput; preflight all groups\nPrepare once per group; atomic publication", fillcolor="#dbeafe"];
+  backend [label="preparation/typography.Backend\nExplicit mapper + fresh stream services\nItemize and paragraph.Prepare", fillcolor="#dbeafe"];
+  snapshot [label="PreparedSnapshot\nCopied source/paint/policy and group metadata\nNo executable handles", fillcolor="#dbeafe"];
+  session [label="PreparationSession\nPrivate executable group handles\nSerialized operations and Close", fillcolor="#dbeafe"];
+  invoke [label="MeasureIntrinsic / Layout\nValidate snapshot/session pair and qualified root\nReserve session; fresh invocation state"];
+  core [label="CSS core\nIntrinsic bounds; used values; atomic interiors\nRealizedAtomicsView; ordinary flow geometry"];
+  bridge [label="Typography bridge callbacks\nReuse paragraph.Prepared\nMeasureIntrinsic or Trial + Assemble"];
+  result [label="Independent completed Result\nCopied CSS geometry + frozen paragraphs + source/paint\nUsable after session Close", fillcolor="#dbeafe"];
+  fit [label="Proposed later work\nFinite-height box fitting and continuation\nPage selection + multi-channel commit", fillcolor="#fff7ed", color="#b45309"];
+  doc -> prepare -> backend;
+  prepare -> snapshot [label="on whole-document success"];
+  backend -> session [label="owned handles"];
+  snapshot -> invoke;
+  session -> invoke [label="serialized reuse"];
+  invoke -> core -> bridge;
+  bridge -> core [label="width bounds / extent + placements", style=dashed];
+  core -> result [label="whole-tree success"];
+  bridge -> result [label="retained paragraph results"];
+  result -> fit [style=dashed];
+  { rank=same; snapshot; session; }
 }

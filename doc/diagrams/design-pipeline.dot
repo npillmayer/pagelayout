@@ -9,14 +9,14 @@ digraph Pipeline {
   content [label="Cont-Doc\nContent + its source CSS"];
   compile [label="Compile EVERY template\nStyle, box, resolve fixed geometry"];
   boxes [label="Style in original DOM context\nConstruct source-associated boxes"];
-  route [label="Route named branches\nRetain residual main tree\nDefault channel proposed"];
+  route [label="Route named branches\nRetain residual main tree\nResidual binding still open"];
   prepare [label="Prepare horizontal material\nKhipus + unsized atomic subtrees"];
   catalog [label="Reusable template catalog\nSized page/frame trees by ID",
            fillcolor="#dbeafe", color="#2563eb"];
-  registers [label="Flow registers\nPrepared boxes + committed cursors",
+  registers [label="Flow registers\nImplemented: RegisterBank[content.Box]\nUnchanged by preparation",
              fillcolor="#dbeafe", color="#2563eb"];
-  snapshot [label="Snapshot ALL channel cursors"];
-  trial [label="Try candidate page\nLayout attachment; no CSS restyling\nSize, bind atoms, break and fit per frame"];
+  snapshot [label="Proposed: snapshot ALL channel cursors"];
+  trial [label="Proposed: try candidate page\nLayout attachment; no CSS restyling\nSize, bind atoms, break and fit per frame"];
   select [shape=diamond, label="Accept candidate?", fillcolor="#fff7ed", color="#b45309"];
   commit [label="Commit page + all cursor advances\nKeep exact continuations / untouched entries",
           fillcolor="#dbeafe", color="#2563eb"];
@@ -26,7 +26,10 @@ digraph Pipeline {
   { rank=same; compile; boxes; }
   { rank=same; catalog; registers; }
   templates -> compile -> catalog;
-  content -> boxes -> route -> prepare -> registers -> snapshot;
+  content -> boxes -> route;
+  route -> registers -> snapshot;
+  route -> prepare;
+  prepare -> trial [label="separate snapshot + session"];
   catalog -> trial [label="candidate template ID"];
   snapshot -> trial -> select;
   select -> trial [label="reject: next candidate\nsame snapshot", style=dashed, constraint=false];

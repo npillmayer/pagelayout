@@ -5,8 +5,8 @@ digraph TrialRegisters {
         fontname="Helvetica", fontsize=12, margin="0.18,0.12"];
   edge [color="#475569", fontname="Helvetica", fontsize=10];
 
-  committed [label="Committed registers\nheading: [H, ...]     article: [A, B, C, ...]"];
-  snapshot [label="Trial-local cursor snapshot\nShared prepared boxes; source styles unchanged"];
+  committed [label="Proposed page transaction\nCommitted registers\nheading: [H, ...]     article: [A, B, C, ...]"];
+  snapshot [label="Trial-local cursor snapshot\nUnchanged Box bank + separate preparation/session"];
   subgraph cluster_trial {
     label="Candidate page";
     labeljust=l;

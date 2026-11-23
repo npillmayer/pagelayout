@@ -1,46 +1,30 @@
-# CONT-00 content fixtures and expected results
+# Content examples and expected results
 
-Date: 2026-11-22. Status: adopted acceptance contract. These files accompany
-[CONTENT-LOADING.md](../../doc/CONTENT-LOADING.md). CONT-01's private source
-parser/inspector/styler and CONT-02's typed projection/profile are implemented.
-Tests cover source styles, typography, paint, typed lengths, decoded text ranges,
-unsized atomics and participation classifications. CONT-03 tests ordered channel
-branches, exclusive source ownership and residual projections. CONT-04's
-`document_test.go` and `normalize_test.go` verify normalized trees/groups,
-public inspection, atomic publication and persistent bank/handle lifetime.
-CONT-05's [executable examples](../example_test.go) cover public loading, the
-diagnostic material report, persistent banks, overrides and failure diagnostics.
-These are content documents,
-not template collections accepted by `pgtmpl`.
+These files are content documents for [`content.Load`](../README.md), not
+page-template collections for `pgtmpl`. Load each HTML file as a complete document
+with its embedded CSS. Supply the override only for the named variant below.
+Use the filename as `LoadOptions.SourceName` to label diagnostics.
 
-Run `go test ./content` from the module root for source through publication checks.
-Run `go test ./content -run '^Example' -v` for the five executable examples.
-The [content guide](../README.md) describes their output and preparation handoff.
-`loadSource` retains both `_err` files as styled source. `loadProjection` rejects
-`float_err.html` with the expected authored profile diagnostic; nested-flow
-ownership fails in CONT-03's `loadPartition` with both conflicting sources.
-Public `Load` composes those stages with normalization and group indexing.
-The private trees remain inaccessible through mutable pointers; inspection
-returns copies and registers hold read-only branch-root Box handles.
+| Input | Use it to inspect |
+| --- | --- |
+| [routing.html](routing.html) | Two channels, three branches, separate residual content and an inline-block interior. |
+| [routing-override.css](routing-override.css) | Changes to routing, source typography, colors and font-relative edges. Apply it to `routing.html` through `LoadOptions.Stylesheets`. |
+| [residual-inline.html](residual-inline.html) | Adjacent residual text after extracting branches, and an emptied but decorated ancestor. |
+| [suppression.html](suppression.html) | Source classifications for display-suppressed, inert and metadata nodes. |
+| [empty.html](empty.html) | An empty body with a valid residual root and empty group. |
+| [nested-flow_err.html](nested-flow_err.html), [float_err.html](float_err.html) | Routing and CSS-profile errors. No document is returned. |
 
-DOM-CONT-02 adds a focused integration check in `content/border_fonts_test.go`:
-the shared text-style snapshots and border getter resolve story-b's `.1em`
-border to 98304 DU (2px), or 117965 DU (approximately 2.4px) with the override.
-Currentcolor follows each source cascade. This check uses no frame or font
-services. CONT-02's projection tests now also verify these effective edges and
-paint alongside the remaining source constraints and snapshots.
+Loading needs no template catalog, receiving width or font service. Source
+styles and raw text are available immediately; use `content.Prepare` separately
+for processed paragraph input. The [preparation examples](preparation/README.md)
+show that step's text and policy behavior.
 
-Load each HTML file as a complete body with its embedded CSS. Supply the override
-CSS only in the explicitly named variant. No template catalog, receiver size,
-font service, network fetch or resource resolver is an input. Label source
-diagnostics with the fixture filename and additional CSS with its own filename.
+## Reading the results
 
-## Assertion conventions
-
-`#name` denotes an HTML ID used to identify an original source element for these
-assertions. It is not a normalized BoxID. Resolve IDs in the repaired source DOM,
-then compare source identities carried by the resulting box handles. The tree
-labels R, A, N and B below are explanatory labels, not numeric API values.
+`#name` denotes an HTML ID used to identify an original source element below.
+It is not a normalized BoxID. Compare the source identities carried by box
+handles to relate results to the original elements. The tree labels R, A, N and
+B below are explanatory labels, not numeric API values.
 
 All box identities are qualified by snapshot and tree. Independent loads have
 distinct handles even if their local numeric IDs repeat. Inspection returns
@@ -53,10 +37,10 @@ the nearest normalized block container. Whitespace-only indentation between
 block children may be omitted by normalization, but its decoded source bytes
 remain available and its ownership/classification is accounted for.
 
-Raw text assertions use UTF-8 byte offsets in individual decoded DOM text nodes.
-Entity spelling and HTML source offsets are not those coordinates. This milestone
-does not produce collapsed paragraph text, insert textual atomic markers, shape
-text, resolve used geometry or create within-box continuations.
+Raw text ranges use UTF-8 byte offsets in individual decoded DOM text nodes.
+Entity spelling and HTML source offsets are not those coordinates. Loading does
+not collapse paragraph text, insert atomic text markers, shape text or produce
+used geometry.
 
 ## routing.html
 
@@ -94,13 +78,13 @@ layout material. Head/style/title and other metadata are classified separately.
 
 There are six groups in total. The atomic box remains in A, is not a new
 register item and has `width:auto` without a used width or height. Its interior
-text must not be flattened into the outer group's text sequence. Groups and
-owners are identified by valid qualified Box handles; anonymous groups have no
+text is separate from the outer group's text sequence. Groups and owners are
+identified by valid qualified Box handles; anonymous groups have no
 invented source NodeID. The paragraph context comes from the owner.
 
 ### Effective source styles and constraints
 
-| Source | Font size (CSS px) | Foreground | Other required values |
+| Source | Font size (CSS px) | Foreground | Other values |
 | --- | --- | --- | --- |
 | `html`, `body`, `#intro` | 16 | `#000000` on html; `#203040` on body/intro | Source root font is 16px. |
 | `#source`, `#ending` | 20 | `#203040` | Residual structure keeps the section's font context. |
@@ -112,12 +96,12 @@ All these nodes inherit language `en`, direction LTR, normal whitespace and
 normal line-height. Defaults retain serif, weight 400 and normal slant. Hyphenation
 policy is `manual`; loading does not disable it or attempt hyphenation.
 
-For `#story-b`, preserve width as `layout.LenPercent` with fraction `0.75`, not
-a guessed pixel width. Resolve margin-left `1em` to 20px, padding-left `0.5rem`
-to 8px, and border-left `0.1em solid currentcolor` to approximately 2px solid
-`#203040`, using checked DOM font-context resolution. Allow the documented DU
-conversion precision when comparing resolved lengths. Other edges retain their
-defaults. These are computed constraints, not an established border-box size or
+For `#story-b`, width is `layout.LenPercent` with fraction `0.75`, not a
+pixel width. Margin-left `1em` resolves to 20px, padding-left `0.5rem` to 8px,
+and border-left `0.1em solid currentcolor` to approximately 2px solid `#203040`.
+Font-relative lengths can have small rounding differences from DU conversion.
+Other edges retain their defaults. These are computed constraints, not an
+established border-box size or
 placement; no receiving-frame data participates.
 
 ### Decoded text references
@@ -139,7 +123,7 @@ characters, not literal backslash sequences.
 The `&amp;`, NBSP and soft-hyphen entities decode once. Preserve the multibyte
 `é`, U+00A0 and U+00AD with valid byte boundaries and independent source IDs.
 
-### Persistent register assertions
+### Derive register banks
 
 Starting from `initial := document.Bank()`:
 
@@ -158,8 +142,8 @@ Starting from `initial := document.Bank()`:
    reference is released. They retain the source snapshot needed by later
    preparation. Copied inspection records cannot mutate that snapshot.
 
-These assertions restore entire boxes only; no assertion claims that taking a
-box fits it or creates a partially consumed remainder.
+These operations restore entire boxes only. Taking a box does not fit it into
+a frame or create a partially consumed remainder.
 
 ## routing.html with routing-override.css
 
@@ -172,7 +156,7 @@ Success. It is appended after the head stylesheet as ordinary author CSS.
 | Channel order | `[features, notes]`; no `article` register. |
 | Branch membership | A then B in features, N in notes; residual ownership and all six groups unchanged. |
 | Section and descendants' font size | 24px; html/body/intro remain 16px. |
-| Note color | `#006699`: later equal-specificity sibling rule wins; still-later `.note` red rule has lower specificity and loses. |
+| Note color | `#006699`: later equal-specificity adjacent-sibling rule wins; still-later `.note` red rule has lower specificity and loses. |
 | Story-a and descendants' color | `#224466`: normal `.story` rule cannot override the inline declaration. |
 | Story-b and descendants' color | `#008855`: important author declaration overrides normal inline color. |
 | Story-b left edges | Margin 24px, padding 8px, border approximately 2.4px solid `#008855`; width remains fraction `0.75`. |
@@ -188,7 +172,7 @@ fed into a template document implicitly.
 Input: [residual-inline.html](residual-inline.html). Success. Channels are
 `[notes]`; its register holds `#aside` then `#moved`, in separate trees.
 
-| Destination | Required result |
+| Destination | Result |
 | --- | --- |
 | First notes branch | `#aside` and `Routed aside.`; one group owned by `#aside`, source font 20px. |
 | Second notes branch | `#moved` and `Moved from decorated ancestor.`; one group owned by `#moved`, source font 16px. |
@@ -196,17 +180,17 @@ Input: [residual-inline.html](residual-inline.html). Success. Channels are
 
 After filtering, `#split` has one horizontal group containing two text nodes in
 order: `Before ` and ` after.`, each with its own source reference `[0, 7)`.
-Preserve both boundary spaces in raw storage. Paragraph whitespace processing
-belongs to preparation. Do not retain two separate groups caused by the former
-intervening aside, and do not include `Routed aside.` in residual text. The
-group owner remains `#split`, with 20px source font and `#203040` foreground.
+Both boundary spaces remain in raw storage; paragraph whitespace processing
+belongs to preparation. The formerly separated text shares one group, without
+`Routed aside.` in the residual text. The group owner remains `#split`, with
+20px source font and `#203040` foreground.
 
 `#emptied` remains a residual block with 16px padding and a 1px solid `#884400`
 border on every side. Its normalized children contain one empty horizontal
 group, owned by `#emptied`, with 16px font context. Its former child's tree
 does not acquire a copy of those ancestor edges. Thus the residual has two
-groups, and all trees together have four. Empty does not mean unowned, invisible
-or removable; this milestone does not measure any group's height.
+groups, and all trees together have four. The empty decorated block remains
+available for layout; loading does not measure its height.
 
 ## suppression.html
 
@@ -223,51 +207,25 @@ whitespace/line-height, with manual hyphenation metadata.
 | `#metadata` | Non-content script/metadata. No execution, boxes, text group or flow item. |
 | Head/title/style/meta | Non-content source; direct head style supplies CSS, not flow text. |
 
-Retain decoded source and diagnostic identities for the excluded subtrees so
-their absence from material is explained. Do not treat their text as missing
-residual material. Formatting-only whitespace is handled by normalization.
+Decoded source and diagnostic identities remain available for excluded
+subtrees. Their text is classified as excluded, rather than residual material.
+Formatting-only whitespace can be omitted from normalized groups.
 
 ## empty.html
 
 Input: [empty.html](empty.html). Success with no channels and an empty bank.
-The residual root is body. The builder supplies one anonymous inline group for
-this empty/formatting-whitespace-only container; it must be indexed with body
-as its owner. It has no non-whitespace content, atomics or register item. Retain
-the same default source typography as in suppression.html, including language en.
+The residual root is body, with one empty inline group owned by body. The group
+has no non-whitespace content, atomics or register item. It has the same default
+source typography as in suppression.html, including language en.
 No placeholder paragraph text is invented and no line height is measured.
 
 ## Expected errors
 
-| Input | Stage/code | Required source information | Publication |
+| Input | Stage/code | Source information | Publication |
 | --- | --- | --- | --- |
 | [nested-flow_err.html](nested-flow_err.html) | `routing` / `route.nested` | Conflicting child `#inner` (`notes`) and ancestor `#outer` (`article`), original DOM paths and filename. | No Document, bank or valid handles escape, including the earlier valid `#earlier` branch. |
-| [float_err.html](float_err.html) | `profile` / `profile.value` | Property `float`, value `right`, fixture filename and position in its embedded stylesheet; identify `#illustration` if an effective-node diagnostic is also emitted. | No Document or bank. Do not silently ignore float or create an illustrations register. |
+| [float_err.html](float_err.html) | `profile` / `profile.value` | Property `float`, value `right`, fixture filename and position in its embedded stylesheet; identify `#illustration` if an effective-node diagnostic is also emitted. | No Document or bank; no illustrations register is created. |
 
-The float fixture intentionally uses a DIV placeholder so an unsupported image
-resource or table does not obscure the float diagnostic. It exercises the
-deferred scope boundary, not future image/table-to-frame placement. Error prose
-and numeric source IDs are not fixed. Preserve wrapped upstream causes wherever
-an upstream operation fails, and order diagnostics deterministically.
-
-## Additional focused assertions
-
-These small fixture files anchor the contract; future tests should add focused
-variants without requiring separate fixture files for every case:
-
-- Same-name nested roots and explicit `flow-into:inherit` still fail; a child
-  `flow-into:none` stays owned by its routed ancestor.
-- Named roots on html/body, on inline/inline-block elements or inside atomic
-  ancestry fail without partial publication.
-- Unsupported authored CSS still fails when it loses or matches only suppressed
-  nodes. Distinguish this from excluding inert template content.
-- Visibility hidden/collapse, zero font size, constrained height and unsupported
-  resource requirements receive source-specific errors; source/read failures and
-  invalid UTF-8 never publish partial material.
-- Independent builds retain qualified IDs and source references. A later build
-  failure cannot publish earlier successful trees or modify a retained snapshot.
-- Loading invokes no font lookup, shaping, intrinsic measurement, used-value
-  resolution, frame fitting, rendering or continuation operations.
-
-`ExampleLoad` uses the existing [sketch content](../../template/testdata/content/article.html)
-directly as an additional CONT-05 integration input. General fragmentation, residual
-binding and float placement remain later decisions.
+The float example uses a DIV placeholder, so the reported error concerns
+`float` rather than an image or table. Numeric source IDs and error prose are
+not stable identifiers; inspect `Stage`, `Code`, source paths and wrapped causes.

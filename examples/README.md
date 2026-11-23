@@ -34,7 +34,7 @@ borders** to distinguish the viewer's diagnostic outlines from authored paint.
 [`magazine-override.css`](magazine-override.css) customizes `03-magazine.html`:
 white pages, gray headings with thinner borders, and a warmer notes frame with
 more padding. Its notes content width shrinks from 192px to 184px while its outer
-width stays 220px. This exercises recompilation of the receiving rectangle.
+width stays 220px. The receiving rectangle reflects the added padding.
 
 ```sh
 go run ./pgtmpl load examples/03-magazine.html --css examples/magazine-override.css
@@ -50,7 +50,7 @@ remain independent: uncheck **Show frame borders** to inspect authored paint.
 ## Deliberately invalid examples
 
 Names end in `_err.html`. Each file includes a comment explaining the defect
-and its correction. These should fail loading, not produce a usable catalog.
+and its correction. These fail loading and produce no usable catalog.
 
 | File | Expected diagnostic | Defect |
 | --- | --- | --- |
@@ -66,6 +66,6 @@ go run ./pgtmpl load examples/overlapping-frames_err.html
 
 The CLI prints diagnostics to stdout and exits with status 1. `go run` additionally
 prints its own `exit status 1` message to stderr. `serve` with any invalid example
-must report errors and start no server; `find` also validates before returning a
+reports errors and starts no server; `find` also validates before returning a
 path. To try lookup, run `go run ./pgtmpl find examples/01-minimal.html`; the usual
 user-configuration-directory search takes precedence over the local file.

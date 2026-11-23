@@ -5,10 +5,10 @@ digraph Packages {
         fontname="Helvetica", fontsize=12, margin="0.18,0.12"];
   edge [color="#475569", fontname="Helvetica", fontsize=10];
 
-  page [label="pagelayout (proposed)\nTemplate catalog; prepared-flow registers\nPage trials, selection and atomic commit",
+  page [label="pagelayout\nImplemented: catalog, content.Box banks\nPreparation/session + whole-tree layout\nProposed: page fitting, selection and commit",
         fillcolor="#dbeafe", color="#2563eb"];
   dom [label="w3c-dom\nSeparate source styling contexts\nCSSOM and property lookup"];
-  boxes [label="css-box-layout\nExisting: boxing, used values, fixed/flow layout\nProposed: geometry-only API; fragment-fit boundary"];
+  boxes [label="css-box-layout\nImplemented: boxing, group enumeration, registers\nFixed geometry and ordinary flow layout\nProposed: resumable box-fragment fitting"];
   type [label="typography / paragraph\nPrepare, Trial, assembly and checkpoints\nBounded paragraph continuation"];
   khipu [label="khipu\nReusable material + atomic bindings\nBreak trials, checkpoints and freezing"];
   reference [label="tytui / documentlayout\nExtraction / preparation adapter reference\nBounded flow; not a register engine",
@@ -18,6 +18,6 @@ digraph Packages {
   page -> boxes [label="geometry and\nbox sizing"];
   page -> type [label="prepared paragraphs\nand trial fragments"];
   type -> khipu [label="uses"];
-  page -> reference [label="study / reuse decision open", style=dashed];
+  page -> reference [label="reference; no package dependency", style=dashed];
   { rank=same; dom; boxes; type; reference; }
 }
