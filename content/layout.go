@@ -10,12 +10,13 @@ import (
 )
 
 // InlineLayoutRequest borrows invocation-local values, never mutable tree nodes.
-// Width and core geometry are CSS pixels. Atomics are completed border boxes.
+// Width and core geometry are CSS pixels. Atomics are border dimensions realized
+// for this layout invocation, separate from retained paragraph preparation.
 type InlineLayoutRequest struct {
 	Group, Owner Box
 	Width        float32
 	Used         layout.UsedValuesView
-	Atomics      layout.PreparedAtomicsView
+	Atomics      layout.RealizedAtomicsView
 }
 
 // GroupLayouter executes retained preparation. It must not retain request views,

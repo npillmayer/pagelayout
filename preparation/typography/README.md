@@ -196,5 +196,6 @@ Layout and Close. Separate sessions do not make shared font/shaper/hyphenator
 services safe for concurrent use. Copied immutable metadata may be inspected
 concurrently. Manual alternatives may still shape lazily; automatic/mixed policy,
 percentage-atomic cycles, page fitting and within-box continuation remain outside
-the restricted preparation profile. BOX-PREP-02's terminology migration remains
-independent work.
+the restricted preparation profile. BOX-PREP-02 names core-completed border
+dimensions `RealizedAtomic`, supplied through `RealizedAtomicsView`; reusable
+paragraph preparations retain their existing names and ownership.

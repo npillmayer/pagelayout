@@ -240,9 +240,9 @@ type usedView map[layout.BoxID]layout.UsedValues
 
 func (v usedView) Lookup(id layout.BoxID) (layout.UsedValues, bool) { u, ok := v[id]; return u, ok }
 
-type realizedView map[layout.BoxID]layout.PreparedAtomic
+type realizedView map[layout.BoxID]layout.RealizedAtomic
 
-func (v realizedView) Lookup(id layout.BoxID) (layout.PreparedAtomic, bool) {
+func (v realizedView) Lookup(id layout.BoxID) (layout.RealizedAtomic, bool) {
 	a, ok := v[id]
 	return a, ok
 }

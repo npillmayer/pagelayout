@@ -306,7 +306,8 @@ results with copied CSS geometry and frozen paragraphs, reusing the same session
 at multiple widths. PREP-05 adds a [real-font example](preparation/typography/example_test.go),
 [two-width outline proof](preparation/typography/testdata/two-widths.svg), bank
 persistence and GC lifetime tests. The restricted preparation slice is complete;
-floats, page trials and independent BOX-PREP-02 terminology cleanup remain later work.
+BOX-PREP-02 also completes the realized-atomic terminology cleanup across core
+and consumers. Floats and page trials remain later work.
 
 See [the loading package and PR plan](doc/TEMPLATE-LOADING.md),
 [the broader design](doc/DESIGN.md), and

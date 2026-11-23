@@ -6,8 +6,8 @@ session lifecycle are implemented. TYPE-PREP-01 connects the real typography
 pipeline with explicit fake-font/stream integration tests. PREP-03 reuses that
 preparation for intrinsic measurement. PREP-04 now publishes independent whole-tree
 layout results. PREP-05 proves real-font reuse, bank persistence and release of
-working state. The restricted preparation slice is complete; page trials and
-BOX-PREP-02's independent terminology cleanup remain later work.
+working state. BOX-PREP-02 completes the realized-atomic terminology migration.
+The restricted preparation slice is complete; page trials remain later work.
 
 This note develops the preparation phase introduced in [DESIGN.md](DESIGN.md).
 Preparing reusable content before page trials is established direction. The
@@ -258,11 +258,11 @@ During a trial, the dependency order changes:
 A narrower trial can change both the inline-block's interior line breaks and the
 outer paragraph's line breaks while reusing both preparations.
 
-This exposes a naming problem: the existing `prepareAtomics` performs actual
-layout of atomic interiors and returns completed border dimensions. It is trial
-work, not the preparation phase described here. Rename it to something such as
-`layoutAtomicInteriors`, and similarly clarify `PreparedAtomic`, to avoid two
-materially different meanings of “prepared.”
+BOX-PREP-02 names this trial work explicitly: `layoutAtomicInteriors` lays out
+atomic interiors and returns `RealizedAtomic` border dimensions through a
+`RealizedAtomicsView`. These CSS-pixel values belong to one layout invocation;
+reusable horizontal paragraph preparation remains separate. Margins and the
+outer paragraph's final atomic placement are separate from those dimensions.
 See [the current atomic operation](../../css-box-layout/layout/atomic.go).
 
 ## 7. Intrinsic measurement remains separate
@@ -613,8 +613,8 @@ PREP-00 is complete as a contract/fixture milestone; BOX-PREP-01's shared
 enumeration/content-index migration, PREP-01's extraction and PREP-02's neutral
 protocol/session lifecycle, TYPE-PREP-01's typography bridge and PREP-03's
 intrinsic integration, PREP-04's whole-tree results and PREP-05's real-font/lifetime
-proofs are implemented. BOX-PREP-02 terminology cleanup and wider extensions
-remain separate work. Cross-module changes must follow each sibling's
+proofs are implemented. BOX-PREP-02's terminology migration is also complete;
+wider extensions remain separate work. Cross-module changes must follow each sibling's
 instructions. Each PR has a narrow acceptance
 boundary; do not label the full phase complete after the first preparation call.
 
@@ -897,21 +897,28 @@ session identity, reentrancy, incomplete coverage, callback rejection, exact
 atomic borders/margins/coordinates, zero width/empty groups, request and finite
 range validation, percentage-cycle failure, and late vertical-metric failure
 followed by successful retry. PREP-05 adds real-font proofs, executable handoff
-and GC lifetime evidence; BOX-PREP-02 terminology cleanup remains independent.
+and GC lifetime evidence; BOX-PREP-02 completes the independent terminology cleanup.
 
-### BOX-PREP-02 — Clarify names for realized atomics
+### BOX-PREP-02 — Clarify names for realized atomics (implemented)
 
 **Owner:** css-box-layout, with tytui and pagelayout consumer updates.
 
-Rename the private prepareAtomics operation to layoutAtomicInteriors (or an
-agreed equivalent). Rename/document PreparedAtomic and PreparedAtomicsView as
-realized border-box geometry. This is terminology cleanup, not additional
-preparation or a change to CSS geometry. If compatibility aliases are useful for
-a staged migration, remove them after the known consumers migrate.
+CSS core now uses private `layoutAtomicInteriors` and public `RealizedAtomic` /
+`RealizedAtomicsView`. They replace `prepareAtomics`, `PreparedAtomic` and
+`PreparedAtomicsView` without compatibility aliases. The view returns copied
+border-box dimensions in CSS pixels for the current layout invocation, including
+padding/borders and excluding margins. The outer paragraph supplies placement
+separately through the unchanged `AtomicPlacement` contract.
 
-**Exit:** both consumer suites pass with unchanged geometry and clear distinction
-between reusable horizontal preparation and trial-specific atomic realization.
-This PR is independent of PREP-03/04 and must not block the contract experiment.
+Pagelayout's `content.InlineLayoutRequest` and both consumers' adapters/tests use
+the new names. Core and consumer guides, pseudocode and diagrams describe atomic
+interior layout explicitly. Reusable `paragraph.Prepared`, group/session handles,
+intrinsic bounds and their ownership remain unchanged. This is a source-level
+API rename with unchanged geometry, callback ordering and publication semantics.
+
+**Exit satisfied:** core and both consumer regressions pass, including nested
+atomics, dimensions/margins/placements, reuse, failures and retained results.
+The terminology migration is complete and needs no subsequent alias removal.
 
 ### PREP-05 — Prove lifetime, bank persistence and the handoff (implemented)
 
@@ -966,7 +973,7 @@ trials and wider policy support have their own milestones.
 BOX-CONT-01 + BOX-CONT-02 -> CONT-04 -> CONT-05 -> PREP-00
 PREP-00 -> BOX-PREP-01 -> PREP-01 -> PREP-02 -> TYPE-PREP-01
 TYPE-PREP-01 -> PREP-03 -> PREP-04 -> PREP-05
-BOX-PREP-02: independent terminology migration, still pending
+BOX-PREP-02: independent terminology migration, implemented
 ```
 
 No new khipu or w3c-dom feature is a prerequisite for the restricted experiment.
