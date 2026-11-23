@@ -15,9 +15,10 @@ residual preservation and normalized group indexing. Its output is unsized box
 material with source context, not prepared paragraphs. CONT-00 has adopted that
 loading contract and its fixtures; CONT-01/02/03 implement private source loading,
 typed projection and route partitions. **Content loading is not yet complete:**
-BOX-CONT-01's builder diagnostics and independent-tree contracts are implemented;
-BOX-CONT-02 and CONT-04/05 still need generic registers, normalization/group
-indexing, public publication and integration examples.
+BOX-CONT-01's builder diagnostics/independent-tree contracts and BOX-CONT-02's
+generic registers are implemented. CONT-04 now supplies normalization/group
+indexing and public immutable material. CONT-05's integration examples and
+handoff remain outstanding.
 The preparation interfaces remain proposals. Sections 11–14 add the recommended
 register/session model, decision gates, PR sequence and acceptance tests. They
 refine the earlier callback/driver sketch where functional ownership requires it.
@@ -342,7 +343,8 @@ for every PR. This note does not implement APIs or authorize sibling changes.
 **Recommendation (2026-11-23; review in PREP-00): keep the register payload
 `content.Box` throughout preparation.** That is the adopted content-loading
 payload, not a new mixed interface or a box with a mutable readiness flag.
-The generic register conversion remains BOX-CONT-02 work.
+BOX-CONT-02 implements generic registers; CONT-04 now supplies content.Box and
+the initial branch bank, with copied group/source inspection.
 
 A register stores immutable branch-root handles. A branch may own many horizontal
 groups, including groups inside atomics; it is not interchangeable with one
@@ -475,9 +477,9 @@ boundary; do not label the full phase complete after the first preparation call.
 
 **Owners:** pagelayout; prerequisite css-box-layout content work.
 
-BOX-CONT-01 (structured builder errors) is complete. Finish BOX-CONT-02 (generic
-registers), CONT-04 (normalization, group indexing, immutable public material) and CONT-05
-(executable handoff). Review section 12, freeze snapshot/session ownership and
+BOX-CONT-01 (structured builder errors) and BOX-CONT-02 (generic registers) are
+complete, as is CONT-04 (normalization, group indexing, immutable public material).
+Finish CONT-05 (executable handoff). Review section 12, freeze snapshot/session ownership and
 choose the admitted hyphenation subset. The public content.Box remains the
 adopted branch handle. Agree service failure/cleanup and source error mapping;
 preparation must return neither a partial snapshot nor an accessible session.
@@ -502,8 +504,10 @@ its actual block owner, and its atomic boundaries. Visit nested atomic interiors
 as independent groups; extracting an outer group must not flatten them. Include
 empty groups, preserve tree-local BoxIDs, and perform no callbacks that measure,
 shape or resolve geometry. Keep traversal input read-only and return descriptors
-whose lifetime/borrowing is explicit. Use it for CONT-04's group index to avoid
-two subtly different definitions of a group.
+whose lifetime/borrowing is explicit. Migrate CONT-04's existing private group
+index traversal to this shared primitive to avoid two subtly different
+definitions of a group. CONT-04 currently indexes only structure and source
+context; it does not implement this proposed shared core API.
 
 **Exit:** core tests cover anonymous/split structure, empty owners, nested atomics,
 unchanged input and stable preorder. Two independent trees with colliding local

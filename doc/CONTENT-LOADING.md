@@ -4,9 +4,10 @@ Date: 2026-11-23. Status: CONT-00 adopted and complete. CONT-01 source parsing,
 inspection and styling, CONT-02 typed projection/effective profile, and CONT-03
 route ownership/partitioning are implemented. DOM-CONT-01's shared text-style
 service, TY-CONT-01's tytui migration and DOM-CONT-02's source-font border helper
-are implemented, as is BOX-CONT-01's structured builder-error and partition
-contract work. The public material loader, normalization and BOX-CONT-02's
-generic registers remain pending.
+are implemented, as are BOX-CONT-01's structured builder-error/partition contracts
+and BOX-CONT-02's generic persistent registers. CONT-04 implements normalization,
+group indexing and the public immutable material loader. CONT-05's executable
+integration examples and handoff remain outstanding.
 Floats remain explicitly deferred.
 
 This plan develops the content-input phase of [DESIGN.md](DESIGN.md), following
@@ -24,20 +25,20 @@ complete document pipeline into this module.
 Use the existing sibling [`registers`](../../css-box-layout/registers/doc.go)
 package for channel material storage. `Register` and `RegisterBank` already
 provide persistent queues and bank versions; they are not future APIs to invent.
-CONT-00 adopts concrete `content.Box` handles as payloads and a generic conversion
-of those existing queues, preserving their persistent behavior.
+CONT-00 adopts concrete `content.Box` handles as payloads. BOX-CONT-02 implements
+the generic conversion of those queues, preserving their persistent behavior;
+CONT-04 supplies the content handles and initial bank.
 
 Section 11 records the adopted decisions separately from later open questions.
-CONT-04 onward and BOX-CONT-02 remain implementation
-work. References describe checked-out implementations; code sketches describe
+CONT-05 remains implementation work. References describe checked-out implementations; code sketches describe
 the adopted target API unless explicitly identified as implemented.
 
 ### Implemented CONT-01 boundary
 
 The private [`loadSource`](../content/load.go) pipeline returns a styled working
 source or a structured error, never a public partial Document. Its input values
-`LoadOptions` and `Stylesheet` exist; public `Load`, Document, Box and inspection
-records await CONT-04. [`source.go`](../content/source.go) reads caller-owned
+`LoadOptions` and `Stylesheet` feed the public CONT-04 loader; this private stage
+does not publish material. [`source.go`](../content/source.go) reads caller-owned
 UTF-8 input, keeps HTML recovery and indexes every source node in preorder with
 ancestry, repaired-tree paths and decoded text. There is no HTML-hash identity.
 
@@ -90,7 +91,7 @@ consulted. Tests cover fixture typography/edges/paint/text, nested atomics,
 suppression, source detachment, diagnostics and independent concurrent loads.
 Route-free builder contract tests verify anonymous-owner font context, but the
 production projection does not normalize boxes. Routing/partitioning are implemented separately in CONT-03; public material
-publication remains CONT-04. `float_err.html` now
+publication is implemented separately in CONT-04. `float_err.html` now
 fails projection's authored profile check; `nested-flow_err.html` still projects
 successfully at this boundary; CONT-03 rejects its route ownership.
 
@@ -227,7 +228,7 @@ record or create a second resolver in `pagelayout`.
 The adopted reader and inspection API is:
 
 ```go
-// Adopted target API. Input structs exist in CONT-01; Load/Document await CONT-04.
+// Implemented reader and copied-inspection API (CONT-04).
 func Load(r io.Reader, opts LoadOptions) (*Document, error)
 
 type Stylesheet struct {
@@ -296,12 +297,13 @@ derive a candidate bank, and publish the chosen candidate only after success.
 That checkpoint mechanism already exists; no additional whole-item cursor layer
 is required just to advance or reject a trial.
 
-The current sibling payload interface is
-`FlowMaterial { GetBoxID() layout.BoxID }`. The author confirms that it is
-provisional and has no other client dependencies. **CONT-00 decision:** remove
-that interface and convert the existing storage to `Register[T any]` and
-`RegisterBank[T any]` in BOX-CONT-02. Keep the queue/bank algorithms and persistence
-semantics; the queue does not inspect payloads or deduplicate box identities.
+The provisional sibling `FlowMaterial { GetBoxID() layout.BoxID }` interface
+had no other client dependencies. **CONT-00 decision, implemented by BOX-CONT-02:**
+remove it and convert the existing storage to `Register[T any]` and
+`RegisterBank[T any]`. The queue/bank algorithms and persistence semantics are
+preserved; the queue neither inspects payloads nor deduplicates box identities.
+The registers package no longer imports layout. Consumers instantiate storage
+with their concrete payload type; no compatibility wrapper is required.
 
 The content loader instantiates that storage exclusively with concrete `Box`
 values. One item is the root box of an entire routed branch, including its
@@ -366,8 +368,8 @@ The canonical inputs and assertion tables now live alongside the content package
 in [content/testdata](../content/testdata/README.md). They specify required future
 material-loader results. CONT-01/02 tests exercise source/style, typed projection,
 text ranges and participation classification. CONT-03 tests verify ordered channel
-branches, exclusive ownership and residual projections. Normalized box/group and
-publication assertions await the subsequent phases.
+branches, exclusive ownership and residual projections. CONT-04 tests normalized
+boxes/groups, source context, atomic associations, publication and bank lifetime.
 
 | Fixture | Acceptance purpose |
 | --- | --- |
@@ -854,18 +856,22 @@ source-preserving inline extraction or one allocation domain across branches.
 Introduce it only when a concrete normalization case requires it. Until then,
 qualify BoxIDs by tree identity rather than promising global uniqueness.
 
-### BOX-CONT-02 — Generic persistent registers
+### BOX-CONT-02 — Generic persistent registers (implemented)
 
-Replace `FlowMaterial` with type parameters on the existing Register and
-RegisterBank; do not introduce another queue implementation. Preserve zero-value
-usability, source/FIFO order, front insertion, structural sharing, concurrent
-derivation and caller-controlled publication. Empty First/Take results return
-the zero T and false; if a caller stores zero T, the boolean distinguishes it
-from an empty queue. Storage does not impose a GetBoxID constraint or call into
-pagelayout. Update existing register tests/examples to concrete payload types.
+`Register[T any]` and `RegisterBank[T any]` now replace `FlowMaterial` in the
+existing implementation. Zero-value usability, FIFO order, front insertion,
+structural sharing, concurrent derivation and caller-controlled publication are
+preserved. Empty First/Take results return zero T and false; stored zero/nil
+payloads return true. There is no GetBoxID or comparability constraint and no
+dependency on layout or pagelayout. Payload values are copied as T; reachable
+reference data is shared and must remain immutable while any version uses it.
 
-Test persistent append/take/prepend, independent candidate banks and removal of
-exhausted names. CONT-04 adds content-specific assertions: valid Box payloads,
+Existing tests/examples now use concrete payloads. Additional tests cover zero
+values, typed nils, slices/maps and noncomparable structs, shared pointer identity,
+storage sharing, consumed-prefix copying and drained-storage release. Persistent
+append/take/prepend, independent candidate banks, exhausted-name removal and
+concurrent derivation retain their regression coverage. CONT-04 adds
+content-specific assertions: valid Box payloads,
 qualified identity, retained source lifetime and an unchanged initial bank after
 deriving other versions. The channel/source inventory remains separate metadata.
 
@@ -964,24 +970,45 @@ Exit satisfied: callers can map construction failures with `errors.As`, classify
 original causes with `errors.Is`, and rely on documented build-local identities,
 source/style/text preservation, input immutability and atomic failure results.
 
-### BOX-CONT-02 — Typed register storage
+### BOX-CONT-02 — Typed register storage (implemented)
 
-Convert and regression-test the existing persistent queues as described above.
-Exit: `RegisterBank[T]` retains the existing semantics with no payload interface;
-CONT-04 can instantiate it with concrete content.Box values.
+The existing persistent queues and examples are converted and regression-tested
+as described above. Exit satisfied: `RegisterBank[T]` retains the existing
+semantics with no payload interface or layout dependency. CONT-04 instantiates
+it with concrete content.Box values; content publication is not part of this step.
 
-### CONT-04 — Normalize, index and publish
+### CONT-04 — Normalize, index and publish (implemented)
 
-Build each projected tree through CSS core, supply validated text lookup, index
-groups/owners/nested atomic interiors, and populate an initial RegisterBank[Box]
-with valid branch-root handles in channel source order. Publish it with the
-complete material snapshot only after all branches succeed.
-Add the agreed minimal public reader/inspection API. Validate no duplicate or
-missing ownership and no partially published trees on later-branch failure.
+[`content.Load`](../content/load.go) builds each partition through
+`layout.BuildLayoutTree` with validated decoded-byte text lookup. Private
+[`normalize.go`](../content/normalize.go) checks source ownership/channel order,
+full text coverage and normalized references before publishing the complete
+snapshot. Builder failures map `BuildError` identities to public `LoadError`
+diagnostics while retaining original causes. Later-branch failure returns nil.
 
-Exit: chunk 2 has stable normalized groups, style/text lookup and atomic subtree
-associations without any used dimensions or typography preparation. Returned
-inspection values are independent copies; old snapshots survive later loads.
+[`document.go`](../content/document.go) implements the section 3 reader/inspection
+contract and comparable Box handles retaining snapshot/tree/box identity. The
+initial `RegisterBank[Box]` contains branch roots in channel source order.
+`BranchInfo.Order` is one-based global branch order; TreeIDs are snapshot-local
+and zero is invalid. Residual content has a separate tree identity; a fully
+display-suppressed body has an invalid residual root and no groups.
+
+`GroupInfo` enumerates actual anonymous inline groups in normalized preorder,
+including empty groups. `Owner` is the nearest block box; `Source`/`TextStyle`
+retain its original paragraph context, including anonymous owners. `Atomics`
+lists immediate inline-block boundaries without flattening interiors;
+`ParentAtomic` links each interior group to its nearest containing atomic.
+`Box.Info` returns copied unsized constraints, box paint and source context.
+`NodeSource` retains classification, ownership, original ancestry and copied
+attributes; `TextSource` includes raw decoded text even for excluded sources.
+
+Exit satisfied: fixture tests verify groups/owners/atomics, residual adjacency,
+empty/decorated owners, source typography/paint and unresolved percentages/auto
+sizes. Tests cover nil/unknown handles, copied inspection, independent loads,
+concurrent reads/derivations, retained box lifetime, malformed text references,
+ownership corruption and later-branch failure with source-aware wrapped causes.
+No fonts, used-value resolution, preparation or layout calls are introduced.
+CONT-05's executable integration/handoff examples remain separate work.
 
 ### CONT-05 — Integration examples and handoff
 

@@ -1,10 +1,18 @@
 // Package content is the content-loading pipeline for template-based page layout.
 //
-// CONT-01 implements private source parsing, CSS inspection and styling in the
-// original document context. CONT-02 checks the authored/effective content
-// profile and projects detached source records and typed, unsized render nodes.
-// CONT-03 validates route ownership and partitions channel branches and residual
-// material before normalization. The public material loader and inspection API
-// will follow normalization; no partial source model is exported here.
-// No resources are fetched, scripts executed, boxes built or fonts consulted.
+// Load styles HTML in its original source context, checks the content profile,
+// partitions named flow branches and residual material, and normalizes each tree
+// through css-box-layout. It publishes an immutable Document only after every
+// branch succeeds. Inspection returns copies; Box handles retain private trees,
+// source text and styles, and qualify identity by snapshot and tree.
+//
+// The initial register bank contains whole branch-root Boxes in source order.
+// Deriving another bank leaves the Document unchanged. Residual material remains
+// separate, without an implicit main channel. Groups include empty paragraphs
+// and nested inline-block interiors, with source owner context preserved.
+//
+// Loading fetches no resources, executes no scripts and consults no fonts. Boxes
+// remain unsized; preparation, used geometry and continuation belong to later
+// phases. Readers remain caller-owned. LoadError exposes ordered, source-aware
+// diagnostics and preserves original causes.
 package content

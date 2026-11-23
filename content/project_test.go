@@ -36,7 +36,7 @@ func projectedID(t testing.TB, p *sourceProjection, name string) sourceID {
 
 func projectionFailure(t *testing.T, p *sourceProjection, err error) []diagnostic {
 	t.Helper()
-	var failure *loadError
+	var failure *LoadError
 	if p != nil || !errors.As(err, &failure) || len(failure.items) == 0 {
 		t.Fatalf("expected atomic projection failure: %v %v", p, err)
 	}

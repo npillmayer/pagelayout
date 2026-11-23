@@ -198,7 +198,7 @@ func FuzzParseSource(f *testing.F) {
 	f.Fuzz(func(t *testing.T, input string) {
 		s, err := parseSource(strings.NewReader(input), "fuzz.html")
 		if err != nil {
-			var failure *loadError
+			var failure *LoadError
 			if s != nil || !errors.As(err, &failure) || len(failure.items) == 0 {
 				t.Fatal("partial source or unstructured error")
 			}

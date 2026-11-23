@@ -272,15 +272,20 @@ detached, typed unsized projection with source typography, paint, edges, text
 ranges and suppression classifications. Run `go test ./content` for these checks.
 CONT-03 validates route ownership and partitions independent channel branches
 and residual material, preserving source order, styles and emptied ancestors.
-Public material loading and normalization remain pending. DOM-CONT-01
+CONT-04 exposes `content.Load`, immutable Documents, copied source/box/group
+inspection and an initial `RegisterBank[content.Box]`. Independent branches are
+normalized through CSS core; residual material stays separate. Group inspection
+includes anonymous owners and nested atomic interiors without measuring them.
+DOM-CONT-01
 adds the shared
 `w3c-dom/style/textstyle` source snapshots, and TY-CONT-01 migrates tytui's
 compatibility facade. DOM-CONT-02 adds checked source-font border resolution,
 including inherited em/rem widths, with an acceptance-fixture integration test.
 CONT-02 consumes these sibling services and preserves inherited source lengths
 and unresolved percentages. BOX-CONT-01 supplies structured `layout.BuildError`
-locations/causes and independent filtered-tree contract tests. Generic registers
-remain BOX-CONT-02 work.
+locations/causes and independent filtered-tree contract tests. BOX-CONT-02 adds
+generic persistent `Register[T]`/`RegisterBank[T]` storage without payload-method
+requirements. CONT-05's executable integration examples and handoff remain.
 Floats, preparation and page trials remain later work.
 
 See [the loading package and PR plan](doc/TEMPLATE-LOADING.md),

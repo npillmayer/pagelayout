@@ -14,7 +14,7 @@ import (
 
 func expectFailure(t testing.TB, source *styledSource, err error) []diagnostic {
 	t.Helper()
-	var failure *loadError
+	var failure *LoadError
 	if source != nil || err == nil || !errors.As(err, &failure) || len(failure.items) == 0 {
 		t.Fatalf("expected atomic structured error, got source=%v, err=%v", source, err)
 	}
@@ -244,7 +244,7 @@ func TestDiagnosticOrderingCoordinatesAndCopies(t *testing.T) {
 		}
 		previous = ds
 		original := err.Error()
-		var failure *loadError
+		var failure *LoadError
 		errors.As(err, &failure)
 		copy := failure.diagnostics()
 		copy[0].message = "mutated"

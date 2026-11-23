@@ -170,7 +170,7 @@ func TestRouteFailuresAreAtomicAndLocated(t *testing.T) {
 		{`<div style="display:inline-block"><section style="flow-into:a">x</section></div>`, "route.ancestry"},
 	} {
 		r, err := loadPartition(strings.NewReader(tc.src), LoadOptions{SourceName: "routes.html"})
-		var e *loadError
+		var e *LoadError
 		if r != nil || !errors.As(err, &e) || len(e.items) == 0 {
 			t.Fatalf("partial or missing failure: %v", err)
 		}
@@ -191,7 +191,7 @@ func TestRouteFailuresAreAtomicAndLocated(t *testing.T) {
 	}
 	// Earlier phases remain authoritative, and no partial partition escapes.
 	r, err := loadPartition(strings.NewReader(fixture(t, "float_err.html")), LoadOptions{})
-	var e *loadError
+	var e *LoadError
 	if r != nil || !errors.As(err, &e) || e.items[0].stage != "profile" {
 		t.Fatal(err)
 	}

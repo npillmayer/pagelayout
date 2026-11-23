@@ -5,18 +5,19 @@ Date: 2026-11-22. Status: adopted acceptance contract. These files accompany
 parser/inspector/styler and CONT-02's typed projection/profile are implemented.
 Tests cover source styles, typography, paint, typed lengths, decoded text ranges,
 unsized atomics and participation classifications. CONT-03 tests ordered channel
-branches, exclusive source ownership and residual projections. Normalized trees,
-groups and public results below remain requirements for CONT-04/05, not
-captured output from a public material loader. These are content documents,
+branches, exclusive source ownership and residual projections. CONT-04's
+`document_test.go` and `normalize_test.go` verify normalized trees/groups,
+public inspection, atomic publication and persistent bank/handle lifetime.
+CONT-05's executable examples remain pending. These are content documents,
 not template collections accepted by `pgtmpl`.
 
-Run `go test ./content` from the module root for source and projection checks.
+Run `go test ./content` from the module root for source through publication checks.
 `loadSource` retains both `_err` files as styled source. `loadProjection` rejects
 `float_err.html` with the expected authored profile diagnostic; nested-flow
 ownership fails in CONT-03's `loadPartition` with both conflicting sources.
-Channel partitions are private; public documents/registers remain unimplemented.
-Route-free builder contract tests verify anonymous-owner font context; the
-production loader does not yet normalize or index horizontal groups.
+Public `Load` composes those stages with normalization and group indexing.
+The private trees remain inaccessible through mutable pointers; inspection
+returns copies and registers hold read-only branch-root Box handles.
 
 DOM-CONT-02 adds a focused integration check in `content/border_fonts_test.go`:
 the shared text-style snapshots and border getter resolve story-b's `.1em`
@@ -244,7 +245,7 @@ deferred scope boundary, not future image/table-to-frame placement. Error prose
 and numeric source IDs are not fixed. Preserve wrapped upstream causes wherever
 an upstream operation fails, and order diagnostics deterministically.
 
-## Additional assertions when implementation lands
+## Additional focused assertions
 
 These small fixture files anchor the contract; future tests should add focused
 variants without requiring separate fixture files for every case:

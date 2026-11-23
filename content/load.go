@@ -18,6 +18,17 @@ type LoadOptions struct {
 	Stylesheets []Stylesheet
 }
 
+// Load parses, styles, routes and normalizes a complete content document. It
+// publishes no partial Document on failure. The caller owns r and supplies any
+// additional CSS as text; loading neither fetches resources nor opens fonts.
+func Load(r io.Reader, opts LoadOptions) (*Document, error) {
+	p, err := loadPartition(r, opts)
+	if err != nil {
+		return nil, err
+	}
+	return normalizePartition(p)
+}
+
 // loadSource is the private CONT-01 boundary. Its result is styled source, not a
 // Document or validated layout material. Every invocation owns fresh DOM/CSSOM
 // state. A failure returns no partial source. The caller retains reader ownership.
