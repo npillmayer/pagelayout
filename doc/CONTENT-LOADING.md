@@ -1032,9 +1032,10 @@ Do not claim BOX-CONT-01 completes the later preparation driver.
 
 Check ownership before normalization; afterward check valid references and
 documented suppression rather than assuming a one-to-one source-node/box mapping.
-Add a small routing fuzz target after deterministic cases: any successful result
-must satisfy exclusive ownership, ordering and range invariants; failures must
-publish nothing. Use normal Go formatting/tests in each touched module and
+Decision (2026-11-23): the proposed routing fuzz target was omitted and will not
+be added to complete CONT-03; this is not outstanding work. Deterministic tests
+remain the validation basis for exclusive ownership, ordering, text ranges and
+failure atomicity. Use normal Go formatting/tests in each touched module and
 integration regression tests in tytui when its shared facade changes. A later
 render proof may help inspection, but must not become a hidden layout dependency
 of content loading.
