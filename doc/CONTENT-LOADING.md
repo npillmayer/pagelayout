@@ -4,8 +4,9 @@ Date: 2026-11-23. Status: CONT-00 adopted and complete. CONT-01 source parsing,
 inspection and styling, CONT-02 typed projection/effective profile, and CONT-03
 route ownership/partitioning are implemented. DOM-CONT-01's shared text-style
 service, TY-CONT-01's tytui migration and DOM-CONT-02's source-font border helper
-are implemented. The public material loader, normalization and BOX-CONT
-work remain pending.
+are implemented, as is BOX-CONT-01's structured builder-error and partition
+contract work. The public material loader, normalization and BOX-CONT-02's
+generic registers remain pending.
 Floats remain explicitly deferred.
 
 This plan develops the content-input phase of [DESIGN.md](DESIGN.md), following
@@ -27,7 +28,7 @@ CONT-00 adopts concrete `content.Box` handles as payloads and a generic conversi
 of those existing queues, preserving their persistent behavior.
 
 Section 11 records the adopted decisions separately from later open questions.
-CONT-04 onward and the BOX-CONT items remain implementation
+CONT-04 onward and BOX-CONT-02 remain implementation
 work. References describe checked-out implementations; code sketches describe
 the adopted target API unless explicitly identified as implemented.
 
@@ -817,20 +818,27 @@ No change to tytui's CLI, image markers, font discovery, preparation lifetime,
 single-group flow API or rendering is required for chunk 1. Moving the entire
 `documentlayout` package is optional future integration work, not a prerequisite.
 
-### BOX-CONT-01 — Structured construction errors and partition contract tests
+### BOX-CONT-01 — Structured construction errors and partition contract tests (implemented)
 
-**Required to meet source-specific normalization diagnostics.** The current
-builder wraps several errors with a textual `node N` prefix and error sentinels.
-Expose a structured construction error carrying the relevant source NodeID and
-underlying cause. Preserve `errors.Is` compatibility. Update display, style,
-text-range and normalization paths consistently; if no single node applies,
-identify the branch/tree boundary without inventing a node.
+**Required to meet source-specific normalization diagnostics; implemented.**
+Both builders now return `*layout.BuildError`: RootID identifies the supplied
+branch root; HasNode/NodeID identify the offending source when one applies;
+Err/Unwrap preserve `errors.Is` and typed `errors.As` causes. HasNode distinguishes
+an actual zero source ID from a tree-wide failure. Display, style, positioning,
+replaced-content and text errors retain their source through nested construction;
+allocation-wide failures identify the input boundary without inventing a source
+for an anonymous box. ReadText callback errors retain their causes and are not
+mutated. Direct validators and geometry APIs retain their existing contracts.
 
-Add regression tests confirming that independently built, filtered render
-projections preserve their source IDs/text ranges and do not mutate the input;
-explicit root font/whitespace snapshots must survive changed projection ancestry.
-Document BoxID scope across independent builds. These tests support an existing
-construction API rather than introducing channel semantics to the engine.
+The sibling's `layout/partition_test.go` verifies independently built, filtered
+render projections: source IDs and decoded text ranges survive, input values
+remain unchanged, explicit root font/whitespace snapshots survive detachment,
+and residual inline adjacency/emptied decorated containers normalize correctly.
+Repeated and concurrent builds keep separate value storage; a later failure
+does not change earlier results. BoxIDs are scoped to each construction call
+(including that call's fixed roots) and can repeat in independent builds.
+These tests support the existing API rather than introducing channel semantics.
+CONT-04 can map structured source IDs to its own diagnostics without parsing text.
 
 **No required named-flow callback or forest API for the first profile.**
 The existing `registers` package already covers channel material storage;
@@ -947,13 +955,14 @@ content stays classified; unmatched channels and residual content are retained.
 Tests cover invalid roots/ancestry, inherited and same-name nesting, no partial
 results, emptied decorated ancestors, independent copies and concurrent calls.
 
-### BOX-CONT-01 — Builder diagnostics and independent-tree contracts
+### BOX-CONT-01 — Builder diagnostics and independent-tree contracts (implemented)
 
-Deliver structured source errors and the regression coverage described above.
-Keep behavior of existing builders and tytui geometry unchanged.
+Structured `layout.BuildError` and the independent-projection regression tests
+described above are implemented. Construction and geometry behavior are retained.
 
-Exit: callers can map normalization failures to source identities using
-`errors.As`, and independent builds have documented identity/ownership behavior.
+Exit satisfied: callers can map construction failures with `errors.As`, classify
+original causes with `errors.Is`, and rely on documented build-local identities,
+source/style/text preservation, input immutability and atomic failure results.
 
 ### BOX-CONT-02 — Typed register storage
 

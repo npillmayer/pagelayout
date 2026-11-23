@@ -15,8 +15,9 @@ residual preservation and normalized group indexing. Its output is unsized box
 material with source context, not prepared paragraphs. CONT-00 has adopted that
 loading contract and its fixtures; CONT-01/02/03 implement private source loading,
 typed projection and route partitions. **Content loading is not yet complete:**
-BOX-CONT-01/02 and CONT-04/05 still need builder diagnostics, generic registers,
-normalization/group indexing, public publication and integration examples.
+BOX-CONT-01's builder diagnostics and independent-tree contracts are implemented;
+BOX-CONT-02 and CONT-04/05 still need generic registers, normalization/group
+indexing, public publication and integration examples.
 The preparation interfaces remain proposals. Sections 11–14 add the recommended
 register/session model, decision gates, PR sequence and acceptance tests. They
 refine the earlier callback/driver sketch where functional ownership requires it.
@@ -474,8 +475,8 @@ boundary; do not label the full phase complete after the first preparation call.
 
 **Owners:** pagelayout; prerequisite css-box-layout content work.
 
-Finish BOX-CONT-01 (structured builder errors), BOX-CONT-02 (generic registers),
-CONT-04 (normalization, group indexing, immutable public material) and CONT-05
+BOX-CONT-01 (structured builder errors) is complete. Finish BOX-CONT-02 (generic
+registers), CONT-04 (normalization, group indexing, immutable public material) and CONT-05
 (executable handoff). Review section 12, freeze snapshot/session ownership and
 choose the admitted hyphenation subset. The public content.Box remains the
 adopted branch handle. Agree service failure/cleanup and source error mapping;

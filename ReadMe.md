@@ -278,7 +278,9 @@ adds the shared
 compatibility facade. DOM-CONT-02 adds checked source-font border resolution,
 including inherited em/rem widths, with an acceptance-fixture integration test.
 CONT-02 consumes these sibling services and preserves inherited source lengths
-and unresolved percentages. Box/register changes remain pending.
+and unresolved percentages. BOX-CONT-01 supplies structured `layout.BuildError`
+locations/causes and independent filtered-tree contract tests. Generic registers
+remain BOX-CONT-02 work.
 Floats, preparation and page trials remain later work.
 
 See [the loading package and PR plan](doc/TEMPLATE-LOADING.md),
