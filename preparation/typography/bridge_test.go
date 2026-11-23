@@ -22,10 +22,16 @@ import (
 	"github.com/npillmayer/typography/glyphing/paragraph"
 )
 
-type testFace struct{ metrics, scales atomic.Int64 }
+type testFace struct {
+	metrics, scales atomic.Int64
+	failMetricAt    int64 // Set only between serialized executions.
+	metricError     error
+}
 
 func (f *testFace) Metrics() (contracts.FontMetrics, error) {
-	f.metrics.Add(1)
+	if f.metrics.Add(1) == f.failMetricAt {
+		return contracts.FontMetrics{}, f.metricError
+	}
 	return helpers.SyntheticFont{}.Metrics()
 }
 func (f *testFace) Scale(size dimen.DU) (contracts.FontScale, error) {

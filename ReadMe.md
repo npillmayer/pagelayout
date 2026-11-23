@@ -301,8 +301,10 @@ TYPE-PREP-01 adds the optional [typography bridge](preparation/typography/README
 using explicit loaded-font/stream services for itemization and reusable paragraph
 preparation. Its tests use fake fonts with the real typography pipeline. PREP-03
 adds `MeasureIntrinsic`, reusing preparation for nested width measurements with
-checked signed atomic contributions and no final layout. PREP-04 whole-tree
-layout is next; real-font visual proofs, floats and page trials remain later work.
+checked signed atomic contributions. PREP-04 adds independent whole-tree Layout
+results with copied CSS geometry and frozen paragraphs, reusing the same session
+at multiple widths. PREP-05 real-font/lifetime proofs, floats and page trials
+remain later work.
 
 See [the loading package and PR plan](doc/TEMPLATE-LOADING.md),
 [the broader design](doc/DESIGN.md), and

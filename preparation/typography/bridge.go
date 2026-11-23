@@ -2,8 +2,8 @@
 // preparations. Call content.Prepare with a Backend constructed by New. Font
 // selection and discovery belong to the caller; no default backend is installed.
 // Sessions own executable preparations, while source/paint metadata stays copied
-// and immutable. Intrinsic measurement reuses these handles; used sizing, final
-// layout and page trials remain separate integrations.
+// and immutable. Intrinsic measurement and independent whole-tree layout reuse
+// these handles. Page selection, fragmentation and bank commits remain separate.
 package typography
 
 import (

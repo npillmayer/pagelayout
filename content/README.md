@@ -83,7 +83,7 @@ enumeration, PREP-01's detached extraction and PREP-02's neutral preparation
 protocol are implemented. TYPE-PREP-01's optional
 [typography backend](../preparation/typography/README.md) now supplies itemization
 and paragraph preparation with explicit services. PREP-03 adds intrinsic
-measurement using the same pair; PREP-04 whole-tree layout is next.
+measurement using the same pair; PREP-04 adds independent whole-tree layout.
 
 | Published material | Use at the preparation boundary |
 | --- | --- |
@@ -112,6 +112,16 @@ borrowed value-returning edge/atomic views. It exposes no raw tree, creates no
 used geometry and consumes no bank. The whole invocation reserves the exact pair;
 missing coverage, closed sessions and reentrancy fail without re-preparation.
 Each call has fresh scratch; failures publish zero bounds and preserve causes.
+
+`Layout(prepared, session, root, width, layouter)` reserves the pair for CSS used
+resolution, recursive measurement and complete subtree flow. An explicit fresh
+`GroupLayouter` receives existing handles and borrowed value views. Every requested
+group must have preparation coverage before service work; final callbacks may run
+only once per invocation. Success returns copied CSS geometry keyed by qualified
+Boxes and group descriptions. Errors return nil. The optional typography bridge
+collects frozen paragraph/source/paint output and publishes it with the geometry
+only after complete success. Neither tree pointers nor typography types enter
+the neutral contract. Page fitting and bank advancement remain separate.
 
 Extraction reuses `text.NormalizeNormal` and returns copied UTF-8 text, source
 maps, DOM style spans, separate foreground paint, hyphenation policies, bidi
@@ -161,8 +171,8 @@ Two preparations of one document have the same source Boxes and distinct IDs.
 qualified identities before invoking a callback with its backend's `GroupHandle`.
 The callback may use a typed backend API and retain frozen results, but must not
 retain/release the borrowed handle or reenter the session. Execution failure
-leaves the session usable. No geometry or paragraph-result type is added to the
-neutral protocol; those belong to the later bridge/trial work.
+leaves the session usable. Layout's CSS geometry result is separate from the
+preparation snapshot; concrete paragraph results belong to the optional bridge.
 
 Serialize all session operations and shared-service use, including `Close`.
 Closing releases handles in reverse order, drops references even on failure and
@@ -174,13 +184,10 @@ assume backend methods honor the ownership contract; panics are not recovered.
 See the [recording-backend example](prepare_example_test.go), executable with
 `go test ./content -run '^ExamplePrepare$' -v`. The fake-engine tests prove the
 neutral lifecycle. The typography bridge separately tests the real paragraph
-pipeline with explicit fake fonts/streams; two-width layout remains later work.
-
-The proposed two-width experiment should load once, extract/prepare once, then
-use the same group and atomic identities for two independent layout results.
-Choose `hyphens:none` explicitly in that experiment's source; the current fixtures
-retain their `manual` policy. Do not silently alter it in the loader. Frame widths
-are inputs to later measurement/layout, never to `Load` or the source cascade.
+pipeline with explicit fake fonts/streams, including two-width layout and late
+failure/retry. The unchanged nested fixture uses source `hyphens:none`; manual
+fixtures keep their authored policy. Never silently alter it in the loader.
+Receiving widths are layout inputs, never inputs to `Load` or the source cascade.
 
 Content's immutable bank payloads remain boxes throughout. Prepared metadata and
 effectful engine sessions belong to the separately specified preparation layer.

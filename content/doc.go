@@ -24,7 +24,10 @@
 // reverse order and preserves causes through PreparationError. The optional
 // preparation/typography package supplies the typography backend. MeasureIntrinsic
 // reuses existing handles through a neutral measurement callback while keeping
-// trees private; used sizing, final layout and page trials remain later work.
+// trees private. Layout reserves the same pair for CSS used sizing and complete
+// subtree flow, with separate callback/result state per invocation. It publishes
+// copied CSS geometry only after success; the optional bridge owns frozen
+// paragraph output. Page fitting, fragmentation and bank commits remain later work.
 //
 // Executable examples demonstrate the sketch input, a channel/branch/group
 // report, persistent banks, additional stylesheets and structured failures.

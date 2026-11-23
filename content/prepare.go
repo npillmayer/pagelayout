@@ -143,6 +143,7 @@ const (
 	StageAccess      PreparationStage = "access"
 	StageExecution   PreparationStage = "execution"
 	StageMeasurement PreparationStage = "measurement"
+	StageLayout      PreparationStage = "layout"
 	StageRelease     PreparationStage = "release"
 )
 

@@ -4,8 +4,8 @@ Date: 2026-11-23. Status: PREP-00 contract/fixtures, BOX-PREP-01 shared enumerat
 and PREP-01 extraction complete. PREP-02's neutral preparation protocol and
 session lifecycle are implemented. TYPE-PREP-01 connects the real typography
 pipeline with explicit fake-font/stream integration tests. PREP-03 reuses that
-preparation for intrinsic measurement. PREP-04 whole-tree layout is next;
-real-font proofs and page trials remain later work.
+preparation for intrinsic measurement. PREP-04 now publishes independent whole-tree
+layout results. PREP-05's real-font/lifetime proofs and page trials remain later work.
 
 This note develops the preparation phase introduced in [DESIGN.md](DESIGN.md).
 Preparing reusable content before page trials is established direction. The
@@ -13,7 +13,7 @@ first-slice ownership and policy decisions in sections 11–12 are now pinned by
 PREP-00. BOX-PREP-01 implements shared structural enumeration; PREP-01 implements
 detached extraction. PREP-02 publishes the neutral protocol and isolated sessions;
 TYPE-PREP-01 adds the typography bridge; PREP-03 adds intrinsic measurement.
-Whole-tree layout integration and subsequent milestones remain unimplemented. Earlier
+PREP-04 adds whole-tree layout integration; subsequent milestones remain unimplemented. Earlier
 conceptual sketches yield to those decisions. The sibling modules are under our control;
 their current limitations identify integration work rather than permanent limits
 on this design.
@@ -581,9 +581,10 @@ isolation and snapshot/session lifetime. TYPE-PREP-01 checks actual typography
 preparation with injected fake fonts/streams, retaining lazy manual measurement
 restrictions. PREP-03 exercises public measurement, nested atomic contributions,
 signed margins, request-sensitive answers and failure/retry without base reshaping.
-Two-width layout results remain later work.
+PREP-04 verifies two-width results, exact atomic geometry and late assembly
+failure/retry using the same synthetic services.
 
-With PREP-03 implemented, no unresolved first-slice decision blocks PREP-04.
+With PREP-04 implemented, no unresolved first-slice decision blocks PREP-05.
 Wider span-level/automatic hyphenation and intrinsic support require KHIPU-PREP
 work; ordinary-inline edges,
 percentage-atomic sizing cycles, font discovery, concurrent sessions sharing
@@ -606,7 +607,7 @@ package imports; separate adapter modules would be independent packaging work.
 PREP-00 is complete as a contract/fixture milestone; BOX-PREP-01's shared
 enumeration/content-index migration, PREP-01's extraction and PREP-02's neutral
 protocol/session lifecycle, TYPE-PREP-01's typography bridge and PREP-03's
-intrinsic integration are implemented. PREP-04 and later entries are
+intrinsic integration and PREP-04's whole-tree results are implemented. PREP-05 and later entries are
 unimplemented integration work. Cross-module changes must follow each sibling's
 instructions. Each PR has a narrow acceptance
 boundary; do not label the full phase complete after the first preparation call.
@@ -805,7 +806,7 @@ manual admission/lazy discovery, auto/mixed/service rejection, late itemization/
 factory/acceptance/shaping failures, stream finishing, cleanup, retry and retained
 output after Close. Production dependency tests exclude OpenType/fontfind/tytui
 from the bridge and typography/khipu from content/template/CSS core. Public
-measurement is implemented in PREP-03; trial integration remains PREP-04 and real-font visual proof is
+measurement is implemented in PREP-03 and whole-tree trial integration in PREP-04; real-font visual proof is
 PREP-05. See the [bridge guide](../preparation/typography/README.md).
 
 ### PREP-03 — Consume preparation during intrinsic measurement (implemented)
@@ -846,29 +847,51 @@ Unsupported percentage cycles and manual alternatives preserve causes and leave
 the session/previous outputs usable; failed lazy discovery retries and complete
 batches are reused. Source-aware failures use StageMeasurement and retain upstream
 paragraph stages. Typography still imports no concrete font backend; content/CSS
-core import no typography. Whole-tree used sizing/layout remains PREP-04.
+core import no typography. PREP-04 adds whole-tree used sizing/layout separately.
 
-### PREP-04 — Produce independent whole-tree trial results
+### PREP-04 — Produce independent whole-tree trial results (implemented)
 
 **Owner:** pagelayout orchestration and typography bridge.
 
-Reuse existing ResolveUsedValues/FlowLayout with fresh callback instances for each
-trial. Route both measurement and layout to the same preparation session. Layout
-uses prepared paragraph trials/assembly and core-completed atomic dimensions;
-retain typed paragraph output, source/paint mappings and CSS geometry in a fresh
-invocation collector. Publish that bundle only after the entire requested tree
-succeeds. Failed late atomic/paragraph work returns no partial candidate.
+`preparation/typography.Layout(prepared, session, root, LayoutRequest)` runs a
+covered block container/subtree at a CSS-pixel containing width. FirstFit must be
+selected explicitly; zero width is valid. The initial profile uses CSS normal
+line height, zero side skips and bottom-margin-edge atomic alignment. Percentage
+dependencies and manual hyphenation retain the existing engine restrictions.
 
-Keep core InlineResult geometry-only; an opaque paragraph payload on LayoutNode
-or LayoutGeometry is unnecessary. Each new invocation has its own callback
-tracking, so the existing within-invocation no-repeat policy need not become a
-shared "already laid out" flag. Retain accepted frozen results without their
-session; trial constraints and tables must not remain borrowed in preparation.
+Neutral `content.Layout` reserves the exact pair, checks every requested group's
+coverage before services, then runs existing ResolveUsedValues/FlowLayout.
+GroupLayouter combines measurement and layout against the same retained handles.
+Callbacks receive qualified group/owner Boxes and borrowed value views, never raw
+tree nodes. Each call owns fresh used values, callback tracking and a collector;
+repeated final callbacks are rejected within that invocation, including failures.
+Nothing is added to source trees, registers or core InlineResult payloads.
 
-**Exit:** lay out the same outer/nested-atomic preparation at two widths; both
-candidates coexist and neither changes after another succeeds or fails. Counts
-show no second base shaping. Trial geometry differs where expected while source,
-bank, preparation manifest and immutable trees remain unchanged.
+The bridge calls retained Prepared.Trial followed by Trial.Assemble. Core supplies
+completed atomic border dimensions; margins are converted independently, with
+checked units/ranges and no duplicate padding/border contribution. Fractional
+paragraph placements remain big points in the typed result; only the CSS summary
+is narrowed. No preparation or receiving style cascade is repeated.
+
+Success returns a Result with Root/Groups/Group/Geometry accessors. Geometry is
+keyed by qualified content.Box; RelativeTo is a tree-local BoxID. GroupResult
+contains copied source/paint/atomic metadata and frozen paragraph output, whose
+coordinates are relative to the owner's content origin. Maps, slices and mutable
+envelopes are copied on inspection; frozen paragraphs/VLists remain shared
+immutable values. Results retain source/font resources but no session,
+preparation, discovery or trial workspace. Borrowed fonts must stay valid.
+Only complete subtree success publishes the bundle; failure returns nil and
+preserves source-associated PreparationError and upstream paragraph causes/stages.
+No page fitting or bank advancement is implied. No sibling API change was needed.
+
+**Exit satisfied:** the unchanged nested fixture produces coexisting results at
+120px and 240px without second base shaping; later success/failure and session
+Close preserve them. Tests cover source-tree/bank/manifest stability, subtree and
+session identity, reentrancy, incomplete coverage, callback rejection, exact
+atomic borders/margins/coordinates, zero width/empty groups, request and finite
+range validation, percentage-cycle failure, and late vertical-metric failure
+followed by successful retry. Real-font proofs, executable handoff and GC lifetime
+evidence remain PREP-05; BOX-PREP-02 terminology cleanup remains independent.
 
 ### BOX-PREP-02 — Clarify names for realized atomics
 

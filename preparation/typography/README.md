@@ -79,7 +79,7 @@ Base preparation runs once per group. Manual alternatives may be shaped lazily
 later; this is not a promise of zero later service calls. Intrinsic measurement
 retains the upstream restriction to bounded explicit alternatives and reports
 unsupported multiple splits without changing source policy. PREP-03 now provides
-the public intrinsic operation; whole-tree layout remains PREP-04.
+the public intrinsic operation; PREP-04 adds independent whole-tree layout.
 
 After preparation, measure a branch or residual block container using the same
 pair (import `github.com/npillmayer/css-box-layout/layout` for the context):
@@ -109,6 +109,39 @@ The content-side adapter exposes qualified box handles and borrowed value views,
 never a raw mutable LayoutNode. `content.MeasureIntrinsic` and `GroupMeasurer`
 are the neutral orchestration contract for other explicitly supplied backends.
 
+Lay out the same prepared subtree at different widths with explicit FirstFit:
+
+```go
+first, err := prep.Layout(prepared, session, doc.Residual().Root,
+    prep.LayoutRequest{Width: 120, Breaker: paragraph.FirstFit})
+// Handle err before using first. Import typography/glyphing/paragraph.
+second, err := prep.Layout(prepared, session, doc.Residual().Root,
+    prep.LayoutRequest{Width: 240, Breaker: paragraph.FirstFit})
+```
+
+Both successful results coexist; a later failure returns nil without changing
+either. The bridge supplies CSS normal line height, explicit zero side skips and
+bottom-margin-edge atomic alignment. Other breakers, page fitting, continuation
+and bank commits are outside this first slice. Width is a containing-block width;
+source CSS still determines content widths. Zero width and overfull lines are valid
+where supported by the paragraph engine.
+
+`Result.Geometry()` copies CSS-pixel geometry keyed by qualified `content.Box`.
+`RelativeTo` is a BoxID within the result root's tree. `Groups()` returns normalized
+preorder; `Group(box)` copies the source/paint input and paragraph envelope. Its
+frozen paragraph and VList are immutable. Paragraph coordinates and atomic
+placements remain big points relative to the owner's content origin. Do not
+translate or stack them a second time. Result accessors work after session Close;
+keep the borrowed font resources valid for retained output.
+
+Each invocation owns callback tracking and a private paragraph collector.
+`content.Layout` checks complete subtree coverage and reserves the pair across
+used-value resolution, recursive measurement and final layout. Only complete
+success publishes CSS geometry together with all paragraphs. A failed final
+callback is not retried within that invocation; a fresh call may retry using the
+same preparation. The bridge uses Prepared.Trial/Trial.Assemble, never prepares on
+a cache miss, and retains no trial requests or geometry on the session handles.
+
 Tests exercise the real mapper/itemizer/paragraph pipeline with explicitly
 injected fake fonts and synthetic streams. They cover all eight preparation
 fixtures, owner struts, paint bypass, source/atomic mappings, lazy manual policy,
@@ -118,3 +151,7 @@ do not claim real-font visual proof or page composition; that remains PREP-05.
 Measurement tests also cover the acceptance fixtures, nested auto widths, signed
 and fractional contributions, request changes, percentage-cycle errors and lazy
 manual discovery failure/retry without repeating base shaping.
+Layout tests check independent two-width results, exact atomic geometry, source
+and bank stability, detached accessors, identity/coverage/reentrancy, failed core
+validation and late assembly failures followed by retry. Real-font visual and GC
+lifetime proofs remain PREP-05.

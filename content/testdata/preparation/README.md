@@ -4,8 +4,8 @@ Status: contract and fixtures pinned on 2026-11-23. All eight inputs load and
 PREP-01 extraction matches their expected text/source/atomic mappings. PREP-02
 verifies fake-engine counts and policy admission. TYPE-PREP-01 repeats preparation
 with the real typography pipeline and explicit fake fonts/streams. PREP-03
-exercises public intrinsic measurement and reuse. Whole-tree layout integration
-and real-font proofs remain future work.
+exercises public intrinsic measurement and reuse. PREP-04 exercises independent
+whole-tree layout results; real-font and GC lifetime proofs remain PREP-05.
 See [PREPARATION.md](../../../doc/PREPARATION.md#12-prep-00-decisions-and-deferred-extensions).
 
 `expected.json` pins raw decoded text, processed UTF-8, text-source spans, owner
@@ -83,13 +83,19 @@ changes to fixture source spans are intentional.
 
 ## Reuse and failure acceptance
 
-For the future two-width trial, use `nested.html` unchanged: source `hyphens:none`
+For the implemented two-width trial, use `nested.html` unchanged: source `hyphens:none`
 is explicit. Load once and prepare all three groups once. Measure/layout at 120px
 and 240px using the same snapshot/session pair and explicit services. Repeated
 trials add **zero** group preparation calls; target widths never enter Prepare.
-Do not pin line counts without the later fake/real-font acceptance configuration.
+The bridge tests use explicit fake fonts/streams; real-font acceptance follows.
 Each candidate owns its geometry and paragraph results; rejecting one leaves the
 other and the original bank unchanged.
+
+PREP-04 checks two-width layout, subsequent success/failure and retained output
+after Close with the real paragraph Trial/Assemble pipeline and synthetic fonts.
+It checks exact atomic dimensions/coordinates, qualified scope, immutable source
+trees and bank payloads, detached results, late metric failure and successful
+retry without base shaping. No page-level acceptance or bank commit is performed.
 
 PREP-03 verifies the measurement part independently: nested auto bounds reuse all
 base preparations, changed atomic inputs are not cached as group-only answers,
