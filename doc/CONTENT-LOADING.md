@@ -6,8 +6,9 @@ route ownership/partitioning are implemented. DOM-CONT-01's shared text-style
 service, TY-CONT-01's tytui migration and DOM-CONT-02's source-font border helper
 are implemented, as are BOX-CONT-01's structured builder-error/partition contracts
 and BOX-CONT-02's generic persistent registers. CONT-04 implements normalization,
-group indexing and the public immutable material loader. CONT-05's executable
-integration examples and handoff remain outstanding.
+group indexing and the public immutable material loader. CONT-05 completes the
+executable integration examples and preparation handoff. Content loading chunk 1
+is complete; preparation remains a separate proposed phase.
 Floats remain explicitly deferred.
 
 This plan develops the content-input phase of [DESIGN.md](DESIGN.md), following
@@ -30,8 +31,8 @@ the generic conversion of those queues, preserving their persistent behavior;
 CONT-04 supplies the content handles and initial bank.
 
 Section 11 records the adopted decisions separately from later open questions.
-CONT-05 remains implementation work. References describe checked-out implementations; code sketches describe
-the adopted target API unless explicitly identified as implemented.
+All content-loading slices are implemented. References describe checked-out
+implementations; the later preparation and page-trial proposals remain separate.
 
 ### Implemented CONT-01 boundary
 
@@ -365,8 +366,8 @@ consider a bulk constructor only if realistic collection sizes justify it.
 ## 4. Acceptance fixtures and expected results
 
 The canonical inputs and assertion tables now live alongside the content package
-in [content/testdata](../content/testdata/README.md). They specify required future
-material-loader results. CONT-01/02 tests exercise source/style, typed projection,
+in [content/testdata](../content/testdata/README.md). They specify the tested
+material-loader contract. CONT-01/02 tests exercise source/style, typed projection,
 text ranges and participation classification. CONT-03 tests verify ordered channel
 branches, exclusive ownership and residual projections. CONT-04 tests normalized
 boxes/groups, source context, atomic associations, publication and bank lifetime.
@@ -387,9 +388,10 @@ persistence. HTML IDs label source nodes for review; they do not replace NodeIDs
 or freeze numeric TreeIDs/BoxIDs. Future tests must identify anonymous groups
 through their source owners and qualified handles rather than hard-coded IDs.
 
-Also reuse the [existing content sketch](../template/testdata/content/article.html)
-in CONT-05 as content, never as templates. No pgtmpl invocation can load these
-fixtures as content yet.
+CONT-05's `ExampleLoad` also uses the
+[existing content sketch](../template/testdata/content/article.html) directly as
+content, separately from templates. No pgtmpl invocation loads these fixtures
+as content; a content CLI is outside this milestone.
 
 ## 5. Adopted loading stages
 
@@ -888,7 +890,7 @@ The source text normalization helper in `css-box-layout/text` and the extraction
 algorithm in tytui remain references for chunk 2. Source parsing, CSS semantics,
 box normalization and typography should each keep one implementation owner.
 
-## 9. Proposed PR sequence and exit criteria
+## 9. PR sequence and exit criteria
 
 ### CONT-00 — Agree the boundary and executable fixture (complete)
 
@@ -1008,18 +1010,32 @@ sizes. Tests cover nil/unknown handles, copied inspection, independent loads,
 concurrent reads/derivations, retained box lifetime, malformed text references,
 ownership corruption and later-branch failure with source-aware wrapped causes.
 No fonts, used-value resolution, preparation or layout calls are introduced.
-CONT-05's executable integration/handoff examples remain separate work.
+CONT-05 supplies the executable integration examples and preparation handoff.
 
-### CONT-05 — Integration examples and handoff
+### CONT-05 — Integration examples and handoff (implemented)
 
-Add executable loading/routing examples and a diagnostic description of channels,
-branches, source paths and normalized group owners. Use the existing sketch
-content and the richer routing fixture. Document exact supported behavior and
-link the preparation experiment to the published source/material contract.
+[`content/example_test.go`](../content/example_test.go) contains five executable
+examples using only the public API: the original sketch content, a routing and
+group report, persistent bank operations, additional author stylesheets and
+source-aware load errors. Run `go test ./content -run '^Example' -v` from the
+module root. The inputs are checked-in fixtures; callers explicitly own I/O.
 
-Exit: an example loads two named channels plus residual material and prints
-auditable ownership/group results without opening fonts or running layout.
-No pgtmpl content UI or visual page proof is required to complete this milestone.
+`ExampleDocument` prints two channels, three branches with global source ordinals,
+source paths and all six normalized group owners, including residual groups and the
+atomic interior. Its example-local report helper uses copied inspection records;
+it adds no public serialization or mutable tree API. Output avoids pinning raw
+TreeID/BoxID numbers. `ExampleLoad` reads the existing sketch fixture without
+duplicating it or loading it as a template collection.
+
+The [content guide](../content/README.md) documents the exact loading boundary,
+diagnostic report and handoff to PREP-00/BOX-PREP-01/PREP-01. It distinguishes raw
+source ancestry/text from normalized group extraction, and branch payloads from
+paragraph preparations. No font, shaping, measurement or layout service is used.
+
+Exit satisfied: the examples' output assertions cover the complete public
+loading/routing inspection path, unchanged banks/snapshots and atomic failure.
+Content loading chunk 1 is complete. No pgtmpl content UI, visual page proof,
+preparation API or sibling-module change is introduced by CONT-05.
 
 ### Dependencies and review order
 
@@ -1078,8 +1094,8 @@ of content loading.
 
 ## 11. Adopted decisions and later open questions
 
-The following CONT-00 choices were adopted on 2026-11-22. Adoption establishes
-the implementation target; it does not mean the APIs have been implemented.
+The following CONT-00 choices were adopted on 2026-11-22 and delivered by the
+content-loading slices above. Deferred work remains identified separately.
 
 | Decision | Adopted choice | Delivery |
 | --- | --- | --- |
@@ -1118,8 +1134,16 @@ trial proposals are not adopted by completing CONT-00.
 Chunk 1 supplies normalized groups, stable source typography/text, qualified
 owner identities, branch order and atomic interior associations. Chunk 2 adds
 reusable preparations and independent retained trial results, as described in
-PREPARATION.md. The first two-width preparation experiment should consume this
-material without rebuilding or restyling it.
+[PREPARATION.md](PREPARATION.md). The first two-width preparation experiment
+should consume this material without rebuilding or restyling it. The
+[content guide's handoff](../content/README.md#handoff-to-preparation) maps the
+published API to that boundary. `SourceInfo.Children` retains source ancestry;
+it must not be used as a substitute for normalized paragraph extraction.
+
+PREP-00 remains the next decision gate for service/session ownership and policy.
+BOX-PREP-01 will supply shared core group enumeration; PREP-01 will extract
+detached processed text and source mappings from content's private normalized
+trees. The public bank retains immutable branch-root Box handles throughout.
 
 Do not require general fragmentation before completing content loading. Equally,
 do not call this material prepared paragraphs: no fonts have been selected,

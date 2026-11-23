@@ -15,4 +15,9 @@
 // remain unsized; preparation, used geometry and continuation belong to later
 // phases. Readers remain caller-owned. LoadError exposes ordered, source-aware
 // diagnostics and preserves original causes.
+//
+// Executable examples demonstrate the sketch input, a channel/branch/group
+// report, persistent banks, additional stylesheets and structured failures.
+// The content README documents the handoff to the later preparation bridge;
+// source-child inspection must not be mistaken for normalized group extraction.
 package content

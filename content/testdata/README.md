@@ -8,10 +8,14 @@ unsized atomics and participation classifications. CONT-03 tests ordered channel
 branches, exclusive source ownership and residual projections. CONT-04's
 `document_test.go` and `normalize_test.go` verify normalized trees/groups,
 public inspection, atomic publication and persistent bank/handle lifetime.
-CONT-05's executable examples remain pending. These are content documents,
+CONT-05's [executable examples](../example_test.go) cover public loading, the
+diagnostic material report, persistent banks, overrides and failure diagnostics.
+These are content documents,
 not template collections accepted by `pgtmpl`.
 
 Run `go test ./content` from the module root for source through publication checks.
+Run `go test ./content -run '^Example' -v` for the five executable examples.
+The [content guide](../README.md) describes their output and preparation handoff.
 `loadSource` retains both `_err` files as styled source. `loadProjection` rejects
 `float_err.html` with the expected authored profile diagnostic; nested-flow
 ownership fails in CONT-03's `loadPartition` with both conflicting sources.
@@ -264,6 +268,6 @@ variants without requiring separate fixture files for every case:
 - Loading invokes no font lookup, shaping, intrinsic measurement, used-value
   resolution, frame fitting, rendering or continuation operations.
 
-Use the existing [sketch content](../../template/testdata/content/article.html)
-as an additional CONT-05 integration input. General fragmentation, residual
+`ExampleLoad` uses the existing [sketch content](../../template/testdata/content/article.html)
+directly as an additional CONT-05 integration input. General fragmentation, residual
 binding and float placement remain later decisions.

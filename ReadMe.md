@@ -259,10 +259,10 @@ The loading milestone returns compiled templates. Pagination, content
 preparation/rendering and configuration-driven shared repositories
 remain outside it.
 
-The next content-side milestone is planned in
-[Content loading and routing](doc/CONTENT-LOADING.md). It describes how to reuse
-the tytui integration's source/style/projection contracts, partition named flows
-before normalization, and preserve residual content. CONT-00's reader/inspection
+The first content-loading milestone is complete, as documented in
+[Content loading and routing](doc/CONTENT-LOADING.md). It reuses
+the tytui integration's source/style/projection contracts, partitions named flows
+before normalization, and preserves residual content. CONT-00's reader/inspection
 API, concrete box handles in generic registers, shared style-service ownership
 and initial profile are adopted. [Acceptance fixtures and expected results](content/testdata/README.md)
 are included. CONT-01 implements private UTF-8 source parsing, CSS inspection
@@ -285,8 +285,12 @@ CONT-02 consumes these sibling services and preserves inherited source lengths
 and unresolved percentages. BOX-CONT-01 supplies structured `layout.BuildError`
 locations/causes and independent filtered-tree contract tests. BOX-CONT-02 adds
 generic persistent `Register[T]`/`RegisterBank[T]` storage without payload-method
-requirements. CONT-05's executable integration examples and handoff remain.
-Floats, preparation and page trials remain later work.
+requirements. CONT-05 adds five [executable examples](content/example_test.go)
+and a [content loading guide](content/README.md) with an auditable material report
+and preparation handoff. Run `go test ./content -run '^Example' -v` from the module
+root. No preparation or sizing is needed to inspect loaded material.
+Floats and page trials remain later work; PREP-00 is the next preparation
+decision gate.
 
 See [the loading package and PR plan](doc/TEMPLATE-LOADING.md),
 [the broader design](doc/DESIGN.md), and

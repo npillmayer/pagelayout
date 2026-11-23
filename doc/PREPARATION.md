@@ -9,16 +9,17 @@ APIs or implemented capabilities. The sibling modules are under our control;
 their current limitations identify integration work rather than permanent limits
 on this design.
 
-The preceding content-input phase is planned in
+The preceding content-input phase is implemented as documented in
 [CONTENT-LOADING.md](CONTENT-LOADING.md): source styling, named-branch routing,
 residual preservation and normalized group indexing. Its output is unsized box
 material with source context, not prepared paragraphs. CONT-00 has adopted that
 loading contract and its fixtures; CONT-01/02/03 implement private source loading,
-typed projection and route partitions. **Content loading is not yet complete:**
+typed projection and route partitions. **Content loading chunk 1 is complete:**
 BOX-CONT-01's builder diagnostics/independent-tree contracts and BOX-CONT-02's
 generic registers are implemented. CONT-04 now supplies normalization/group
-indexing and public immutable material. CONT-05's integration examples and
-handoff remain outstanding.
+indexing and public immutable material. CONT-05 supplies
+[executable examples](../content/example_test.go) and the
+[published material handoff](../content/README.md#handoff-to-preparation).
 The preparation interfaces remain proposals. Sections 11–14 add the recommended
 register/session model, decision gates, PR sequence and acceptance tests. They
 refine the earlier callback/driver sketch where functional ownership requires it.
@@ -314,6 +315,14 @@ optimization that callers must understand.
 
 ## 10. First contract experiment and remaining decisions
 
+Start from one `content.Load` snapshot, following the
+[CONT-05 handoff](../content/README.md#handoff-to-preparation). Its `Groups(tree)`
+identifies normalized groups, owner context and atomic boundaries. Source-child
+lists describe original DOM ancestry, not extracted paragraphs; the planned
+PREP-01 bridge must read the private normalized structure. Keep bank payloads and
+source styles unchanged, and choose `hyphens:none` explicitly in the experiment's
+input rather than overriding retained policy during preparation.
+
 Prepare an outer paragraph and a nested auto-width inline-block, then lay them
 out at two receiving widths. Both groups should be prepared before any
 measurement or layout callback. Both candidates should coexist; rejecting either
@@ -478,8 +487,8 @@ boundary; do not label the full phase complete after the first preparation call.
 **Owners:** pagelayout; prerequisite css-box-layout content work.
 
 BOX-CONT-01 (structured builder errors) and BOX-CONT-02 (generic registers) are
-complete, as is CONT-04 (normalization, group indexing, immutable public material).
-Finish CONT-05 (executable handoff). Review section 12, freeze snapshot/session ownership and
+complete, as are CONT-04 (normalization, group indexing, immutable public material)
+and CONT-05 (executable handoff). Review section 12, freeze snapshot/session ownership and
 choose the admitted hyphenation subset. The public content.Box remains the
 adopted branch handle. Agree service failure/cleanup and source error mapping;
 preparation must return neither a partial snapshot nor an accessible session.
