@@ -137,6 +137,7 @@ func (g *preparedGroup) Release() error {
 }
 
 func copyInput(g content.GroupInput) content.GroupInput {
+	g.Events = slices.Clone(g.Events)
 	g.Atomics = slices.Clone(g.Atomics)
 	g.Styles = slices.Clone(g.Styles)
 	g.Paint = slices.Clone(g.Paint)

@@ -67,7 +67,7 @@ func normalizePartition(p *partitionProjection) (*Document, error) {
 		}
 	}
 	build := func(id TreeID, input *layout.RenderNode) error {
-		root, err := layout.BuildLayoutTree(input, layout.BuildOptions{ReadText: s.readText})
+		trees, provenance, err := layout.BuildLayoutTreesWithProvenance(input, layout.BuildOptions{ReadText: s.readText})
 		if err != nil {
 			var located *layout.BuildError
 			var source sourceID
@@ -82,6 +82,11 @@ func normalizePartition(p *partitionProjection) (*Document, error) {
 			}
 			return materialError(p, source, "box.build", "cannot normalize content branch", err)
 		}
+		if len(trees.Fixed) != 0 {
+			return materialError(p, sourceID(trees.Fixed[0].NodeID), "box.build", "fixed material is unsupported", layout.ErrFixedLayoutRequired)
+		}
+		root := trees.Flow
+		s.trees[id].provenance = provenance
 		if input != nil && root == nil {
 			return materialError(p, sourceID(input.ID), "material.references", "active root produced no box", nil)
 		}

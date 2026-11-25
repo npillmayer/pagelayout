@@ -265,3 +265,26 @@ Use each event’s `Source` and `Parent` with `NodeSource` to inspect its origin
 position. Excluded ID/anchor annotations have `Active == false`; ordinary links
 do not create anchor events. These records do not resolve targets, validate an
 ownership graph, or identify prepared-text offsets. No boxes or text are inserted.
+
+## Inspect logical event positions
+
+`doc.EventPositions()` maps active annotations to original source blocks,
+normalized positions and processed group coverage without fonts or layout.
+Each `PositionedEvent` preserves its original event, affinity and copied coverage.
+`UnsupportedBreak` flags a location for the root planner to reject; ordinary
+content loading remains independent of ownership rules. Use `pagelayout.Plan`
+when you need ownership validation and span membership.
+
+`LogicalPosition.Compare` accepts positions only within the same source tree.
+`Info()` exposes copied structural/processed coordinates and qualified box/group
+handles. A comparison is not a permission to exchange layout continuations.
+`TreeBounds` provides the endpoints of a retained tree; suppressed roots have
+invalid endpoints. `SourceID()` is a comparable, opaque snapshot identity.
+
+`content.Prepare` carries anchor coverage in `GroupInput.Events`. Each record
+keeps source ranges separate from processed UTF-8 ranges; several records can
+belong to one anchor, which must activate only once. Empty events have zero-width
+ranges and add no text or boxes. PreparedSnapshot.Input and backend inputs own
+independent event slices, retained after session closure. Structural events
+outside groups remain in the source plan. Glyph/cluster coverage is supplied by
+the paragraph backend when fitting actual fragments, not by this source map.

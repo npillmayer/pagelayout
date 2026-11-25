@@ -201,6 +201,13 @@ func Prepare(d *Document, backend Preparer) (*PreparedSnapshot, *PreparationSess
 			inputs = append(inputs, *g)
 		}
 	}
+	mapped := source.positionEvents(inputs)
+	attachGroupEvents(inputs, mapped)
+	for _, g := range inputs {
+		if err := validateGroupEvents(g); err != nil {
+			return nil, nil, preparationFailure(StageExtraction, g.GroupInfo, err)
+		}
+	}
 	preflight := make([]GroupInput, len(inputs))
 	for i, g := range inputs {
 		preflight[i] = cloneGroupInput(g)
@@ -326,6 +333,7 @@ func releaseGroups(owned []ownedGroup) error {
 }
 
 func cloneGroupInput(g GroupInput) GroupInput {
+	g.Events = slices.Clone(g.Events)
 	g.Atomics = slices.Clone(g.Atomics)
 	g.Styles = slices.Clone(g.Styles)
 	g.Paint = slices.Clone(g.Paint)

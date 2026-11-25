@@ -33,4 +33,7 @@
 // report, persistent banks, additional stylesheets and structured failures.
 // The content README documents the handoff to the later preparation bridge;
 // source-child inspection must not be mistaken for normalized group extraction.
+// EventPositions maps annotations using builder provenance and extraction ranges;
+// Prepare carries copied GroupInput.Events without inserting text. The root
+// pagelayout.Plan owns ownership validation and span construction.
 package content

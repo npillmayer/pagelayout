@@ -2,10 +2,9 @@
 
 Use these inputs and independently authored expectations to exercise the adopted
 [SHIP-00 contracts](../../doc/SHIPOUT.md#adopted-page-construction-contract-ship-00).
-They specify behavior for the planned pagination APIs. They are not recorded
-output from an existing paginator. In particular, positive content cases using
-`break-before` require the new profile support before the current loader can
-accept them.
+They are independently authored expectations, not generated paginator output.
+The source table is exercised by SHIP-01/02 tests against content loading and
+`pagelayout.Plan`; fitting, scoring and search tables remain later runtime gates.
 
 Keep template and content documents separate. The template collection can already
 be checked with:
@@ -52,8 +51,8 @@ particular count/order of consequential diagnostics that the contract does not
 specify. Error fixtures must not publish the invalid plan/document indicated.
 
 An explicit `gate` names the slice responsible for the expectation. Otherwise
-source-to-main/plan cases are consumed by SHIP-01/02. Current rejection of every
-`break-before` input does not satisfy a later location/value-specific expectation.
+source-to-main/plan cases are consumed by SHIP-01/02. Source tests distinguish declaration-profile rejection from unsupported break
+locations diagnosed by the plan.
 `_err.html` names a deliberately invalid routing/ownership/break-location input;
 the extra-CSS cases supply further deliberate profile failures without duplicating
 the HTML files.

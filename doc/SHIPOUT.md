@@ -154,6 +154,13 @@ If anything, the pagespan optimization could be handled by a pool of workers.
 
 ## Design discussion: pagination and shipout
 
+SHIP-02 implementation update (2026-11-25): `pagelayout.Plan(document)` validates
+ownership and main-only breaks, and returns copied source-qualified branches,
+anchors and spans without advancing queues. Content propagates source events
+through normalized provenance and processed paragraph coordinates. Initial and
+coincident boundaries coalesce; the terminal drain is represented explicitly.
+Placement activation, page fitting and search execution remain later work.
+
 BOX-SHIP-01 implementation update (2026-11-25): css-box-layout now provides
 `BuildLayoutTreesWithProvenance`, returning detached source endpoints, retained
 occurrences and ordered structural boundaries alongside unchanged trees. Omitted,
@@ -1073,7 +1080,8 @@ attempt, err := run.PageAttempt(ctx, state, templateID)
 report, err := run.PaginationSearch(ctx, state)
 ```
 
-This is an API sketch, not currently callable code. `config` supplies the plan,
+`Plan(document)` is implemented by SHIP-02. The other operations remain an API
+sketch, not currently callable code. `config` supplies the plan,
 catalog, matching PreparedSnapshot/PreparationSession, fitting adapter and
 options. `PaginationSearch` searches one pagespan. A document-level operation
 may repeatedly select complete spans and advance their boundaries.
@@ -1172,8 +1180,9 @@ visitation order. An earlier inactive register head still blocks a later target.
 
 Implementation status: DOM-SHIP-01 now supplies checked break-before metadata,
 parsing and cascade resolution in w3c-dom, preserving all Level 3 keyword values.
-The content loader's narrower admission/normalization and marker propagation
-remain SHIP-01/02 work; this does not implement page breaks or pagination.
+The content loader's narrower admission/normalization and source marker mapping
+are implemented by SHIP-01/02; finite-height page breaking and pagination execution
+remain subsequent work.
 
 **Settled initial profile:** admit `break-before: auto`, and normalize `page`,
 `left`, `right`, `recto` and `verso` to the same forced page boundary. Resolve

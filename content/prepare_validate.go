@@ -7,6 +7,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/npillmayer/css-box-layout/layout"
+	boxtext "github.com/npillmayer/css-box-layout/text"
 	"github.com/npillmayer/w3c-dom/style/textstyle"
 )
 
@@ -157,4 +158,36 @@ func validateGroupInput(g GroupInput) error {
 func validByteRange(text string, start, end uint64) bool {
 	boundary := func(i uint64) bool { return i == uint64(len(text)) || utf8.RuneStart(text[i]) }
 	return start <= end && end <= uint64(len(text)) && boundary(start) && boundary(end)
+}
+
+// Validate source-event coordinates separately from shaping/style coverage.
+func validateGroupEvents(g GroupInput) error {
+	for _, event := range g.Events {
+		s := g.Group.owner
+		validSource := func(ref SourceRef) bool {
+			return ref.NodeID > 0 && uint64(ref.NodeID) < uint64(len(s.sources)) && s.sources[ref.NodeID].Source == ref && s.sources[ref.NodeID].Tree == g.Group.tree
+		}
+		if !validSource(event.Source) || !validSource(event.CoverageSource) || !validByteRange(g.Text, event.Start, event.End) || event.Kind != SourceFlowAnchor {
+			return fmt.Errorf("%w: invalid source-event coordinates", ErrInvalidPreparation)
+		}
+		if !event.Atomic && event.Affinity != AffinityStructural {
+			raw, ok := s.texts[boxtext.TextSourceID(event.CoverageSource.NodeID)]
+			if !ok || !validByteRange(raw.Text, event.Range.Start, event.Range.End) {
+				return fmt.Errorf("%w: invalid event source range", ErrInvalidPreparation)
+			}
+		}
+		switch event.Affinity {
+		case AffinityVisible:
+			if event.Start == event.End {
+				return fmt.Errorf("%w: empty visible event coverage", ErrInvalidPreparation)
+			}
+		case AffinityFollowing, AffinityPreceding, AffinityStructural:
+			if event.Start != event.End {
+				return fmt.Errorf("%w: nonempty boundary event", ErrInvalidPreparation)
+			}
+		default:
+			return fmt.Errorf("%w: invalid event affinity", ErrInvalidPreparation)
+		}
+	}
+	return nil
 }

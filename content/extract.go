@@ -21,6 +21,8 @@ import (
 // typography conversion or policy admission happens here. Paint is also supplied
 // separately so a later shaping bridge need not use color as a style boundary.
 type GroupInput struct {
+	// Events maps source annotations to processed bytes without inserting material.
+	Events []GroupEvent
 	GroupInfo
 	Text        string
 	Styles      []TextStyleSpan

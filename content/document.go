@@ -172,10 +172,11 @@ type GroupInfo struct {
 }
 
 type materialTree struct {
-	root     *layout.LayoutNode
-	nodes    map[layout.BoxID]*layout.LayoutNode
-	contexts map[layout.BoxID]layout.NodeID
-	groups   []GroupInfo
+	provenance *layout.NormalizationProvenance
+	root       *layout.LayoutNode
+	nodes      map[layout.BoxID]*layout.LayoutNode
+	contexts   map[layout.BoxID]layout.NodeID
+	groups     []GroupInfo
 }
 
 type snapshot struct {

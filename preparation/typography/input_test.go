@@ -178,3 +178,12 @@ func TestPreparedMetadataDetaches(t *testing.T) {
 		t.Fatal("typed-nil hyphenator", err)
 	}
 }
+
+func TestCopyInputSourceEvents(t *testing.T) {
+	original := content.GroupInput{Events: []content.GroupEvent{{Start: 1, End: 3, Affinity: content.AffinityVisible}}}
+	copied := copyInput(original)
+	copied.Events[0].Start = 999
+	if original.Events[0].Start != 1 {
+		t.Fatal("bridge retained mutable source-event slice")
+	}
+}
