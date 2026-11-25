@@ -1,0 +1,721 @@
+# Pagination and shipout implementation plan
+
+Recorded on 2026-11-25 against the current implementation and the decisions in
+[SHIPOUT.md](SHIPOUT.md). This is a plan, not a report of implemented pagination.
+Every slice below is **planned**. Names of new Go declarations are illustrative
+until SHIP-00 pins their contracts.
+
+The author's initial remarks, scattered remarks and closing answers remain in
+SHIPOUT.md, unchanged. That document remains the design authority. This plan
+preserves its distinction between **settled decisions**, **adopted working
+hypotheses**, **open details** and **deferred work**. Scheduling a hypothesis for
+implementation does not promote it to a settled design decision.
+
+## 1. Intended result and boundaries
+
+The first complete milestone takes a compiled template catalog and fully
+prepared content, constructs immutable pages, chooses a template sequence for
+each pagespan, and delivers the selected frozen pages to a consumer. Every
+selected sequence carries its exact remainder and an inspectable loss breakdown.
+Source styles, prepared material, competing candidates and earlier output remain
+unchanged by successful or failed attempts.
+
+The responsibility split is:
+
+| Owner | Responsibility |
+| --- | --- |
+| `w3c-dom` | Checked CSS values, defaults and cascade; no pagination policy. |
+| `css-box-layout` | Normalization provenance, structural fitting, legal box cuts, used edges, margins and exact structural continuation. |
+| `khipu` | Paragraph break decisions, discretionary carry and certified accepted-prefix continuation. |
+| `typography` | Paragraph fitting alternatives, matching atomic bindings and frozen renderable paragraph fragments. |
+| `pagelayout/content` | Private normalized-tree access, qualified source positions and preparation identity; neutral adapter to core fitting. |
+| `pagelayout/preparation/typography` | Connect prepared paragraphs and atomic interiors to the neutral fitting protocol. |
+| Root `pagelayout` | Span/ownership plan, immutable channel state, page construction, loss, template-sequence search and delivery of selected pages. |
+| Output consumer | Paint/export frozen pages, without choosing breaks or advancing registers. |
+
+Use the existing generic registers with `content.Box` payloads. Prepared
+snapshots and execution sessions stay separate. An unfinished branch stays at
+the register head with a separate continuation; neither a prepared wrapper nor
+a clipped box tree replaces that payload. No register redesign is required.
+
+The first fitting profile covers ordinary block sequences, splits between
+paragraph lines and indivisible inline atomics. The first paragraph breaking
+policy should follow the existing explicit FirstFit bridge. Record its exact
+admission in SHIP-00; page construction enumerates legal cuts in the resulting
+paragraph layout, not every possible paragraph line-breaking solution.
+Preserve the existing preparation distinction between uniform `none` and uniform
+`manual` hyphenation. An early `none`-only proof is useful, but does not complete
+the manual-continuation work identified below. Existing explicitly diagnosed
+preparation limitations remain visible; pagination must not silently change
+source policies to evade them.
+
+Out of scope are floats and their special frames, automatic hyphenation,
+repeated/generated running material, arbitrary table fragmentation, recto/verso
+parity or blank-page insertion, concurrent attempts, incremental preparation,
+state merging, remaining-cost heuristics, automatic beam widening, and a new
+PDF/browser/CLI product. A small rendering proof is part of validation; a new
+general output backend is not required.
+
+## 2. Existing foundations and actual gaps
+
+| Existing foundation | Reuse | Missing capability |
+| --- | --- | --- |
+| [Template catalog](../template/catalog.go) | Immutable compiled geometry/paint, definition order and per-channel frame order. | Page instances and placed content; no new cascade or template compiler is needed. |
+| [Content routing](../content/route.go), [normalization](../content/normalize.go) and [Document](../content/document.go) | Detached styles, source identities, branch order and persistent banks. | Residual-to-`main` integration; valid explicit `main` must stop being extracted after routing validation. |
+| [Content profile](../content/profile.go) | Source declaration auditing and effective-value checks. | Admission of `break-before`, effective forced-break metadata and owning-anchor positions. |
+| [Group extraction](../content/extract.go) | Processed UTF-8 text, source maps, policy spans and atomic occurrences. | A complete mapping for structural and zero-width events through normalization and preparation. |
+| [Preparation](../content/prepare.go) | Eager preparation barrier, immutable snapshot, separately owned serialized session. | Fitting operations that reuse the pair and retain exact continuations. |
+| [Whole-tree layout](../content/layout.go) and [typography adapter](../preparation/typography/layout.go) | Used values, atomic interiors, source/paint copying and frozen output ownership. | Finite-height partial results, multiple alternatives/fragments of one group, and resumable collection of output. |
+| [CSS layout core](../../css-box-layout/layout/flow.go) | Structural flow, margins and invocation-specific geometry. | A pure finite-height fitter, open-container continuation and fragment-edge omission. |
+| [Paragraph trials](../../typography/glyphing/paragraph/trial.go), [checkpoints](../../typography/glyphing/paragraph/trial_checkpoint.go) and [fragment fitting](../../typography/glyphing/paragraph/fragment_fit.go) | Accepted prefixes, changed-width suffix breaking and authoritative line geometry. | Enumeration/selection of arbitrary legal fitting prefixes and a complete fragment/checkpoint/output handoff. |
+| [Paragraph flow convenience API](../../typography/glyphing/paragraph/flow.go) | Useful reference for whole-line continuation. | It fixes atomic inputs and currently restricts hyphenation; it is not the complete page-fitting backend. |
+| [Khipu checkpoints](../../khipu/checkpoint.go) | Immutable accepted-prefix certificates and suffix atomic rebinding. | `Checkpoint` currently rejects policies other than `NoHyphenation`; manual discretionary continuation must be completed. |
+
+Do not treat `content.Layout` followed by geometric clipping as fragmentation.
+Do not treat a longest-prefix paragraph convenience call as enumeration of all
+local page choices. Neither can supply the required structural remainder alone.
+
+## 3. Rules every slice must preserve
+
+1. **Fixed phases:** load/box, then prepare all material, then paginate. Width-
+   dependent line breaking and atomic realization occur during pagination;
+   source preparation is not repeated for each page. Lazy manual alternatives
+   may still use the explicitly supplied services.
+2. **Authoring order:** validate routing before ignoring redundant
+   `flow-into: main`. Never reorder secondary queues by owning references or
+   bypass their heads. Differences between anchor order and queue order are not
+   malformed input by themselves.
+3. **Two kinds of coordination:** explicit `data-flow-anchor` relationships
+   permit deferral and do not close pagespans. Forced page-break variants of
+   `break-before` normalize to `page`; those boundaries and document end require
+   all related secondary material to drain, transitively. Future-span material
+   remains untouched. Markers are out-of-band.
+4. **Exact remainder:** placed logical material followed by the remainder is
+   the input material in order, without loss or duplication. At most one partial
+   branch exists per channel, at its head. Logical positions support inspection;
+   the opaque continuation additionally retains structural and paragraph state.
+5. **Fragment edges:** a split box retains top edges only on its first fragment,
+   bottom edges only on its last, and side edges throughout. Unsplit descendants
+   keep their own edges. The adopted margin hypothesis uses core collapse rules
+   inside a frame and no collapse across frames.
+6. **One result per template:** a Page attempt selects its cut-offs from current-
+   page facts only. Local alternatives never become extra global successors.
+   Whole-page construction may need shorter prefixes than a greedy frame fill.
+7. **Deterministic ties:** within a template, compare loss, then further logical
+   `main` progress, then secondary progress in first-occurrence source order,
+   then stable arrangement order. Between equal-loss templates prefer catalog
+   order; equal-loss sequences compare template ordinals lexicographically.
+8. **Loss:** retain components and a scalar; nonnegative finite values precede
+   a distinct absorbing blocked value. Invalid arithmetic is an error, not a
+   blocked assessment. Charge each pending target once per carrying page,
+   starting on its owning-anchor page if it remains incomplete.
+9. **Search:** default 32 unfinished candidates, complete page-depth rounds,
+   accumulated loss then lexicographic template sequence, separate best complete
+   incumbent, no merging or guessed remaining cost. Do not stop at the first
+   completion. A valid minimum-next-page-cost bound prunes only on strict
+   greater-than; equality can still improve the sequence tie.
+10. **Functional publication:** an attempt returns a complete candidate and
+    successor together or neither. Rejection cannot advance shared banks.
+    Selected span pages and their final state are committed together. Frozen
+    output has a different lifetime from resumable execution state.
+
+## 4. Implementation order
+
+Each row is a separately reviewable slice with its own acceptance checks.
+Dependencies indicate completion prerequisites, not permission to spread one
+change across all repositories. Contract work and test doubles can precede the
+real backend, as noted in the detailed steps.
+
+| Order | Slice | Owner | Depends on | Deliverable |
+| --- | --- | --- | --- | --- |
+| 1 | SHIP-00 | pagelayout, with sibling contract review | Existing loading/preparation | Contract decisions and fixture expectations. |
+| 2 | DOM-SHIP-01 | w3c-dom | SHIP-00 | Checked page-break property support. |
+| 3 | SHIP-01 | pagelayout/content | SHIP-00, DOM-SHIP-01 | Default main and detached source events. |
+| 4 | BOX-SHIP-01 | css-box-layout | SHIP-00 | Normalized source-boundary provenance. |
+| 5 | SHIP-02 | pagelayout/content and root | SHIP-01, BOX-SHIP-01 | Validated ownership/span plan and mapped positions. |
+| 6 | SHIP-03 | pagelayout root | SHIP-00, SHIP-02 | Immutable state, loss and outcome contracts. |
+| 7 | BOX-SHIP-02 | css-box-layout | SHIP-00, BOX-SHIP-01 | Structural finite-height fitting with neutral paragraph callbacks. |
+| 8 | TYPE-SHIP-01 | typography | SHIP-00 | Enumerated paragraph prefixes and frozen fragments for `none`. |
+| 9 | KHIPU-SHIP-01 | khipu | SHIP-00 | Manual discretionary checkpoint/carry support. |
+| 10 | TYPE-SHIP-02 | typography | TYPE-SHIP-01, KHIPU-SHIP-01 | Manual paragraph continuation through the same API. |
+| 11 | BOX-SHIP-03 | css-box-layout | BOX-SHIP-02 | Used-value, margin, atomic and fragment-paint integration. |
+| 12 | SHIP-04 | pagelayout/content and preparation/typography | SHIP-03, BOX-SHIP-03, TYPE-SHIP-02 | Real resumable fitting bridge. |
+| 13 | SHIP-05 | pagelayout root | SHIP-02, SHIP-03, SHIP-04 | Single-channel Page attempt and two-template proof. |
+| 14 | SHIP-06 | pagelayout root | SHIP-05 | Multi-channel local arrangements, anchors and draining. |
+| 15 | SHIP-07 | pagelayout root | SHIP-03, SHIP-06 | Deterministic beam search and search outcomes. |
+| 16 | SHIP-08 | pagelayout root | SHIP-07 | Span transitions, selected output and shipout handoff. |
+| 17 | SHIP-09 | pagelayout, sibling regression checks | SHIP-08 | Real-font, lifetime, search-quality and end-to-end proofs. |
+
+BOX-SHIP-02 and TYPE-SHIP-01 use the contracts pinned in SHIP-00 and test doubles;
+they must not import one another. The SHIP-07 search algorithm can likewise be
+developed against a fake Page attempt after SHIP-03, but is not complete until
+integrated with SHIP-06. SHIP-04/05 may first demonstrate `none` without atomics;
+their final acceptance includes the later sibling dependencies in the table.
+
+## 5. Detailed slices
+
+### SHIP-00 — Pin contracts and acceptance fixtures
+
+**Work:** turn the remaining interface details into a small, reviewable contract
+before implementing fitting. Preserve settled rules and label the scoring,
+activation, eligibility and publication hypotheses as provisional. Define the
+minimal neutral paragraph-alternative interface together with the structural
+cursor contract, so the two sibling implementations can proceed independently.
+Prefer concrete values and opaque handles over an extensible plugin hierarchy.
+
+Resolve or explicitly gate these details:
+
+| Detail still open | Required decision/artifact |
+| --- | --- |
+| Public API and failures | Exact Page attempt/search result types, initialization and inspection, cancellation/limits, structured causes and interrupted-incumbent handling. |
+| Identity | Snapshot/preparation/policy validation; branch ordinals; logical boundary comparison; source IDs versus page-scoped fragment occurrences. |
+| Default-main migration | How `Bank`, `Channels`, `Branches` and residual inspection describe main. Recommended compatibility approach: residual inspection aliases the same source tree; it is never a second queue or separately prepared material. |
+| Source positions | Empty-anchor affinity, terminal anchors, collapsed text, suppressed/inert sources, anonymous containers and inline splitting/hoisting. Distinguish source bytes, processed bytes, logical boundaries and glyph/cluster positions. |
+| Break profile | Exact accepted `break-before` values/defaults/CSS-wide handling, applicable source boxes, unsupported non-page values and treatment of legacy aliases. Shared parsing belongs in w3c-dom; normalization policy belongs here. |
+| Structural scope | Legal cuts, explicit-height/percentage interactions, zero-height progress and unsupported fragmentation diagnostics for the loaded profile. |
+| Paragraph scope | Explicit breaker/line-height/atomic alignment policy, `none`/`manual` admission and any inherited unsupported cases; no silent fallback. |
+| Local enumeration | Stable frame/branch/breakpoint order, whether and how empty placements are represented, and a work-limit outcome distinct from completed enumeration. |
+| Loss representation | Integer width, rounding, checked arithmetic, serialization/inspection and finite geometry-to-cost conversion. |
+| Scoring facts | Frame participation fixed across alternatives, including newly activated channels; empty sets, occupied extent, paragraph-fragment counting and final-main-tail exemption. |
+| Publication | Complete-span return/commit and consumer protocol; reporting already selected spans if a later span or output consumer fails. |
+
+Use the working defaults from SHIPOUT: one million integer units per point;
+page cost 1; underfill up to 1; one-line split-fragment penalty 10; carry 1 per
+pending target/page; missing main receiver 1 while main remains in the span.
+Do not silently finalize a rounding rule or scoring participation convention in
+implementation. Record the chosen fixture interpretation before writing its
+evaluator. Nonnegative coefficients and a positive quantized page cost are
+necessary for the settled loss/search contract.
+
+The adopted underfill hypothesis is an area-weighted mean of squared unused-
+height fractions, with an arrangement-independent participating frame set and
+inactive secondary channels excluded. Exempt trailing main space on the page
+where main reaches its span boundary. SHIP-00 must reconcile participation with
+newly reached anchors and define occupancy from the fitter's used geometry;
+these are still open details, not permission to choose a convenient frame set
+separately for each alternative. Secondary missing receivers incur carry loss
+without a second charge for the same deferral.
+
+Create a pagination fixture area, proposed as `testdata/pagination/`, with separate
+template HTML and content HTML, optional CSS, and readable expected source
+positions, page/template sequences, losses and error categories. Keep source-only
+and sibling geometry fixtures beside their owning packages where appropriate.
+Section 7 lists the required cases. The initially hand-written expectations must
+not be generated from the algorithm they are meant to check.
+
+**Acceptance:** reviewed contract tables, fixtures and explicit expected results
+exist; every remaining unresolved detail has an owning slice and a gate before
+dependent code. This planning document alone does not complete SHIP-00.
+
+### DOM-SHIP-01 — Checked `break-before` support
+
+**Work:** add the property metadata/default and shared checked value support
+needed by the agreed profile. Reuse w3c-dom's declaration parsing and computed-
+value resolution conventions, including explicit inheritance and CSS-wide
+keywords. Keep source-audit grammar and effective-value grammar consistent.
+An extension to the existing keyword helper may suffice; avoid a second parser
+in pagelayout.
+
+w3c-dom returns checked property meaning. It must not know that this client
+treats `recto` and `verso` as `page`, create pagespans or route material.
+
+**Acceptance:** tests cover defaults, valid forced values, malformed values,
+CSS-wide resolution and normal cascade precedence. Losing/nonmatching
+declarations remain available for pagelayout's profile audit. Existing template
+and text-style behavior is unchanged. No font or paginator dependency is added.
+
+### SHIP-01 — Default main and source event capture
+
+**Work:** adapt routing in two stages: validate the original effective flow
+directives, then treat valid `main` directives as redundant for extraction.
+Keep residual content in source order and expose it as the main material without
+duplicating its tree or preparation groups. Implement the public inspection
+migration agreed in SHIP-00 and update the relevant executable examples.
+
+Admit/audit `break-before` through the checked sibling API; normalize admitted
+forced page variants to one effective page event. Capture original source
+identity and the effective value before partitioning changes the working tree.
+Collect owning-link presence, `href`, target IDs and source positions as detached
+metadata. Do not infer an owner from ordinary xrefs or target source proximity.
+
+Generic content loading preserves the facts needed by pagination. The whole
+ownership graph and span validation belong to the pagination plan in SHIP-02;
+ordinary standalone content users should not need a template catalog merely to
+load styled material. Pin the exact validation entry point in SHIP-00.
+
+**Acceptance:** residual-only and redundant-main documents have identical main
+order/styles. Nested routes still fail, including two `main` declarations.
+Named queues keep source order. All prepared groups are covered once. Forced
+variants produce identical events without parity effects; losing declarations,
+additional stylesheets and original diagnostic sources remain correctly audited.
+Metadata introduces no text, fake boxes or changed widths.
+
+### BOX-SHIP-01 — Normalization boundary provenance
+
+**Work:** expose enough neutral normalization provenance to map requested source
+boundaries into structural/group positions. Reuse existing source IDs and text
+ranges where sufficient; add detached boundary records for cases they cannot
+represent reliably. Establish this with empty-inline, split-inline, hoisted-block,
+anonymous-group and omitted-whitespace fixtures before choosing the smallest
+API extension.
+
+The builder is the authority on its normalization. The content adapter must not
+replicate that algorithm or guess a position by numeric BoxID order. If source
+boundary requests are passed into the builder, keep them in a separate input
+collection and return copied mapping data. Do not add layout-affecting marker
+nodes. Records may contain neutral source/box/group identities and before/after
+positions, but no anchor, flow-channel, page or font semantics.
+
+Define the ordered structural boundary vocabulary used by BOX-SHIP-02. Preserve
+the distinction between source identity, generated box identity and multiple
+normalized occurrences of the same source. An omitted/suppressed position needs
+an explicit mapping disposition, not a silently fabricated nearest box.
+
+**Acceptance:** a provenance map survives each normalization fixture with
+unchanged geometry/text and independent builds. It explains empty/omitted cases,
+does not publish mutable nodes, and keeps IDs local to their build. Together
+with content's tree/snapshot identity it supports unambiguous inspection.
+
+### SHIP-02 — Ownership graph, span plan and position propagation
+
+**Work:** compile the detached source events and normalized mappings into an
+immutable plan tied to the content snapshot. Carry inline events through group
+extraction/preparation as metadata alongside processed text. Never insert a
+glyph, U+FFFC atomic marker or khipu penalty to represent a page/anchor event.
+Handle a marker in text collapsed to zero bytes according to the explicit
+SHIP-00 affinity rule. Do not assume source byte offsets equal prepared offsets.
+
+Implement the adopted ownership hypothesis: one explicit same-document owner
+per independently scheduled secondary branch, targeting its unique branch-root
+ID; diagnose unresolved/duplicate/inactive targets, duplicate ownership, cycles
+and chains not rooted in main. Ordinary xref cycles are irrelevant. Suppressed
+owner/target cases use the pinned source policy and retain useful diagnostics.
+
+Assign secondary branches transitively to main spans, independently of queue
+order. Activation remains placement-dependent: visible anchors activate with
+their first placed content fragment, once; empty anchors use their mapped
+boundary. A future target is not pending just because it is prepared. A target
+owned from a secondary branch becomes eligible only when that anchor is placed.
+
+Implement main-only forced boundaries under the working hypothesis; diagnose
+active secondary forced breaks as unsupported. Coalesce identical boundaries,
+handle an initial boundary without a blank page, and add a terminal draining
+boundary. The plan must stop within a main branch as well as between branches.
+
+**Acceptance:** copied plan inspection identifies source, branch and logical
+position. Fixtures prove visible, empty, multiline and transitive anchors;
+suppression; coincident/terminal boundaries; and a span ending inside one main
+branch. `[A, B]` remains `[A, B]` when B's owner is first. Cross-span queue
+obstructions remain observable and are not repaired or mislabeled as bad HTML.
+
+### SHIP-03 — Immutable state, loss and outcome contracts
+
+**Work:** introduce root-level pagination initialization and opaque immutable
+state. Bind the bank, per-head continuation, pending/activation facts, current
+span, next page number and fixed policy/preparation identity. Return copied
+inspection records. Validate empty-bank/head/cursor combinations and reject
+foreign source or preparation identities before execution.
+
+Use a logical position comparison independent of widths, line counts, heights
+and numeric BoxIDs. Comparing inspection positions is not permission to exchange
+continuations or merge candidates. Continuations hold the structural/checkpoint
+facts needed by later fitting; state never puts execution services into boxes.
+
+Implement tagged blocked/finite loss and checked component aggregation using
+the numeric contract pinned in SHIP-00. Keep factual page assessment separate
+from configurable weights. Test the provisional score from synthetic page facts
+before depending on real fitting. Retain a positive lower bound valid under the
+fixed policy for search pruning; do not hard-code the default one-point value
+when policy configuration can change it.
+
+Define page outcomes matching SHIPOUT: Constructed, NoFit, already SpanComplete,
+and typed invalid-request/unsupported/execution errors. Interrupted enumeration
+cannot publish its current best as a completed Page attempt. Search result
+types must separately represent completion, proven failure under the policies,
+heuristic exhaustion, cancellation and limits. Decide how a completed incumbent
+is inspected after interruption without presenting it as a successful optimum.
+Diagnostics identify the template/frame, channel, qualified source box and
+logical continuation position where known, preserving original causes through
+`errors.Is`/`errors.As` rather than requiring clients to parse messages.
+
+**Acceptance:** state copies/persistent banks are independent; mismatched cursors
+fail early; finite/blocked ordering, quantization boundaries and overflow are
+pinned. Errors retain causes. NoFit publishes no successor. Tests establish the
+local and sequence comparators separately, including main/secondary progress
+ties and lexicographic sequences of different lengths.
+
+### BOX-SHIP-02 — Pure finite-height structural fitting
+
+**Work:** add a structural fitter over an immutable normalized tree, receiving
+constraints, optional opaque continuation and an optional stop boundary. Return
+legal fragment alternatives, their logical end positions, exact continuations,
+occupied extents and completion/progress facts. The API may enumerate rather
+than materialize every alternative, but enumeration order and early termination
+must be explicit. A work limit is not exhaustion of the legal alternatives.
+
+Begin with block sequences and nested containers, using deterministic synthetic
+paragraph results. Carry open containers, next child/group position and pending
+edge/margin facts. Remove a branch from a queue only above this layer when the
+fitter reports its completion. The core knows nothing about registers or spans;
+a caller-supplied stop position is just a structural bound.
+
+Expose a neutral paragraph-fitting callback with value inputs and opaque
+continuation/output associations. It must allow shorter legal line prefixes and
+arbitrary selected continuation, not only the longest prefix. Keep font objects,
+typography types and page loss out of the core. No result may depend on a mutable
+callback workspace after the operation returns.
+
+**Acceptance:** split/resume at every supported block/line boundary conserves
+ordered material, including zero-height advancing material. Changed receiving
+width leaves the accepted prefix fixed. Invalid continuations and unsupported
+cuts are errors; oversized indivisible material is non-fit. Repeating, rejecting
+or failing an alternative leaves the source and prior alternatives usable.
+
+### TYPE-SHIP-01 — Paragraph prefix alternatives for `none`
+
+**Work:** extend the existing Prepared.Trial/checkpoint/fragment facilities to
+enumerate supported whole-line prefixes that fit a finite height and freeze a
+chosen prefix with its exact continuation. Reuse authoritative line bottoms and
+break plans; do not estimate a prefix from average height or clip glyph output.
+The caller can choose a shorter prefix to optimize the complete current page.
+
+Make logical source/processed positions available for mapping events and
+comparing progress. Define behavior where a source boundary meets a cluster or
+ligature; glyph order in bidi text is not logical progression. Return enough
+information to preserve the marker affinity fixed in SHIP-00.
+
+Continue using the retained preparation. A changed-width suffix may change its
+line breaks and unconsumed atomic geometry; accepted lines and consumed atomic
+bindings must remain fixed. Certify the association of frozen paragraph output
+and its accepted atomic placements. Do not rely on the convenience Flow API's
+fixed-atomic restriction as the desired final contract.
+
+**Acceptance:** all legal fitting prefix lengths, exact-height and zero-height
+cases, NoProgress, changed-width continuation, empty paragraphs, bidi/source
+positions and altered suffix atomics are covered. Invalid prefix bindings fail.
+Earlier frozen fragments remain renderable; callbacks, discovery and trial
+scratch are not retained by output. No base reshaping occurs on repeated trials.
+
+### KHIPU-SHIP-01 — Manual discretionary continuation
+
+**Work:** complete accepted-prefix checkpoints and continuation seeds for manual
+hyphenation, including discretionary pre-break/post-break replacement material.
+The existing NoHyphenation check is a real integration gap, not merely a wrapper
+restriction that pagelayout can remove. Validate the underlying continuation
+search path as well as construction of the checkpoint.
+
+Carry the exact selected alternative and its remaining material across a frame
+boundary. Preserve source conservation when alternatives emit no bytes or
+replace a range; do not replay a discretionary already accepted in the prefix.
+Allow rebinding only unconsumed atomics and retain immutable prefix certificates.
+Keep the API independent of fonts, DOM, CSS boxes and page policy.
+
+**Acceptance:** synthetic material proves breaks immediately before/at/after a
+manual discretionary, nonempty and empty replacement tails, changed-width
+suffixes, multiple resumes and consumed-atomic mismatch errors. Prefix plus
+remainder is equivalent to the chosen logical paragraph material, with no loss
+or duplication. Checkpoints remain reusable after failed continuation attempts.
+
+### TYPE-SHIP-02 — Manual fitting through the paragraph API
+
+**Work:** integrate the KHIPU-SHIP-01 contract into the same prefix/fragment API
+as TYPE-SHIP-01. Retain matching glyph output, source ranges and carried
+replacement material. Manual alternatives may use explicit services lazily,
+but continuation must not reprepare the base paragraph or turn manual into none.
+
+Keep existing explicit profile failures distinguishable from a paragraph that
+simply cannot fit the receiving space. Do not broaden this slice into automatic
+hyphenation or unrelated paragraph optimization changes.
+
+**Acceptance:** manual paragraphs split at discretionary breaks resume at equal
+and different widths with the correct suffix and frozen prefix. Injected service
+failures publish no fragment/continuation pair and leave previous output usable.
+Exercise the source-position/anchor mapping near replacement material and prove
+that accepted atomics retain their matching interiors.
+
+### BOX-SHIP-03 — Used geometry, atomics and fragment paint
+
+**Work:** connect structural fitting to existing used-value, intrinsic and
+flow-layout machinery. Resolve each actual receiving width; percentages,
+margins, borders and padding must use the correct local context. Do not replace
+the core sizing rules with summed measured heights in the page constructor.
+
+Apply top/bottom edge omission only to containers crossed by the split. Account
+for the last fragment's retained bottom edges before accepting a final fit;
+first/middle fragments can have different capacity. Keep source ComputedStyle
+unchanged and expose fragment-specific geometry/paint facts separately. Use the
+adopted within-frame margin rules and no cross-frame collapse, including nested
+and empty blocks and signed margins admitted by the content profile.
+
+Inline atomics remain indivisible. Resolve their interiors before the enclosing
+paragraph needs their geometry. On continuation, re-realize only geometry allowed
+to vary in the suffix; retain the accepted prefix's exact interior results.
+Use neutral test paragraph callbacks to enforce those associations without
+introducing a typography dependency into the core.
+
+**Acceptance:** first/middle/last nested-fragment geometry and paint obey edge
+rules; contained children keep all edges. Margin/percentage fixtures have exact
+expected extents. An atomic too large for one frame can fit a later configuration
+without corrupting the original continuation. Invalid geometry/unsupported
+fragmentation is an error, never silently clipped or classified as ordinary fit.
+
+### SHIP-04 — Content and typography fitting bridge
+
+**Work:** add the neutral content fitting entry point beside whole-tree Layout.
+It owns private-tree access, complete preparation coverage checks, source/tree
+qualification, callback borrowing and serialized session use. Keep existing
+whole-tree measurement/layout available. Do not expose raw normalized nodes or
+add typography types to `content`.
+
+Extend `preparation/typography` with the resumable adapter. Pair structural
+continuations with paragraph checkpoints and matching atomic interiors. Allocate
+fresh used-value and output collection state for each invocation/alternative.
+The current whole-tree collector's one-result-per-group assumption is inadequate:
+one group can contribute multiple fragments at different widths and locations.
+Key output by fragment occurrence while retaining source/group identity.
+
+Convert CSS-pixel geometry and typography physical units through checked
+conversions. Preserve source/paint and marker mapping in frozen results. No page
+result may retain a borrowed callback view, mutable collector or abandoned
+alternative just to remain renderable. Resumption still requires the matching
+live prepared context; rendering selected output does not.
+
+**Acceptance:** end-to-end frame fitting at two widths reuses one preparation
+and yields exact logical continuations, matching atomics and source mapping.
+Test `none` and supported `manual`, multiple fragments of one group, foreign and
+closed sessions, reentrancy, late errors and retry. Failed attempts publish no
+partial bundle and leave banks, old cursors and frozen results unchanged.
+
+### SHIP-05 — Single-channel Page attempt
+
+**Work:** implement one-template page construction over main and its ordered
+frame chain. Use compiled content rectangles and paint directly. Enumerate legal
+complete-page arrangements, evaluate page facts and choose exactly one by the
+settled local comparator. Do not greedily commit the longest prefix per frame.
+
+Stop at the span boundary, including a boundary within the current head branch.
+Preserve partially consumed heads and advance fully consumed branches only in
+derived states. Enforce material progress, handle already-complete spans without
+a new page, and distinguish genuine zero-height consumption from a page number
+increment or marker-only empty page. Implement the pinned final-main-tail loss
+treatment and attach fragment occurrences, loss components and progress together.
+
+**Acceptance:** use a small prepared document and two templates with different
+frame widths/heights. Try both from the identical state; inspect fragments,
+exact remainder and loss; discard either without changing the other. Include a
+case where the best current page uses a shorter prefix, a same-loss progress tie,
+different-width continuation across frames and a split ending at a main marker.
+An interrupted local enumeration is an explicit error/limit, not NoFit or a
+supposedly final candidate.
+
+### SHIP-06 — Multi-channel arrangements, activation and draining
+
+**Work:** extend local enumeration to whole-page combinations across channels.
+Preserve each channel's frame-chain and queue order. Main/secondary progress,
+anchor activation and transitive target placement must describe the same final
+arrangement. Roll back all provisional activations with a discarded alternative.
+
+Do not let cross-channel frame visitation accidentally prohibit a valid layout:
+a target may be above its owning anchor on the same page, even if its frame
+appears earlier in template order. Determine same-page eligibility from placed
+anchor material while preserving the ordered chain within each channel. An
+anchor outside the selected prefix activates nothing. Transitive anchors become
+active only when their owning secondary fragments are placed.
+
+Enforce FIFO heads. If B is pending behind A whose anchor has not yet been
+reached, B waits; do not place A early or skip to B. A future-span head may prevent
+the current span from draining. Preserve that reason for failure instead of
+repairing the authored order.
+
+Track target activation/completion and charge each pending target once on the
+anchor page and each later carrying page, including partial placements. Ordinary
+references do not activate or charge. Apply the working missing-main charge;
+secondary missing receivers use carry alone. Use the fixed frame-participation
+convention from SHIP-00 across all alternatives, including those that reach
+different anchors.
+
+After main reaches its boundary, admit only related secondary material until
+the transitive draining obligation is satisfied. Permit progressing pages with
+no main receiver. Missing receivers alone are not a mandatory-channel failure;
+no material progress still means no successful page.
+
+**Acceptance:** same-page/above-anchor placement, repeated ordinary references,
+split anchors, partial targets, transitive ownership, absent receivers and
+secondary-only drain pages have exact expectations. Out-of-order `[A, B]`
+fixtures retain authored order and correct carry costs. Future-span material is
+untouched. A late failure in any channel leaves all channel inputs unchanged.
+
+### SHIP-07 — Deterministic pagespan beam search
+
+**Work:** implement the settled search policy independently of fitting details.
+Start with a fake deterministic Page attempt and known graphs, then integrate
+SHIP-06. Enumerate eligible templates in catalog order, using all templates by
+default and the adopted optional deterministic filter without reordering.
+
+For each page-depth round, extend every retained unfinished candidate through
+every eligible template. Each template contributes at most its one selected page.
+Retain complete candidates separately; rank unfinished successors globally after
+the full round by summed loss and lexicographic template sequence. Keep at most
+the configured positive width, 32 by default. No per-parent quota, progress-based
+beam tie, state merging, percentile pruning or estimated remaining cost is added.
+
+Retain the best complete incumbent outside the beam. Continue after the first
+completion. Prune an unfinished branch by the safe minimum-next-page-cost bound
+only when it is strictly greater than the incumbent's loss. Count safe pruning
+separately from width truncation. An already complete input returns no extra page.
+
+NoFit drops a template edge; operational failure aborts by the working policy.
+Report completion with whether heuristic truncation occurred. No completion after
+fully explored, uninterrupted, unpruned alternatives establishes infeasibility
+under these local/template policies; after width truncation it is search
+exhaustion. Apply explicit page/attempt/enumeration limits and cancellation using
+the SHIP-00 contract; no automatic widening or retry. Cancellation checks belong
+at orchestration/work boundaries and must respect synchronous sibling APIs.
+
+**Acceptance:** small exhaustive reference graphs prove ranking, delayed better
+completion, equal-loss lexicographic preference, strict bound equality, separate
+completion storage, globally capped rounds and every outcome category. Compare
+the real finite fixtures against exhaustive search where no beam truncation
+occurs. The search must not claim global cut-off optimization or document-wide
+optimality across committed pagespans.
+
+### SHIP-08 — Span transitions and shipout handoff
+
+**Work:** add document orchestration around completed pagespan search. Select a
+whole span and publish its frozen sequence with its final exact state. Advance
+to the next span using that state and next page number; do not reset numbering
+or revisit the selected span for later parity. A main branch may continue across
+this boundary with the same source handle.
+
+Use immutable predecessor sharing for retained page sequences. This shares
+output prefixes, not equivalent search states. Selected output carries template,
+page/frame geometry, fragment occurrences, source/paint, frozen paragraph/atomic
+output and loss facts, independently of discarded execution workspaces.
+
+Expose a small consumer handoff over selected frozen pages or a selected span,
+with ordering and error propagation fixed in SHIP-00. Consumers never choose
+breaks or receive mutable banks. Do not send speculative pages to irreversible
+output. Keep span selection atomic even if an external consumer can fail after
+writing some output; document delivery progress separately rather than promising
+rollback of external effects.
+
+**Acceptance:** two spans prove draining, future-material preservation, exact
+numbering and no prior-span reselection. An empty document/initial empty span
+creates no page. Later-span failure preserves earlier selected results with
+explicit completion status. Closing preparation prevents further resumption but
+does not invalidate already frozen pages while borrowed rendering resources
+remain valid. Consumer errors preserve their causes and do not alter the plan.
+
+### SHIP-09 — Real-font, lifetime and search-quality proofs
+
+**Work:** extend the existing preparation real-font approach using pinned local
+test fixtures and test-only concrete font/render adapters. Produce a small
+multi-page visual proof showing template/frame boundaries, fragments and source
+identities, accompanied by machine-checked page sequences and loss breakdowns.
+Visual inspection complements conservation/geometry assertions; it does not
+replace them.
+
+Prove two-width paragraph continuation, changed suffix atomics, manual carry,
+source-style preservation, owning-anchor deferral and span draining through the
+complete public API. Verify that accepted prefixes and interiors do not change
+when competing candidates are tried or fail. Repeat attempts with service counts
+to establish base-preparation reuse; allow legitimate lazy manual-alternative
+work rather than claiming all service calls cease after preparation.
+
+Add lifetime evidence retaining chosen pages while releasing rejected branches,
+session handles, trials, collectors and search frontiers. Borrowed fonts remain
+caller-owned. Test that page output does not retain preparation factories or
+abandoned alternatives through accidental references. Retained resumable states
+may keep the immutable data they need; distinguish that intentional ownership
+from output-only retention.
+
+Measure widths 8, 32 and 128 against exhaustive small cases. Record attempts,
+local alternatives, peak retained candidates, bound cuts, heuristic truncation,
+completed loss and repeated breakpoint vectors. Those observations may motivate
+future merging but must not implement it or assert equivalence from positions
+alone. Use work counts and quality comparisons, not fragile wall-clock thresholds.
+
+**Acceptance:** all section 7 cases pass, real-font output is usable after
+session release, and dependency audits remain clean. Add executable usage
+examples and usage-only README updates. Update implementation status in design
+documents and AGENTS only for delivered behavior, preserving author remarks and
+remaining hypotheses. No milestone is complete merely because the happy-path
+visual proof looks correct.
+
+## 6. Sibling-module change summary
+
+| Module | Required work | Boundary and regression obligation |
+| --- | --- | --- |
+| `w3c-dom` | DOM-SHIP-01: checked page-break values/defaults and matching declaration/effective resolution. | No pagespan or typography policy; preserve existing styling and diagnostics. |
+| `css-box-layout` | BOX-SHIP-01 through BOX-SHIP-03: boundary provenance and pure resumable structural fitting with fragment geometry/paint. | No channels, scheduler, fonts or typography imports; persistent registers stay as they are. |
+| `khipu` | KHIPU-SHIP-01: manual discretionary prefix/carry continuation. | Neutral paragraph material and immutable certificates; no CSS/DOM/page coupling. |
+| `typography` | TYPE-SHIP-01/02: legal prefix enumeration, chosen frozen fragments, source positions and checkpoint/atomic integration for the admitted policies. | Reuse abstract font/service contracts; no concrete OpenType, pagelayout or css-box-layout dependency. |
+| `tytui` | No new production feature required. | Run existing consumer regressions when shared APIs change. Prefer additive APIs; if a shared interface must change, include the smallest explicit consumer migration in that sibling slice. |
+| `opentype`, `cords`, `uax`, `tree`, `schuko` | No required production changes identified. | Reuse existing services and test fixtures; any newly demonstrated upstream gap needs its own scoped dependency, not an assumed rewrite. |
+
+In particular, keep font abstraction in the existing typography/khipu service
+contracts and the optional bridge. A module-graph dependency is not a reason to
+import a concrete font implementation into content, the CSS core or page search.
+The current test-only OpenType adapters are sufficient for the planned proofs.
+
+## 7. Acceptance fixture matrix
+
+These are fixture families to create in SHIP-00 and extend in their owning
+slices. Expected results include logical source coverage and remainder, not
+only page counts or screenshots.
+
+| Family | Required observation | Main acceptance slice |
+| --- | --- | --- |
+| Default main | Residual/redundant-main equivalence; nested route still rejected; one preparation per group. | SHIP-01 |
+| Marker provenance | Empty/multiline anchors, collapsed whitespace, inline splits, anonymous boxes, suppression and terminal affinity. | BOX-SHIP-01, SHIP-02 |
+| Forced breaks | All admitted forced variants equivalent; main-only rule; coalescing; no leading blank; boundary inside a branch. | SHIP-02, SHIP-05 |
+| Ownership errors | Missing/duplicate owner or target, inactive target, cycle, non-main-rooted chain; ordinary xrefs excluded. | SHIP-02 |
+| Structural splits | Exact order through nested first/middle/last fragments; margins/edges and zero-height progress. | BOX-SHIP-02/03 |
+| Paragraph prefixes | All legal fitting cuts, exact height, NoProgress, changed width, bidi and source-boundary mapping. | TYPE-SHIP-01 |
+| Manual carry | Discretionary replacement tails, repeated continuation, source conservation and explicit service failure. | KHIPU-SHIP-01, TYPE-SHIP-02 |
+| Inline atomics | Consumed interiors fixed; suffix interiors vary with width; oversized atomic without endless pages. | BOX-SHIP-03, SHIP-04 |
+| Local choice | A shorter prefix wins current-page loss; ties prefer logical main/secondary progress then stable enumeration. | SHIP-05/06 |
+| Owning placement | Same page above anchor allowed; earlier page disallowed; split anchor activates once; ordinary links add no charge. | SHIP-06 |
+| Authored FIFO | B owned before A, queue `[A, B]`; pending charges and blocked heads; no sorting or skipping. | SHIP-06 |
+| Transitive drain | Main → note → further target; drain-only page; future-span material retained; impossible drain reported. | SHIP-06/08 |
+| Loss arithmetic | Blocked/finite ordering, one-time component quantization, checked overflow and positive page lower bound. | SHIP-03 |
+| Scoring facts | Fixed participation, newly active channels, empty frame sets, split-paragraph counts, final-main tail and missing receivers. | SHIP-03, SHIP-06 |
+| Search reference | Better completion after first; beam-wide ranking; width cap excludes completions; strict-bound tie; no merging. | SHIP-07 |
+| Failure reporting | NoFit versus unsupported/backend error; local limit; search infeasible versus heuristic exhaustion; cancellation with/without incumbent. | SHIP-03/07 |
+| Transactions | Late frame/channel failure leaves every input unchanged; selected span publishes pages and final state together. | SHIP-04/06/08 |
+| Lifetime | Source/preparation mismatch; session close; chosen output survives rejected states and released execution handles. | SHIP-04/09 |
+| Real fonts/quality | Two widths, atomics and manual carry rendered; beam 8/32/128 compared with an exhaustive reference. | SHIP-09 |
+
+Use deterministic tables and generated finite combinations where they clarify
+conservation and search behavior. This plan does not reopen the deliberately
+omitted CONT-03 fuzz test.
+
+## 8. Validation and completion checkpoints
+
+For implementation slices, follow each repository's instructions, format Go
+changes, and run focused package tests first. Then run the relevant module's
+ordinary tests, race tests, build and vet checks for public boundary changes.
+Exercise pagelayout integration after each sibling handoff; run typography and
+tytui consumers when their shared paragraph/core interfaces change. Race checks
+do not imply a new concurrent-session guarantee. Check package import boundaries
+as well as runtime results. Documentation-only planning needs no Go test run.
+
+Useful completion checkpoints are:
+
+1. **Source contract ready:** SHIP-00 through SHIP-03 plus DOM-SHIP-01 and
+   BOX-SHIP-01. Main, markers, ownership, state and loss can be inspected and
+   tested without a real paginator.
+2. **Exact fitting ready:** BOX-SHIP-02/03, TYPE-SHIP-01/02, KHIPU-SHIP-01 and
+   SHIP-04. Structural and paragraph fragments resume across widths without
+   source mutation, duplication or loss.
+3. **Page construction ready:** SHIP-05/06. One-template attempts choose one
+   deterministic complete page, including multiple channels and draining.
+4. **Pagination ready:** SHIP-07/08. Bounded search selects spans, preserves
+   exact state and delivers only selected frozen output.
+5. **First milestone complete:** SHIP-09 and all preceding acceptance gates,
+   including manual continuation within the declared profile, failure reporting
+   and lifetime proofs. Record any still-provisional scoring calibration openly.
+
+The next implementation task is **SHIP-00**: settle the concrete contracts and
+check in the fixture expectations. It is deliberately a small decision-and-test
+slice before changing several sibling APIs.
