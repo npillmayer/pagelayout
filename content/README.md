@@ -292,3 +292,16 @@ the paragraph backend when fitting actual fragments, not by this source map.
 `session.Check(prepared)` checks preparation identity and whether the session is
 open and idle, without invoking a backend. Serialize it with execution and Close.
 Errors preserve `ErrInvalidPreparation`, `ErrClosedSession` or `ErrSessionBusy`.
+
+Empty-anchor affinity considers retained blocks even when they contain no text.
+When affinity lands on a block boundary, the event can have no paragraph coverage;
+use its structural position in the plan. An anchor outside an inline atomic
+attaches to the atomic occurrence, never an interior paragraph. Likewise, visible
+coverage outside an atomic counts the occurrence once rather than also counting
+its interior text.
+
+Use `LogicalPosition.Compare`, not `PositionInfo.Order` or a lone group offset,
+for progress ordering. Comparison canonicalizes processed byte boundaries onto
+normalized leaves, placing an atomic's end after its interior and equating shared
+processed boundaries across adjacent source ranges. Inspection still retains the
+original source box and group-byte coordinate separately.

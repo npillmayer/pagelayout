@@ -339,3 +339,21 @@ func TestPlanVisibleCoverageIsOneActivation(t *testing.T) {
 		t.Fatal("inexact span boundary")
 	}
 }
+
+func TestReviewEmptyBlockAffinityAssignsFollowingSpan(t *testing.T) {
+	source := "<body><div><p>Before</p><a id=owner href=#n data-flow-anchor></a><section id=next style='padding:3px;break-before:page'></section></div><aside id=n style='flow-into:notes'>Note</aside>"
+	d, err := content.Load(strings.NewReader(source), content.LoadOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := Plan(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(p.spans) != 2 || p.anchors[0].Span != 2 || p.anchors[0].Affinity != content.AffinityFollowing {
+		t.Fatal("anchor assigned to wrong span", p.Anchors(), p.Spans())
+	}
+	if (&SpanPlan{}).Matches(&content.Document{}) {
+		t.Fatal("zero plan matched invalid document")
+	}
+}

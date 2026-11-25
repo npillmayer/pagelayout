@@ -23,17 +23,19 @@ func (id SourceID) Valid() bool { return id.source != nil }
 // LogicalPosition is an opaque source/build-qualified structural or text
 // position. It is independent of width and line breaking, not a continuation.
 type LogicalPosition struct {
-	box    Box
-	group  Box
-	order  uint64
-	offset uint64
-	edge   layout.BoundaryEdge
-	source SourceRef
+	box                 Box
+	group               Box
+	order               uint64
+	offset              uint64
+	edge                layout.BoundaryEdge
+	source              SourceRef
+	keyOrder, keyOffset uint64
+	textPosition        bool
 }
 type PositionInfo struct {
 	Box, Group    Box
 	Source        SourceRef
-	Order, Offset uint64 // structural order and processed group byte offset
+	Order, Offset uint64 // source-box traversal order and processed group byte offset; use Compare for ordering
 	Edge          layout.BoundaryEdge
 }
 
@@ -48,13 +50,10 @@ func (p LogicalPosition) Compare(q LogicalPosition) (int, bool) {
 	if !p.Valid() || !q.Valid() || p.box.owner != q.box.owner || p.box.tree != q.box.tree {
 		return 0, false
 	}
-	if p.group.Valid() && p.group == q.group {
-		return cmp.Compare(p.offset, q.offset), true
-	}
-	if c := cmp.Compare(p.order, q.order); c != 0 {
+	if c := cmp.Compare(p.keyOrder, q.keyOrder); c != 0 {
 		return c, true
 	}
-	return cmp.Compare(p.offset, q.offset), true
+	return cmp.Compare(p.keyOffset, q.keyOffset), true
 }
 
 type EventAffinity string
@@ -103,7 +102,7 @@ type GroupEvent struct {
 // EventPositions extracts source coverage without fonts or layout. It does not
 // validate ownership, mutate source material or publish a partial result.
 func (d *Document) EventPositions() ([]PositionedEvent, error) {
-	if d == nil || d.material == nil {
+	if d == nil || d.material == nil || !d.material.hasPositionEvents() {
 		return nil, nil
 	}
 	inputs, err := d.material.positionInputs()
@@ -144,7 +143,7 @@ func (s *snapshot) logical(tree TreeID, b layout.StructuralBoundary, src SourceR
 	if b.Order == 0 {
 		return LogicalPosition{}
 	}
-	p := LogicalPosition{box: Box{s, tree, b.Box}, order: b.Order, edge: b.Edge, source: src}
+	p := LogicalPosition{box: Box{s, tree, b.Box}, order: b.Order, keyOrder: b.Order, edge: b.Edge, source: src}
 	if b.Group != 0 {
 		p.group = Box{s, tree, b.Group}
 	}
@@ -160,12 +159,37 @@ func (s *snapshot) descendant(id, ancestor layout.NodeID) bool {
 	return false
 }
 
+func (s *snapshot) hasPositionEvents() bool {
+	for _, e := range s.events {
+		if e.Active && e.Kind != SourceTargetID {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *snapshot) positionEvents(inputs []GroupInput) []PositionedEvent {
+	if !s.hasPositionEvents() {
+		return nil
+	}
+
 	before := map[Box]layout.StructuralBoundary{}
 	after := map[Box]layout.StructuralBoundary{}
 	sourceBoxes := map[layout.NodeID][]Box{}
+	parents := map[Box]Box{}
 	for ti := 1; ti < len(s.trees); ti++ {
 		tree := TreeID(ti)
+		var indexParents func(*layout.LayoutNode)
+		indexParents = func(n *layout.LayoutNode) {
+			if n == nil {
+				return
+			}
+			for _, c := range n.Children {
+				parents[Box{s, tree, c.BoxID}] = Box{s, tree, n.BoxID}
+				indexParents(c)
+			}
+		}
+		indexParents(s.trees[ti].root)
 		for _, b := range s.trees[ti].provenance.Boundaries() {
 			box := Box{s, tree, b.Box}
 			if b.Edge == layout.BoundaryBefore {
@@ -208,6 +232,8 @@ func (s *snapshot) positionEvents(inputs []GroupInput) []PositionedEvent {
 			p := s.logical(span.Box.tree, before[span.Box], span.Source)
 			p.group = g.Group
 			p.offset = start
+			p.keyOffset = start
+			p.textPosition = true
 			ref := span.Range
 			if span.Kind == "" {
 				ref.Start += start - span.Start
@@ -219,10 +245,40 @@ func (s *snapshot) positionEvents(inputs []GroupInput) []PositionedEvent {
 			p := s.logical(a.Box.tree, before[a.Box], a.Source)
 			p.group = g.Group
 			p.offset = a.Start
+			p.keyOffset = a.Start
+			p.textPosition = true
 			material = append(material, EventCoverage{p, a.Start, a.End, a.Source, boxtext.TextRange{}, true})
 		}
 	}
 	slices.SortStableFunc(material, func(a, b EventCoverage) int {
+		if a.Position.box.tree != b.Position.box.tree {
+			return cmp.Compare(a.Position.box.tree, b.Position.box.tree)
+		}
+		v, _ := a.Position.Compare(b.Position)
+		return v
+	})
+	// Material in a different atomic interior is not independently placeable.
+	accessible := func(anchor, source layout.NodeID) bool {
+		for id := s.sources[source].Parent; id != 0; id = s.sources[id].Parent {
+			for _, b := range sourceBoxes[id] {
+				if b.node().Box == layout.BoxInlineBlock && !s.descendant(anchor, id) {
+					return false
+				}
+			}
+		}
+		return true
+	}
+	// Retained blocks matter even when they have no rendered text. Keep these
+	// structural affinity candidates separate from visible anchor coverage.
+	affinityMaterial := slices.Clone(material)
+	for id, boxes := range sourceBoxes {
+		for _, b := range boxes {
+			if b.node().Box == layout.BoxBlock {
+				affinityMaterial = append(affinityMaterial, EventCoverage{Position: s.logical(b.tree, before[b], s.sources[id].Source), Source: s.sources[id].Source})
+			}
+		}
+	}
+	slices.SortStableFunc(affinityMaterial, func(a, b EventCoverage) int {
 		if a.Position.box.tree != b.Position.box.tree {
 			return cmp.Compare(a.Position.box.tree, b.Position.box.tree)
 		}
@@ -254,25 +310,17 @@ func (s *snapshot) positionEvents(inputs []GroupInput) []PositionedEvent {
 				b := boxes[0]
 				// Propagate only across actual first normalized children, skipping no
 				// retained material. Anonymous wrappers do not introduce source ancestry.
-				parents := map[layout.BoxID]*layout.LayoutNode{}
-				var visit func(*layout.LayoutNode)
-				visit = func(n *layout.LayoutNode) {
-					for _, c := range n.Children {
-						parents[c.BoxID] = n
-						visit(c)
-					}
+				for parent := parents[b]; parent.Valid() && len(parent.node().Children) > 0 && parent.node().Children[0].BoxID == b.id && parent.node().Box == layout.BoxBlock; parent = parents[b] {
+					b = parent
 				}
-				visit(s.trees[b.tree].root)
-				for parent := parents[b.id]; parent != nil && len(parent.Children) > 0 && parent.Children[0].BoxID == b.id && parent.Box == layout.BoxBlock; parent = parents[b.id] {
-					b = Box{s, b.tree, parent.BoxID}
-				}
+
 				r.Position = s.logical(b.tree, before[b], s.sources[b.node().NodeID].Source)
 			}
 			out = append(out, r)
 			continue
 		}
 		for _, m := range material {
-			if m.Position.box.tree == e.Tree && s.descendant(m.Source.NodeID, e.Source.NodeID) {
+			if m.Position.box.tree == e.Tree && s.descendant(m.Source.NodeID, e.Source.NodeID) && accessible(e.Source.NodeID, m.Source.NodeID) {
 				r.Coverage = append(r.Coverage, m)
 			}
 		}
@@ -281,9 +329,9 @@ func (s *snapshot) positionEvents(inputs []GroupInput) []PositionedEvent {
 			r.Position = r.Coverage[0].Position
 		} else if block.Valid() {
 			var following, preceding *EventCoverage
-			for i := range material {
-				m := &material[i]
-				if m.Position.box.tree != e.Tree || !s.descendant(m.Source.NodeID, block.node().NodeID) || s.descendant(m.Source.NodeID, e.Source.NodeID) {
+			for i := range affinityMaterial {
+				m := &affinityMaterial[i]
+				if m.Position.box.tree != e.Tree || !s.descendant(m.Source.NodeID, block.node().NodeID) || s.descendant(m.Source.NodeID, e.Source.NodeID) || s.descendant(e.Source.NodeID, m.Source.NodeID) || !accessible(e.Source.NodeID, m.Source.NodeID) {
 					continue
 				}
 				if m.Source.NodeID > e.Source.NodeID {
@@ -323,7 +371,15 @@ func (s *snapshot) positionEvents(inputs []GroupInput) []PositionedEvent {
 					r.Position = s.logical(targetBlock.tree, edge, s.sources[targetBlock.node().NodeID].Source)
 				}
 				c.Position.offset = c.Start
-				r.Coverage = []EventCoverage{c}
+				if c.Position.textPosition {
+					r.Coverage = []EventCoverage{c}
+				} else {
+					edge := before[c.Position.box]
+					if r.Affinity == AffinityPreceding {
+						edge = after[c.Position.box]
+					}
+					r.Position = s.logical(c.Position.box.tree, edge, c.Source)
+				}
 			}
 		}
 		if r.Affinity == AffinityStructural && block.Valid() {
@@ -331,6 +387,7 @@ func (s *snapshot) positionEvents(inputs []GroupInput) []PositionedEvent {
 				if g.Owner == block && g.Text == "" {
 					pos := s.logical(block.tree, before[g.Group], r.Block)
 					pos.group = g.Group
+					pos.textPosition = true
 					r.Coverage = []EventCoverage{{Position: pos, Source: e.Source}}
 					break
 				}
@@ -338,6 +395,7 @@ func (s *snapshot) positionEvents(inputs []GroupInput) []PositionedEvent {
 		}
 		out = append(out, r)
 	}
+	canonicalizeEventPositions(inputs, before, after, out)
 	return out
 }
 
@@ -349,6 +407,64 @@ func attachGroupEvents(inputs []GroupInput, events []PositionedEvent) {
 					inputs[i].Events = append(inputs[i].Events, GroupEvent{e.Event.Source, e.Event.Kind, e.Affinity, c.Start, c.End, c.Source, c.Range, c.Atomic})
 				}
 			}
+		}
+	}
+}
+
+// Canonicalize group byte boundaries onto normalized leaf positions. In
+// particular, the end of an atomic marker lies after its entire interior, and
+// adjacent source ranges sharing a processed offset compare equally.
+func canonicalizeEventPositions(inputs []GroupInput, before, after map[Box]layout.StructuralBoundary, events []PositionedEvent) {
+	type unit struct {
+		start, end uint64
+		box        Box
+	}
+	type groupCoordinates struct {
+		units []unit
+		first map[Box]uint64
+	}
+	coordinates := map[Box]groupCoordinates{}
+	for _, g := range inputs {
+		c := groupCoordinates{first: map[Box]uint64{}}
+		for _, t := range g.TextSources {
+			if t.Start < t.End {
+				c.units = append(c.units, unit{t.Start, t.End, t.Box})
+			}
+		}
+		for _, a := range g.Occurrences {
+			c.units = append(c.units, unit{a.Start, a.End, a.Box})
+		}
+		slices.SortStableFunc(c.units, func(a, b unit) int { return cmp.Compare(a.start, b.start) })
+		for _, u := range c.units {
+			if _, ok := c.first[u.box]; !ok {
+				c.first[u.box] = u.start
+			}
+		}
+		coordinates[g.Group] = c
+	}
+	canonical := func(p LogicalPosition) LogicalPosition {
+		if !p.textPosition {
+			return p
+		}
+		c := coordinates[p.group]
+		for _, u := range c.units {
+			if p.offset < u.end {
+				p.keyOrder = before[u.box].Order
+				p.keyOffset = p.offset - c.first[u.box]
+				return p
+			}
+		}
+		p.keyOrder = after[p.group].Order
+		p.keyOffset = 0
+		if len(c.units) == 0 {
+			p.keyOrder = before[p.group].Order
+		}
+		return p
+	}
+	for i := range events {
+		events[i].Position = canonical(events[i].Position)
+		for j := range events[i].Coverage {
+			events[i].Coverage[j].Position = canonical(events[i].Coverage[j].Position)
 		}
 	}
 }

@@ -377,6 +377,16 @@ suppression; coincident/terminal boundaries; and a span ending inside one main
 branch. `[A, B]` remains `[A, B]` when B's owner is first. Cross-span queue
 obstructions remain observable and are not repaired or mislabeled as bad HTML.
 
+Review update (2026-11-25): DOM-SHIP-01, SHIP-01, BOX-SHIP-01 and SHIP-02 were
+checked against their source/normalization contracts. SHIP-02 fixes now cover
+retained empty blocks in affinity, atomic interiors as indivisible from outside,
+and canonical ordering of group-byte positions against nested structural
+positions. Regressions include following-span assignment, outer-group preparation
+metadata and ordering consistency. Invalid zero plans no longer match zero source
+handles. Repeated tree indexing/event copying was removed from the mapping path.
+Actual placement, fragment/cluster activation and page execution remain in their
+scheduled later slices, not claimed by this source review.
+
 ### SHIP-03 — Immutable state, loss and outcome contracts
 
 **Status: implemented (2026-11-25).** `NewPagination(PaginationConfig)` binds a

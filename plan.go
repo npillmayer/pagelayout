@@ -102,7 +102,7 @@ func (p *SpanPlan) Document() *content.Document {
 	return &d
 }
 func (p *SpanPlan) Matches(d *content.Document) bool {
-	return p != nil && d != nil && p.document.SourceID() == d.SourceID()
+	return p != nil && d != nil && p.document.SourceID().Valid() && p.document.SourceID() == d.SourceID()
 }
 func (p *SpanPlan) Branches() []PlanBranch {
 	if p == nil {
@@ -167,8 +167,9 @@ func Plan(d *content.Document) (*SpanPlan, error) {
 		byTree[b.Material.Tree] = b.ID
 		byNode[b.Material.Source.NodeID] = b.ID
 	}
+	sourceEvents := d.SourceEvents()
 	ids := map[string][]content.SourceEvent{}
-	for _, e := range d.SourceEvents() {
+	for _, e := range sourceEvents {
 		if e.Kind == content.SourceTargetID {
 			ids[e.Value] = append(ids[e.Value], e)
 		}
@@ -240,7 +241,7 @@ func Plan(d *content.Document) (*SpanPlan, error) {
 		if b.Channel != "main" {
 			if _, ok := owner[b.ID]; !ok {
 				var related []content.SourceRef
-				for _, event := range d.SourceEvents() {
+				for _, event := range sourceEvents {
 					if event.Kind != content.SourceFlowAnchor || event.Active {
 						continue
 					}
