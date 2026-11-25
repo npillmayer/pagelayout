@@ -2,8 +2,10 @@
 
 Recorded on 2026-11-25 against the current implementation and the decisions in
 [SHIPOUT.md](SHIPOUT.md). This is a plan, not a report of implemented pagination.
-Every slice below is **planned**. Names of new Go declarations are illustrative
-until SHIP-00 pins their contracts.
+**SHIP-00 is complete as a contract-and-fixture slice.** All later slices remain
+planned; pagination is not implemented. The adopted operation shape is recorded
+in SHIPOUT; supporting Go declarations remain implementation work. Scoring and
+numerical execution limits remain working hypotheses.
 
 The author's initial remarks, scattered remarks and closing answers remain in
 SHIPOUT.md, unchanged. That document remains the design authority. This plan
@@ -39,9 +41,9 @@ the register head with a separate continuation; neither a prepared wrapper nor
 a clipped box tree replaces that payload. No register redesign is required.
 
 The first fitting profile covers ordinary block sequences, splits between
-paragraph lines and indivisible inline atomics. The first paragraph breaking
-policy should follow the existing explicit FirstFit bridge. Record its exact
-admission in SHIP-00; page construction enumerates legal cuts in the resulting
+paragraph lines and indivisible inline atomics. The adopted paragraph breaking
+policy follows the existing explicit FirstFit bridge, normal line height and
+bottom-margin-edge atomic alignment; page construction enumerates legal cuts in the resulting
 paragraph layout, not every possible paragraph line-breaking solution.
 Preserve the existing preparation distinction between uniform `none` and uniform
 `manual` hyphenation. An early `none`-only proof is useful, but does not complete
@@ -96,7 +98,7 @@ local page choices. Neither can supply the required structural remainder alone.
    the opaque continuation additionally retains structural and paragraph state.
 5. **Fragment edges:** a split box retains top edges only on its first fragment,
    bottom edges only on its last, and side edges throughout. Unsplit descendants
-   keep their own edges. The adopted margin hypothesis uses core collapse rules
+   keep their own edges. The adopted margin contract uses core collapse rules
    inside a frame and no collapse across frames.
 6. **One result per template:** a Page attempt selects its cut-offs from current-
    page facts only. Local alternatives never become extra global successors.
@@ -128,7 +130,7 @@ real backend, as noted in the detailed steps.
 
 | Order | Slice | Owner | Depends on | Deliverable |
 | --- | --- | --- | --- | --- |
-| 1 | SHIP-00 | pagelayout, with sibling contract review | Existing loading/preparation | Contract decisions and fixture expectations. |
+| 1 | SHIP-00 — complete | pagelayout, with sibling contract review | Existing loading/preparation | Adopted contracts and checked-in fixture expectations; runtime implementation remains pending. |
 | 2 | DOM-SHIP-01 | w3c-dom | SHIP-00 | Checked page-break property support. |
 | 3 | SHIP-01 | pagelayout/content | SHIP-00, DOM-SHIP-01 | Default main and detached source events. |
 | 4 | BOX-SHIP-01 | css-box-layout | SHIP-00 | Normalized source-boundary provenance. |
@@ -156,56 +158,71 @@ their final acceptance includes the later sibling dependencies in the table.
 
 ### SHIP-00 — Pin contracts and acceptance fixtures
 
-**Work:** turn the remaining interface details into a small, reviewable contract
-before implementing fitting. Preserve settled rules and label the scoring,
-activation, eligibility and publication hypotheses as provisional. Define the
-minimal neutral paragraph-alternative interface together with the structural
-cursor contract, so the two sibling implementations can proceed independently.
-Prefer concrete values and opaque handles over an extensible plugin hierarchy.
+**Status: complete (2026-11-25), design and fixtures only.** The user adopted the
+contract walkthrough, retaining scoring and numerical limits as working
+hypotheses. The [adopted contract](SHIPOUT.md#adopted-page-construction-contract-ship-00)
+is authoritative; no new loading/fitting/pagination runtime is implied.
 
-Resolve or explicitly gate these details:
-
-| Detail still open | Required decision/artifact |
+| Contract | Adopted choice |
 | --- | --- |
-| Public API and failures | Exact Page attempt/search result types, initialization and inspection, cancellation/limits, structured causes and interrupted-incumbent handling. |
-| Identity | Snapshot/preparation/policy validation; branch ordinals; logical boundary comparison; source IDs versus page-scoped fragment occurrences. |
-| Default-main migration | How `Bank`, `Channels`, `Branches` and residual inspection describe main. Recommended compatibility approach: residual inspection aliases the same source tree; it is never a second queue or separately prepared material. |
-| Source positions | Empty-anchor affinity, terminal anchors, collapsed text, suppressed/inert sources, anonymous containers and inline splitting/hoisting. Distinguish source bytes, processed bytes, logical boundaries and glyph/cluster positions. |
-| Break profile | Exact accepted `break-before` values/defaults/CSS-wide handling, applicable source boxes, unsupported non-page values and treatment of legacy aliases. Shared parsing belongs in w3c-dom; normalization policy belongs here. |
-| Structural scope | Legal cuts, explicit-height/percentage interactions, zero-height progress and unsupported fragmentation diagnostics for the loaded profile. |
-| Paragraph scope | Explicit breaker/line-height/atomic alignment policy, `none`/`manual` admission and any inherited unsupported cases; no silent fallback. |
-| Local enumeration | Stable frame/branch/breakpoint order, whether and how empty placements are represented, and a work-limit outcome distinct from completed enumeration. |
-| Loss representation | Integer width, rounding, checked arithmetic, serialization/inspection and finite geometry-to-cost conversion. |
-| Scoring facts | Frame participation fixed across alternatives, including newly activated channels; empty sets, occupied extent, paragraph-fragment counting and final-main-tail exemption. |
-| Publication | Complete-span return/commit and consumer protocol; reporting already selected spans if a later span or output consumer fails. |
+| Public operation | Immutable content-derived plan; serialized execution object binds catalog, preparation/session, neutral fitter and fixed options. Explicit input states; no mutable current position. Plan/NewPagination, InitialState, PageAttempt and one-span PaginationSearch form the agreed API shape. |
+| Identity | Opaque source/preparation/execution identities, plan-local branch ordinals and logical positions, separate page-local fragment occurrences. Reject foreign cursors/context before execution; copied inspection only. |
+| Main integration | Existing residual root becomes the sole main item when present. Channels lists main first; Branches(main) and Residual inspect the same tree. No duplicate preparation; original nested-route validation precedes ignoring valid explicit main. |
+| Anchors | One active explicit owner per active secondary branch; unique same-document branch-root target and acyclic ownership to main. Visible links activate once from rendered source coverage. Empty links attach forward within their block, otherwise backward, otherwise structurally. Suppressed/inert owners are inactive; active/suppressed mismatches are diagnosed. |
+| Breaks | Auto plus page/left/right/recto/verso, normalized to page; initial/inherit/unset resolved normally. Main block-level locations outside atomics only. First-child propagation, coalescing and terminal drain; no leading blank page. Other values, rollback and legacy aliases unsupported initially. |
+| Fitting | Existing auto-height profile; block/line cuts and indivisible atomics. Actual receiving widths, no cross-frame margin collapse, adopted edge omission. FirstFit with none/manual policies and explicit unsupported cases. |
+| Enumeration | Synchronous callback with exhausted/stopped/error completion; retained immutable alternatives. Main then source-ordered channels, chain-ordered frames, further-progress prefixes first and legal empty placements. Validate owning eligibility against the complete arrangement. |
+| Loss representation | Tagged blocked/uint64 units, one million units per point, one nearest-even rounding per weighted component, checked sums, exact comparisons and explicit arithmetic errors. |
+| Reporting/publication | Constructed/NoFit/already SpanComplete; errors publish no page. Interrupted search may report a completed unselected incumbent. Atomic complete-span selection and exact transition; separate delivery with progress/error reporting; frozen output survives session close while borrowed resources remain valid. |
 
-Use the working defaults from SHIPOUT: one million integer units per point;
-page cost 1; underfill up to 1; one-line split-fragment penalty 10; carry 1 per
-pending target/page; missing main receiver 1 while main remains in the span.
-Do not silently finalize a rounding rule or scoring participation convention in
-implementation. Record the chosen fixture interpretation before writing its
-evaluator. Nonnegative coefficients and a positive quantized page cost are
-necessary for the settled loss/search contract.
+**Working scoring hypotheses:** page 1, underfill up to 1, one-line split-fragment
+10, carry 1 per pending target/page and missing main receiver 1, in cost points.
+Underfill participation is fixed from attempt-entry state after immediately due
+events: main if material remains, secondary channels if already pending. Newly
+activated targets pay carry immediately when incomplete but enter underfill on
+the next attempt. Use area-weighted squared unused-height fractions, zero for an
+empty participating set, and the fitter's allocated extent including surviving
+edges. Exempt the finishing and later main frames at span end while retaining
+the original area denominator; earlier gaps remain. Count one-line fragments per
+paragraph/frame, coalescing internal subdivisions; unsplit one-line paragraphs
+are exempt. Secondary missing receivers add no charge beyond carry.
 
-The adopted underfill hypothesis is an area-weighted mean of squared unused-
-height fractions, with an arrangement-independent participating frame set and
-inactive secondary channels excluded. Exempt trailing main space on the page
-where main reaches its span boundary. SHIP-00 must reconcile participation with
-newly reached anchors and define occupancy from the fitter's used geometry;
-these are still open details, not permission to choose a convenient frame set
-separately for each alternative. Secondary missing receivers incur carry loss
-without a second charge for the same deferral.
+**Working numerical limits:** 100,000 local enumeration steps (including partial
+arrangements) per attempt; 1,000,000 attempts and 10,000 depth rounds per span.
+Configurable, with no implicit wall-clock deadline or automatic retry/widening.
+Limits/cancellation are explicit interruption, never NoFit or proven infeasibility.
+These caps do not change the settled configurable default-32 unfinished beam.
 
-Create a pagination fixture area, proposed as `testdata/pagination/`, with separate
-template HTML and content HTML, optional CSS, and readable expected source
-positions, page/template sequences, losses and error categories. Keep source-only
-and sibling geometry fixtures beside their owning packages where appropriate.
-Section 7 lists the required cases. The initially hand-written expectations must
-not be generated from the algorithm they are meant to check.
+**Fixtures and expected results:** [testdata/pagination](../testdata/pagination/README.md)
+contains separate content/template HTML, an additional stylesheet, and six
+machine-readable tables:
 
-**Acceptance:** reviewed contract tables, fixtures and explicit expected results
-exist; every remaining unresolved detail has an owning slice and a gate before
-dependent code. This planning document alone does not complete SHIP-00.
+- `source-expected.json`: routing, marker mapping, affinity, ownership, suppression
+  and source/effective profile failures, with stable HTML-ID labels.
+- `template-expected.json`: exact catalog definition order, chains and content rectangles.
+- `fitting-expected.json`: declared synthetic inputs for exact remainders, edge
+  capacities, changed widths/atomics, manual carry, local ties and draining.
+- `scoring-expected.json`: explicit provisional page facts/costs plus settled
+  arithmetic boundary cases.
+- `search-expected.json`: complete finite fake Page-attempt graphs, expected
+  sequences/outcomes, pruning and interruption observations.
+- `protocol-expected.json`: identity, atomic publication, lifetime, enumeration
+  interruption and delivery expectations with explicit scenarios.
+
+The synthetic tables isolate contracts from unspecified font metrics. Their
+expectations are independently authored, not generated from a paginator. Positive
+source cases describe the adopted future profile; the current loader does not
+admit break-before yet. Later slices implement executable consumers and extend
+these fixtures with real-font and lifetime proofs; the fixture presence does not
+claim that those later acceptance gates pass.
+
+**Remaining implementation gates:** exact supporting Go declarations/private
+cursor representation and diagnostics belong to SHIP-03/04 and sibling fitting
+slices; source-to-normalized/prepared mappings to SHIP-01/02 and BOX-SHIP-01;
+eligibility predicate declarations to SHIP-07; frozen consumer payload types to
+SHIP-08. The recorded behavior is fixed except for explicitly provisional scoring,
+limits and the retained eligibility baseline. Calibration does not reopen settled
+source ordering, remainder, tie or beam rules.
 
 ### DOM-SHIP-01 — Checked `break-before` support
 
@@ -241,7 +258,8 @@ metadata. Do not infer an owner from ordinary xrefs or target source proximity.
 Generic content loading preserves the facts needed by pagination. The whole
 ownership graph and span validation belong to the pagination plan in SHIP-02;
 ordinary standalone content users should not need a template catalog merely to
-load styled material. Pin the exact validation entry point in SHIP-00.
+load styled material. Apply the SHIP-00 split: content preserves source facts;
+root Plan validates the ownership graph and span plan.
 
 **Acceptance:** residual-only and redundant-main documents have identical main
 order/styles. Nested routes still fail, including two `main` declarations.
@@ -285,7 +303,7 @@ glyph, U+FFFC atomic marker or khipu penalty to represent a page/anchor event.
 Handle a marker in text collapsed to zero bytes according to the explicit
 SHIP-00 affinity rule. Do not assume source byte offsets equal prepared offsets.
 
-Implement the adopted ownership hypothesis: one explicit same-document owner
+Implement the adopted ownership contract: one explicit same-document owner
 per independently scheduled secondary branch, targeting its unique branch-root
 ID; diagnose unresolved/duplicate/inactive targets, duplicate ownership, cycles
 and chains not rooted in main. Ordinary xref cycles are irrelevant. Suppressed
@@ -297,7 +315,7 @@ their first placed content fragment, once; empty anchors use their mapped
 boundary. A future target is not pending just because it is prepared. A target
 owned from a secondary branch becomes eligible only when that anchor is placed.
 
-Implement main-only forced boundaries under the working hypothesis; diagnose
+Implement the adopted main-only forced-boundary contract; diagnose
 active secondary forced breaks as unsupported. Coalesce identical boundaries,
 handle an initial boundary without a blank page, and add a terminal draining
 boundary. The plan must stop within a main branch as well as between branches.
@@ -328,12 +346,13 @@ before depending on real fitting. Retain a positive lower bound valid under the
 fixed policy for search pruning; do not hard-code the default one-point value
 when policy configuration can change it.
 
-Define page outcomes matching SHIPOUT: Constructed, NoFit, already SpanComplete,
-and typed invalid-request/unsupported/execution errors. Interrupted enumeration
+Implement the adopted page outcomes matching SHIPOUT: Constructed, NoFit, already
+SpanComplete, and typed invalid-request/unsupported/execution errors. Interrupted enumeration
 cannot publish its current best as a completed Page attempt. Search result
 types must separately represent completion, proven failure under the policies,
-heuristic exhaustion, cancellation and limits. Decide how a completed incumbent
-is inspected after interruption without presenting it as a successful optimum.
+heuristic exhaustion, cancellation and limits. Expose a completed incumbent after
+interruption only as explicitly unselected, without presenting it as a successful
+optimum or automatically committing it.
 Diagnostics identify the template/frame, channel, qualified source box and
 logical continuation position where known, preserving original causes through
 `errors.Is`/`errors.As` rather than requiring clients to parse messages.
@@ -564,7 +583,7 @@ completion. Prune an unfinished branch by the safe minimum-next-page-cost bound
 only when it is strictly greater than the incumbent's loss. Count safe pruning
 separately from width truncation. An already complete input returns no extra page.
 
-NoFit drops a template edge; operational failure aborts by the working policy.
+NoFit drops a template edge; operational failure aborts by the adopted contract.
 Report completion with whether heuristic truncation occurred. No completion after
 fully explored, uninterrupted, unpruned alternatives establishes infeasibility
 under these local/template policies; after width truncation it is search
@@ -660,9 +679,10 @@ The current test-only OpenType adapters are sufficient for the planned proofs.
 
 ## 7. Acceptance fixture matrix
 
-These are fixture families to create in SHIP-00 and extend in their owning
-slices. Expected results include logical source coverage and remainder, not
-only page counts or screenshots.
+The SHIP-00 [fixture tables](../testdata/pagination/README.md) supply initial
+inputs and explicit expected results for these families. Their owning slices add
+executable checks, real-font cases and instrumentation. Expectations include
+logical source coverage and remainder, not only page counts or screenshots.
 
 | Family | Required observation | Main acceptance slice |
 | --- | --- | --- |
@@ -716,6 +736,6 @@ Useful completion checkpoints are:
    including manual continuation within the declared profile, failure reporting
    and lifetime proofs. Record any still-provisional scoring calibration openly.
 
-The next implementation task is **SHIP-00**: settle the concrete contracts and
-check in the fixture expectations. It is deliberately a small decision-and-test
-slice before changing several sibling APIs.
+The next implementation task is **DOM-SHIP-01**: add checked break-before
+metadata/value support in w3c-dom, then integrate the adopted source contract in
+SHIP-01. SHIP-00 is complete; all runtime and real-font proof slices remain planned.

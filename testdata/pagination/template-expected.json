@@ -1,0 +1,93 @@
+{
+  "file": "templates/receivers.html",
+  "templates": [
+    {
+      "id": "wide",
+      "frames": [
+        {
+          "flow": "main",
+          "rect": [
+            10,
+            10,
+            200,
+            100
+          ]
+        }
+      ]
+    },
+    {
+      "id": "narrow-chain",
+      "frames": [
+        {
+          "flow": "main",
+          "rect": [
+            10,
+            10,
+            100,
+            40
+          ]
+        },
+        {
+          "flow": "main",
+          "rect": [
+            130,
+            10,
+            80,
+            60
+          ]
+        }
+      ]
+    },
+    {
+      "id": "note-first",
+      "frames": [
+        {
+          "flow": "notes",
+          "rect": [
+            10,
+            10,
+            100,
+            40
+          ]
+        },
+        {
+          "flow": "main",
+          "rect": [
+            10,
+            60,
+            200,
+            80
+          ]
+        }
+      ]
+    },
+    {
+      "id": "notes-only",
+      "frames": [
+        {
+          "flow": "notes",
+          "rect": [
+            10,
+            10,
+            200,
+            120
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figures-only",
+      "frames": [
+        {
+          "flow": "figures",
+          "rect": [
+            10,
+            10,
+            200,
+            120
+          ]
+        }
+      ]
+    }
+  ]
+}

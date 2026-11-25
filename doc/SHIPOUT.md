@@ -160,9 +160,10 @@ closing answers. This revision also incorporates the subsequent clarification
 that owning anchors establish placement relationships and never close pagespans.
 It also incorporates the adopted source-order rule, fragment edges, out-of-band
 markers, template-order tie preference and initial beam search without merging.
-The latest adoption settles the within-template tie rule and the 32-candidate
-beam policy. The other recommendations from that walkthrough are adopted as
-working hypotheses, with their status and remaining details marked below.
+The latest SHIP-00 adoption settles the operation/state, source-marker, fitting,
+enumeration and output contracts below, building on the settled within-template
+tie rule and 32-candidate beam policy. Scoring and numerical execution limits
+remain working hypotheses. Supporting Go declarations remain implementation work.
 Global optimisation here means choosing a sequence of page templates within a
 pagespan; flow-material cut-offs are selected locally during page construction.
 The earlier recommendation to expose cut-off alternatives to global search is
@@ -263,10 +264,10 @@ open. The latest adoption does not downgrade previously settled rules.
   goroutine. A worker pool may be considered later without overlapping the fixed
   overall phases.
 
-The responsibility split below remains the basis for further discussion. The
-initial beam policy and tie rules are settled; template eligibility, local
-enumeration, scoring details and publication have working hypotheses below.
-Their concrete APIs and validation details remain open. The meaning of
+The responsibility split below is adopted. Local enumeration and publication
+are settled by SHIP-00 alongside the tie/beam rules; scoring, numerical limits
+and the existing template-eligibility baseline retain their stated provisional
+status. Concrete supporting APIs remain implementation work. The meaning of
 global optimisation and its sum-of-page-losses objective are specified above.
 
 "Prepared flow registers" describes the readiness of their material. It does
@@ -289,7 +290,7 @@ Under this decomposition, shipout starts with selected pages. It does not choose
 breaks or mutate flow registers. Selection can deliver one page or a sequence;
 output format and rendering backend need not determine the search strategy.
 
-The working ownership hypothesis is that `css-box-layout` owns structural box
+The adopted ownership contract is that `css-box-layout` owns structural box
 fitting and fragmentation, with paragraph fitting supplied by an adapter.
 Typography/khipu own paragraph breaking and continuation. `pagelayout` owns
 frame traversal, channel coordination, template choices and page-sequence
@@ -343,7 +344,7 @@ operational error. [**Remark**] Agreed to the recommendation [**End of Remark**]
 The within-template rule is now settled: compare logical progress in `main`,
 then secondary channels, then deterministic enumeration order. The template-order
 rule separately compares candidates from different templates. Concrete outcome
-types remain open under the working failure-reporting contract below.
+types are implementation details under the adopted SHIP-00 reporting contract below.
 
 A pagination state needs more than a register bank. A branch may be only partly
 placed, and later decisions can depend on page position. Conceptually it includes:
@@ -389,7 +390,7 @@ open. The proposed mapping is:
 | Selected page-template sequence | Retained Page candidates, from which template identities are obtained. |
 | Frame-continuation / `vsplit` positions | Split records in retained page results, with the resume cursor in the successor state. |
 
-**Working hypothesis:** retain frozen Page candidates rather than only template
+**Settled in SHIP-00:** retain frozen Page candidates rather than only template
 IDs, so earlier layout choices and output need not be reconstructed. Use an
 immutable predecessor chain to share their common page sequence. This is output
 prefix sharing, not search-state merging. The
@@ -463,16 +464,14 @@ descendants of a routed branch remain allowed; a descendant declaring another
 named route is still rejected. Main-flow boundaries govern pagespans; secondary
 flows need no independent markers to establish their span membership.
 
-**Working validation hypothesis:** require one owning anchor for
-each independently scheduled secondary branch, targeting a unique ID in the
-same document and initially identifying the routed branch root. Diagnose missing
-or duplicate ownership, unresolved/inactive targets, ownership cycles and chains
-that do not reach `main`. Ordinary cross-reference cycles are unrelated to this
-validation. These rules are the adopted provisional contract; concrete diagnostics
-and treatment of suppressed source cases still need specification. Non-visible
-anchors also need an explicit source position that
-survives normalization; the author should not have to print a reference merely
-to establish placement ownership.
+**Settled in SHIP-00:** require one active explicit owner per active secondary
+branch, targeting a unique same-document branch-root ID, with acyclic chains
+reaching main. Ordinary xrefs do not participate. Suppressed/inert owners do not
+activate; an active target without an active owner is a missing-owner error, and
+an active owner targeting suppressed material is an inactive-target error.
+Diagnose unresolved/duplicate targets, duplicate ownership and non-root targets
+with source provenance. The [adopted contract](#owning-anchors-affinity-and-source-mapping)
+fixes non-visible-marker affinity without requiring printed reference text.
 
 **Settled:** every register retains source authoring order, including secondary
 material. Do not derive reordered queues from owning anchors or skip an earlier
@@ -486,17 +485,20 @@ automatic repair or sorting takes place. If the ordering and other placement
 constraints prevent a span from draining, report that failed completion; do not
 reorder or silently consume material reserved for a later span to make it succeed.
 
-**Working activation hypothesis:** a target may be placed on its owning-anchor
-page or later, never on an earlier page. It may appear geometrically above the
-anchor on that same page. For a visible link, activate once with the first
-fragment containing its content; a link split across fragments does not activate
-again. For an empty link, retain a zero-width source position with explicit
-boundary affinity. The exact affinity and terminal-position rules remain open.
+**Settled in SHIP-00:** a target may be placed on its anchor page or later,
+including geometrically above that anchor on the same page. A visible link
+activates once on the first placed fragment containing its rendered content,
+using source coverage across indivisible shaping clusters. Empty/whitespace-only
+links attach to following retained material within their block, otherwise to
+preceding retained material there, otherwise to the block's structural position.
+Following-material affinity crosses into the new span at a forced boundary;
+preceding-material affinity remains in the closing span. Process terminal events
+before final draining. Metadata alone never creates a page.
 
 Transitive activation follows placement: a target owned from an aside becomes
 eligible when the relevant part of the aside is placed. Its span affiliation
 follows the ownership chain back to `main`. Earlier unconsumed material in the
-same register still blocks later targets; under this hypothesis, an earlier item
+same register still blocks later targets; under this contract, an earlier item
 whose anchor has not been reached waits for that anchor rather than being placed
 early. None of this changes the settled source order.
 
@@ -543,19 +545,19 @@ draining obligation includes material related transitively through other
 secondary branches, even if its own anchor will only be encountered while those
 branches drain. Reaching a flow anchor alone never ends the span.
 
-**Working boundary hypothesis:** honour forced breaks in `main`; report active
-forced-break declarations in secondary flows as unsupported. Coalesce boundaries
-at the same logical position. A boundary at document start creates no blank page,
-and document end supplies the final draining boundary. **Open:** specify typed
-positions, source-to-material propagation and precise transitive-assignment
-validation. These questions are independent of implementing floats. The effective
-`page` meaning and distinction from placement anchors remain settled.
+**Settled in SHIP-00:** honor forced breaks on block-level main material outside
+inline atomics; active secondary/ordinary-inline/atomic-interior forced breaks
+are unsupported. Coalesce boundaries, propagate a first in-flow child's break to
+its container, create no leading blank page and append the terminal drain.
+Admit auto and the five forced page values plus initial/inherit/unset; avoidance,
+column/region values, rollback and legacy aliases remain unsupported. Source
+mapping remains implementation work; its affinity/suppression contract is fixed.
 
 Reaching the same source boundary does not necessarily make two successor
 states interchangeable. Sequences with different page counts may leave different
 parity, numbering or template context for the next span. Draining secondary
 material removes one source of cross-span dependencies but does not remove
-these others. **Working transition hypothesis:** select the lowest-loss completed
+these others. **Settled transition contract:** select the lowest-loss completed
 span using the settled sequence tie rule, then carry its exact next page number,
 registers and other context into the next span. Do not reset numbering or reopen
 the selected span to improve a later chapter's parity. Concrete carried-context
@@ -591,7 +593,7 @@ boundaries and owning-anchor positions. The earlier in-band marker/penalty
 alternative is not selected. The ordinary material sequence receives no
 synthetic layout boxes for these markers.
 
-**Working position hypothesis:** the fitter supplies an ordered logical boundary
+**Settled position contract:** the fitter supplies an ordered logical boundary
 vocabulary for branch, structural and paragraph positions. Inspection identifies
 the snapshot, branch ordinal and logical boundary within the branch, with source
 correspondence. The opaque continuation separately retains open-container state,
@@ -602,7 +604,8 @@ do not imply interchangeable continuations.
 prepared positions. A bare numeric BoxID is insufficient because it is tree-local;
 a boundary also needs a position such as "before this box" and source provenance.
 Inline and non-visible anchors require positions that survive normalization and
-splitting. Propagation through routing and suppression remains to be specified.
+splitting. Implement the adopted affinity, suppression and propagation rules;
+concrete private position encodings remain to be chosen.
 The effective CSS property remains the origin of forced-break metadata, and
 explicit owning links remain the origin of placement metadata.
 
@@ -614,16 +617,18 @@ each frame. A page constructor may compare legal cut-offs across that page and
 select them using current-page loss, without evaluating successor templates or
 later-page fill.
 
-**Working enumeration hypothesis:** expose and enumerate the supported legal
+**Settled enumeration contract:** expose and enumerate the supported legal
 fragment combinations across the current page, respecting register order, frame
 chains and owning anchors. Evaluate complete arrangements and choose by page
 loss and the settled tie rule below. This supplies a reference for later local
 optimisation; beam width does not bound the work inside a Page attempt.
 
 If a configured work limit interrupts local enumeration, report a limit outcome,
-not `NoFit` or a claimed minimum. **Open:** define the alternative-enumeration
-interface, deterministic enumeration order and limits. Local alternatives do
-not become separate successors for one template in global search. The selected
+not `NoFit` or a claimed minimum. SHIP-00 adopts synchronous callback enumeration
+with exhausted/stopped/error completion, channel/source and frame-chain ordering,
+further-progress prefixes first and an explicit legal empty placement. Numeric
+work caps remain hypotheses; exact supporting Go declarations remain open. Local
+alternatives do not become separate successors for one template in global search. The selected
 cut-off remains fixed even if another could have improved a later page.
 
 #### Within-template tie rule (settled)
@@ -678,7 +683,7 @@ Left/right edges remain. Apply the rule only to
 boxes actually crossed by a legal split; a child contained wholly in one fragment
 keeps its own edges.
 
-**Working margin hypothesis:** use the existing core rules within one frame and
+**Settled margin contract:** use the existing core rules within one frame and
 do not collapse margins across frame boundaries. Surviving margins, padding and
 borders count against receiving space; determine those used edges before
 declaring a fragment to fit. Concrete edge sizing, boundary-state representation
@@ -703,7 +708,7 @@ pagespan loss = sum(page loss for every page in the candidate sequence)
 
 Aggregation across accepted pages and the within-template tie rule are settled.
 Component functions, weights, thresholds and final-page treatment have working
-hypotheses in the [page-loss contract](#proposed-page-loss-contract). They still
+hypotheses in the [page-loss contract](#loss-representation-and-scoring-hypotheses). They still
 need calibration against examples. The named components include unused
 vertical space, clubs, widows, and whether referenced material fits on the page
 or must move. Further components may be added. The threshold between a no-go
@@ -750,11 +755,12 @@ For minimisation, every feasible finite loss ranks ahead of Blocked.
 
 NaN, an invalid finite cost or unrepresentable arithmetic is an operational
 calculation failure, not a no-go result. The abstract domain and ordering are
-settled. **Working representation hypothesis:** use a tagged blocked value or
-unsigned integer cost units, with one million units per cost point. Quantize each
-component once, then use checked integer addition and exact comparisons; avoid
-pairwise approximate-equality comparisons. Concrete Go declarations, rounding
-details, overflow diagnostics and inspection/serialization form remain open.
+settled. **Settled in SHIP-00:** use tagged blocked/finite uint64 units at one
+million units per point. Round each complete weighted component once, nearest
+unit with ties to even, then add with overflow checks and compare exactly.
+Inspection exposes exact units and a blocked tag; decimal points are presentation.
+Concrete declarations and error plumbing remain implementation work. Scoring
+formulas/coefficients remain hypotheses, distinct from this arithmetic contract.
 The earlier finite-`float64`-only assessment proposal is superseded. No raw
 infinity comparison or addition may replace the explicit blocked semantics.
 
@@ -794,8 +800,8 @@ penalty for the same deferral. Missing `main` has its own provisional charge.
 The concrete pending-state representation remains open. A constant charge needs
 pending status and the exact remainder; earlier delay has already been paid. Age or origin-page
 position is needed for future evaluation only if a later formula uses it.
-Concrete owning-link validation and transitive association follow the working
-hypotheses above. Float implementation remains deferred.
+Concrete owning-link validation and transitive association follow the adopted
+SHIP-00 contract above. Float implementation remains deferred.
 
 ### Template search and the meaning of optimality
 
@@ -851,7 +857,7 @@ introduced, an equivalent future state could allow discarding the candidate
 with higher accumulated loss.
 [**Remark**]See the new remark on "search tree" above[**End of Remark**]
 
-The working logical-position vocabulary above supplies inspection/test identity;
+The adopted logical-position vocabulary above supplies inspection/test identity;
 its concrete types and source mapping remain open.
 Full future-state equivalence and merge dominance are **deferred**, because the
 initial search performs no merging. Continuation tokens must not be
@@ -931,13 +937,17 @@ before adding another heuristic. Completed spans always use actual summed loss.
 - Limits and cancellation have explicit outcomes. Do not automatically widen
   the beam or retry in the initial policy.
 
-Concrete result types, diagnostics, configurable work limits and handling of a
-retained completed result when execution is interrupted remain open API details.
+SHIP-00 fixes interruption semantics: a search report may retain a previously
+completed incumbent as explicitly unselected, never automatically committed or
+shipped. Local interruption publishes no page. Result declarations remain
+implementation work; numerical limits remain working hypotheses (100,000 local
+steps, 1,000,000 attempts and 10,000 depth rounds, configurable).
 
 The initial search selects a completed pagespan from the beam's candidates.
 Alternative greedy or look-ahead modes are not required by this decision.
-Shipout scheduling and its output contract remain open; selecting the completed
-span delivers its chosen sequence, as described in the remarks.
+SHIP-00 adopts separate delivery of selected frozen pages and reporting of
+completed deliveries/the failing page on consumer error. Selecting a completed
+span delivers its chosen sequence as described in the remarks.
 
 Template selection should likewise remain a distinct policy over the catalog
 and pagination state. Eligibility may depend on page parity, span position,
@@ -990,412 +1000,315 @@ search branch.
 
 ### Output ownership
 
-Selected pages should retain frozen fragments, paint, source references and
-stable rendering resources without retaining abandoned search workspaces.
-Preparations and continuations remain live while any candidate can still resume
-their material. Shipout consumes selected output, with its required font resources
-kept valid, independently of the lifetime of discarded candidates. **Working
-hypothesis:** publish complete candidates atomically, retain their immutable
-predecessor chain, and use page-scoped fragment-occurrence identities with source
-identities recorded separately. **Open:** define the concrete frozen output,
-resource-retention and consumer interfaces. These lifetime requirements apply
-to sequential evaluation as well.
+**Settled in SHIP-00:** publish complete candidates atomically, share immutable
+page predecessors and identify page-local fragment occurrences separately from
+source boxes. Frozen pages retain geometry/paint/source and stable rendering
+resources without abandoned search workspaces. Closing preparation prevents
+resumption but not rendering while borrowed font resources remain valid.
+A selected span publishes its sequence and exact final state together. Shipout
+consumes selected pages separately; report delivery progress on failure rather
+than promising rollback of external effects. Concrete payload/consumer types
+remain implementation work. These rules also apply to sequential evaluation.
 
-### Open decisions
+### Decisions after SHIP-00
 
-The latest adoption settles within-template ties and the initial 32-candidate
-beam policy. The other walkthrough recommendations are working hypotheses,
-not unchosen alternatives. Previously settled requirements remain settled:
-default `main`, explicit placement-only owning links, source-order registers,
-out-of-band markers, corrected fragment edges, exact remainders, nonnegative
-loss with blocked semantics, and the pagespan sum objective.
+SHIP-00 is complete as a contract-and-fixture slice. No pagination runtime is
+implemented by that status. Its [adopted contract](#adopted-page-construction-contract-ship-00)
+settles identity/state, default-main integration, ownership and marker affinity,
+restricted break/fitting profiles, enumeration, loss representation, outcomes and
+publication. The author remarks remain verbatim; later corrections/adoptions
+above and below identify the current contract.
 
-The table separates adopted baselines from genuinely unspecified details and
-provisional choices that still need evidence.
-
-| Area | Adopted status and baseline | Remaining detail or validation |
+| Area | Current status | Remaining work |
 | --- | --- | --- |
-| API declarations | Working hypothesis: root-package coordination, core structural fitting and a typography bridge. | Concrete Go signatures, types and validation entry points. |
-| Synchronisation metadata | Working hypothesis: snapshot/branch/logical-boundary positions; main-only forced breaks, coalesced boundaries and a terminal drain marker. Out-of-band representation is settled. | Source mapping, suppression, zero-width affinity and terminal-position rules. |
-| Owning-anchor contract | Working hypothesis: one explicit owner per secondary branch, unique same-document branch-root target, chains reaching `main`, validation of missing/duplicate/inactive targets and cycles. | Detailed diagnostics, suppressed-source cases and transitive mapping. |
-| Local page construction | Settled progress-based ties. Working hypothesis: enumerate legal complete page arrangements and report interrupted enumeration explicitly. | Fitting-alternative API, stable enumeration implementation and work limits. |
-| Resumable fitting | Settled initial block/line/atomic scope and edge omissions. Working hypothesis: core margin rules within a frame, no collapse across frames. | Continuation interfaces, edge sizing, paint, unsupported-profile reporting and concrete margin fixtures. |
-| Material integration | Source-order queues and default main are settled. Working hypothesis: target eligibility starts on the anchor page, with transitive activation and no earlier placement. | Implement main semantics and position propagation; validate blocked-head and cross-span examples. |
-| Template eligibility | Working hypothesis: all catalog templates in definition order, optional deterministic filtering, no deliberate blank pages initially. | Predicate API, drain-page fixtures and progress reporting. |
-| Loss implementation | Working hypothesis: tagged blocked or unsigned integer units, one million units per point, component quantization and checked addition. | Concrete Go types, rounding, overflow diagnostics and inspection/serialization. |
-| Page-loss policy | Working hypotheses: 1-point page cost, up to 1-point underfill, 10-point single-line split penalty, 1-point missing-main penalty, final-main-tail exemption. | Exact occupancy/participation and fragment-counting facts; calibration against examples. |
-| Related-material loss | Settled per-target/per-page accounting. Working hypothesis: 1 point per pending target and no second missing-secondary-receiver charge. | Pending-state representation, activation boundaries and coefficient validation. Floats remain deferred. |
-| Search frontier | Settled: default 32 unfinished candidates, page-depth rounds, accumulated loss then lexicographic template order, separate best completion, safe strict-bound pruning, no merging/estimate/automatic retry. | Concrete result/configuration types, limits, cancellation and interrupted-incumbent API; compare exhaustive small cases and beam widths. |
-| State identity / merging — deferred | Working logical inspection positions; no merging in the initial search. | Concrete identities and measurements of possible merge savings; full future-state equivalence remains later work. |
-| Span transitions | Working hypothesis: commit the selected span's exact context, numbering and remainder without revisiting it for later parity. | Carried-context types and transition validation. |
-| Output | Working hypothesis: atomic complete candidates, immutable predecessor chains, page-scoped fragment occurrences and explicit rendering-resource lifetimes. | Concrete output, retention and consumer interfaces. |
-| Concurrency — deferred | Fixed phases and serialized sessions remain settled. | Later worker/session ownership, scheduling, cancellation and deterministic execution. |
+| State, marker positions and ownership | Settled behavior and ownership. | Implement qualified types, source mappings and validation against the fixtures. |
+| Fitting and page construction | Settled scope, edges/margins, enumeration order and ties. | Add structural/paragraph continuation and the page constructor. |
+| Loss algebra/representation | Settled nonnegative finite/blocked algebra, uint64 units, nearest-even quantization and checked sums. | Implement typed arithmetic and inspection. |
+| Scoring | Working hypotheses, including entry-state participation, final-main-tail exemption and coefficients. | Validate/calibrate the explicit scoring expectations; do not silently promote them. |
+| Search | Settled default-32 beam, ties, safe strict bound and outcome distinctions. | Implement the scheduler; numerical execution caps remain working hypotheses. |
+| Eligibility | Existing all-templates-in-order/optional-filter working baseline. | Define the predicate API and validate fixtures. |
+| Span publication and output | Settled atomic selection, exact transition, separate delivery and lifetime contract. | Implement frozen payloads/consumer declarations and lifetime proofs. |
+| Deferred | Concurrency, state merging, floats and broader profiles. | No implementation required for the initial milestone. |
 
-The [proposed page-construction contract](#proposed-page-construction-contract)
-below records the settled rules and working hypotheses for inputs, exact
-remainder, scalar loss, outcomes and ownership. Its concrete APIs and remaining
-validation details are explicitly marked open.
+The [implementation plan](SHIPOUT-PLAN.md) assigns remaining declarations and
+proofs to later slices. [Preparation ownership](PREPARATION.md#11-registers-prepared-snapshots-and-functional-ownership)
+continues to apply. Earlier single-page commit proposals in DESIGN must be read
+alongside selection of a complete span and its exact state here.
 
-The existing [page-construction discussion](DESIGN.md#5-try-a-page-from-register-snapshots)
-and [preparation ownership rules](PREPARATION.md#11-registers-prepared-snapshots-and-functional-ownership)
-provide the related contracts. Their earlier single-page commit proposal must
-be read alongside the distinction here between locally constructing a page
-candidate and globally selecting a sequence of templates. The updated remarks
-and requirements in this document define that optimisation boundary.
+## Adopted page-construction contract (SHIP-00)
 
-## Proposed page-construction contract
+Adopted on 2026-11-25. SHIP-00 fixes the contracts below and supplies
+[fixtures and expected results](../testdata/pagination/README.md). This completes
+the design/fixture slice, not pagination implementation. The scoring rules and
+numerical execution limits remain **working hypotheses**. The loss algebra,
+numeric representation, interruption distinctions, tie rules and default-32
+beam policy are settled. Exact exported supporting type spellings are mechanical
+implementation work; the agreed ownership and behavior must not change with them.
 
-Proposal recorded on 2026-11-24 and reconciled with the author's remarks on
-2026-11-25. The four API names, deterministic construction, default main flow,
-explicit placement anchors, remainder model, loss algebra and initial accounting
-are settled. Registers retain source order; markers are out-of-band and fragment
-edges follow the corrected rule. Earlier templates win equal-loss template
-choices; the within-template progress tie and 32-candidate beam policy are also
-settled. Missing receivers contribute loss; mandatory channels are deferred.
-Cut-offs remain local, pagespan search chooses template sequences, related
-material drains at synchronisation points, and preparation precedes pagination.
-The latest walkthrough's other recommendations are adopted as **working
-hypotheses**. This contract distinguishes those provisional choices from settled
-rules and still-unspecified interfaces; it does not claim implementation. See
-[open contract decisions](#open-contract-decisions).
+### Public operation and inputs
 
-The working operation hypothesis is **atomic page construction**: given prepared
-material, one template and a fixed local policy, return one chosen page, its
-exact successor state and its loss. The caller's input state is never advanced
-in place.
+**Settled:** compile an immutable span plan from loaded content, separately from
+a serialized execution object binding that plan to the catalog, completed
+preparation, session, neutral fitter and fixed options. The agreed API shape is:
 
-```text
-PageAttempt(context, prepared context, template, state, span plan, policy)
-    -> Constructed(page, next state, loss, progress)
-     | NoFit(reason)
-     | SpanComplete
-     | error
+```go
+plan, err := pagelayout.Plan(document)
+run, err := pagelayout.NewPagination(config)
+
+state := run.InitialState()
+attempt, err := run.PageAttempt(ctx, state, templateID)
+report, err := run.PaginationSearch(ctx, state)
 ```
 
-The operation uses the settled Page attempt vocabulary; the alternatives are
-the working outcome model. **Open:** choose the Go function/method shape and
-outcome representation. Ordinary infeasibility versus operational error is a settled
-distinction. An error must not accompany a usable partial candidate or successor
-state under this proposed publication contract.
+This is an API sketch, not currently callable code. `config` supplies the plan,
+catalog, matching PreparedSnapshot/PreparationSession, fitting adapter and
+options. `PaginationSearch` searches one pagespan. A document-level operation
+may repeatedly select complete spans and advance their boundaries.
 
-### Proposed inputs
+The execution object holds no mutable current pagination position. Each operation
+reads an explicit immutable state and returns a successor. Borrowed preparation
+services require serialized use; the object does not own or close borrowed fonts
+or services. Preparation is complete before construction begins. Failure may
+warm permitted backend caches but cannot change observable source, state or output.
 
-The following input boundary is a **working hypothesis**; concrete Go types and
-validation entry points remain open.
+The template ID selects one compiled template from the bound catalog. Use its
+content rectangles, paint and frame-chain order directly; attaching content does
+not recascade styles. Span boundaries restrict consumption independently of
+whether a register is empty. Policy, preparation and context remain fixed for a
+search. Cancellation/deadlines enter at orchestration boundaries and do not imply
+preemption inside a synchronous borrowed service call.
 
-| Input | Concrete contents |
-| --- | --- |
-| Prepared context | The matching `content.PreparedSnapshot` and `PreparationSession`, plus the fragment-fitting backend. Preparation is already complete. |
-| Template | One compiled `template.Template`, including frame geometry, paint and source-ordered flow chains. |
-| Pagination state | Remaining registers, per-channel continuations, anchor/target pending state, current span identity, next page number and relevant carried context. |
-| Span plan | Validated synchronisation boundaries, explicit owning relationships and transitive span association, plus positions beyond which construction must not consume. |
-| Page policy | Supported break rules, local cut-off selection, page-loss evaluation including missing receivers, and deterministic tie-breaking. No mandatory per-page channels in the initial policy. |
-| Context | Cancellation and deadline. Cancellation produces no candidate or successor state. |
+### Identity, main integration and exact remainder
 
-Construction receives the adopted default `main` stream and the secondary
-channels. Residual material belongs to `main`; valid explicit `main` declarations
-do not create separately extracted branches. Explicit owning links establish
-placement relationships independently of CSS channel assignment. The span plan
-must distinguish these anchors from the boundaries that require draining.
-It preserves each register's source order even when owning-anchor order differs.
-The working hypothesis permits target placement on the owning-anchor page or
-later, with transitive span affiliation and no bypass of earlier register items.
-**Open:** define the concrete plan/validation API and exact source-position
-mapping. A flow anchor never creates a new span.
+**Settled:** use opaque source, preparation and execution-context identities.
+A state belongs to its originating context, even when another context has
+apparently identical configuration. Validate identity before backend calls.
+Keep `content.Box` as the source handle. Add a stable plan-local branch ordinal,
+an opaque ordered logical position and a page-local fragment occurrence number.
+The latter is distinct from source identity: one source box can occur several
+times on one page.
 
-Policy and prepared context remain fixed throughout a pagespan search. Changing
-fonts, preparation or local construction policy creates a different search
-context; existing continuations must not silently migrate into it. **Open:**
-define how context and policy identity are represented and validated.
+Logical positions cover structural boundaries and paragraph material, including
+discretionary carry when needed. Numeric BoxIDs, line counts, heights and lone
+text offsets do not establish progress. Inspection returns copied descriptions;
+equal positions do not establish continuation interchangeability or safe merging.
+Core fitting owns structural continuation; the paragraph adapter owns checkpoints
+and accepted atomic realizations. The scheduler treats both as opaque.
 
-The constructor uses each frame's compiled content rectangle. Frames receiving
-the same channel are visited in catalog order. Pending material without a
-receiver remains unconsumed and contributes loss; absence alone is not `NoFit`.
-A page must nevertheless make material progress. Later material whose owning
-relationship has not made it pending is not charged merely for being queued.
-Template geometry and source content styles remain unchanged; attachment to a
-frame does not trigger another cascade.
+`Document.Bank()` includes the existing residual root in `main` when it exists.
+`Channels()` lists main first, then secondary channels in first-occurrence source
+order. `Branches("main")` describes that same tree; `Residual()` remains an
+inspection alias. Residual source classification may retain its provenance while
+its channel becomes main. There is no duplicate tree, queue or preparation pass.
+An absent main register represents an empty channel; the generic bank stores
+only nonempty registers. A fully suppressed body therefore supplies no main item.
+Validate original routing directives before ignoring a redundant valid main route.
 
-### Exact remainder: adopted model, open interfaces
-
-The adopted model represents the remainder as an immutable pagination state.
-Keep an unfinished branch at its register head, with an opaque continuation
-beside it:
+Keep an unfinished branch at its register head, with one continuation beside it:
 
 ```text
-Input:
-    main register = [A, B, C]
-    main cursor   = start of A
-
-Page places:
-    all of A, followed by a prefix of B
-
-Successor:
-    main register = [B, C]
-    main cursor   = continuation within B
+input:     [A, B, C], beginning of A
+placed:    all of A and a prefix of B
+successor: [B, C], continuation within the unchanged B
 ```
 
-`B` remains the same `content.Box`; its cursor records the accepted prefix.
-The model has these invariants:
+An absent continuation means the head's beginning; an empty register has no
+continuation. Remove completed heads and clear their cursors together. Untouched
+channels are unchanged. The opaque state prevents clients combining B's cursor
+with C's head. Placed material followed by its remainder equals the input in
+order, without loss or duplication. Keep accepted fragments and matching atomic
+interiors fixed while a changed receiving width reflows the unplaced suffix.
 
-- A channel has at most one unfinished branch, always its register head.
-- An absent continuation means the beginning of the head. An empty register has
-  no head continuation.
-- A fully consumed branch is removed and its continuation cleared.
-- Untouched channels retain their previous state.
-- No later item passes an earlier unconsumed item. Continuations resume the head;
-  owning references do not authorize sorting or selecting material out of order.
-- Register contents and continuations are published together. A raw bank alone
-  is not the exact remainder.
+### Owning anchors, affinity and source mapping
 
-Make the state opaque, with copied inspection views. Clients should not be able
-to combine a continuation for `B` with a register headed by `C`. **Open:** define
-the public inspection and initialisation API and the concrete continuation type.
+**Settled:** require one explicit active owner per independently scheduled active
+secondary branch, a unique same-document branch-root target, and an acyclic
+ownership chain reaching main. Diagnose missing/duplicate owners, unresolved or
+duplicate targets, inactive targets, non-root targets and cycles. Ordinary xrefs
+do not supply ownership, activation or extra charges. Ownership does not reorder
+queues; a different anchor order is not by itself malformed input.
 
-A continuation must carry enough information to resume exactly: source and
-preparation identity, open-container position, paragraph checkpoint, pending
-boundary effects, and atomic realizations belonging to the accepted prefix.
-Its structural and paragraph details belong below the page constructor, within
-the ownership boundaries described below.
+A visible link activates on the first placed fragment containing any of its
+rendered content, once even if the link spans lines/pages. Shaping clusters remain
+indivisible; use source coverage, not bidi visual order. An empty or whitespace-
+only link follows this affinity rule within its containing block:
 
-The central invariant is:
+1. Attach to following retained material, if any.
+2. Otherwise attach to preceding retained material in that block.
+3. With neither, preserve an event at the block's structural position.
 
-> Placed logical material followed by the remainder equals the input material,
-> in order, without loss or duplication.
+An end-of-paragraph marker therefore stays with that paragraph. Events attached
+to following material at a forced boundary belong to the new span; those attached
+to preceding material belong to the closing span. Process terminal events before
+the terminal drain completes. Structural metadata alone never requires a page.
+Preserve source bytes, processed bytes, normalized positions and glyph/cluster
+coverage as separate mappings; emit no synthetic boxes, text or penalties.
 
-A height, text offset or clipped render tree cannot establish that invariant.
-A different receiving width may change line breaks and atomic sizes in the
-unplaced suffix. Accepted fragments and their matching atomic interiors remain
-fixed. Earlier continuations remain reusable after a successful or failed
-attempt, so competing candidates can start from the same state.
+Suppressed/inert owners do not activate targets. An active owner pointing to
+suppressed material is an inactive-target error; an active secondary branch
+without an active owner is a missing-owner error. Retain both locations where
+available. Existing declaration auditing still checks excluded material.
 
-A synchronisation boundary can occur within a branch. Reaching it may leave
-that branch at the register head, positioned for the next span. Completion is
-therefore determined by the span plan and related-channel progress, not by an
-empty bank alone. Material belonging to later spans remains untouched.
+Placement is allowed on the anchor page or later, including above the anchor on
+that same page. Transitive activation follows actual placement of the owning
+fragment; span membership follows ownership back to main. Validate eligibility
+against the complete page arrangement, independently of cross-channel frame
+visitation order. An earlier inactive register head still blocks a later target.
 
-### Proposed successful output
+### Forced-break and fitting profiles
 
-**Working publication hypothesis:** publish the following four results together,
-only after the whole attempt succeeds:
+**Settled initial profile:** admit `break-before: auto`, and normalize `page`,
+`left`, `right`, `recto` and `verso` to the same forced page boundary. Resolve
+`initial`, `inherit` and `unset` through the shared CSS service. Avoidance,
+column/region values, cascade rollback (`revert`/`revert-layer`) and legacy
+`page-break-before` remain unsupported initially. Check losing/nonmatching
+declarations as well as effective values; never silently substitute auto.
 
-| Output | Contract |
-| --- | --- |
-| Page | Immutable page dimensions, template identity, frame paint and ordered placed fragments, with page geometry in CSS pixels. |
-| Next state | The exact remainder for every channel, updated carried context and next page number. It remains at the current span's boundary until the scheduler advances spans. |
-| Page loss | The accepted scalar assessment plus its required component breakdown. A no-go arrangement is not a successful page candidate. |
-| Progress | Per-channel advancement and whether the current span is complete. Include the starting-state identity so the candidate's origin is unambiguous. |
+Honor effective forced breaks on block-level main material outside indivisible
+inline atomics. Forced breaks on active secondary material, ordinary inline boxes
+or inside atomics are unsupported. Suppressed boxes contribute no active boundary.
+Retain first-in-flow-child propagation to the container so its opening edges move
+with the first child; coalesce coincident boundaries. An initial boundary creates
+no blank page. These are restricted client rules based on
+[CSS Fragmentation's break vocabulary and propagation](https://www.w3.org/TR/css-break-3/#break-between),
+with the previously adopted omission of page-side distinctions.
 
-This publication creates an independent candidate. It does not commit the
-pagespan or mutate the scheduler's current state. The scheduler retains or
-discards the candidate and later selects a sequence together with its final
-channel state.
+Keep the current auto-height/unconstrained-min-max-height content profile.
+Support nested ordinary blocks, sibling-block and paragraph-line boundaries, and
+indivisible inline atomics. Resolve existing widths, percentages, margins and
+padding in each actual fragment's containing geometry. Core margin rules apply
+within a frame; do not collapse margins across frames. Retain top edges only on
+the first fragment, bottom edges only on the last and side edges throughout;
+unsplit descendants retain their own edges. Closing edges must fit with the last
+content fragment, not be silently discarded or emitted as an artificial cut.
 
-Each placed fragment needs its own identity. One source box may contribute
-several fragments on the same page, so a map keyed only by `content.Box` is
-insufficient. A fragment identifies its source box, receiving frame, geometry
-and frozen output. Use page-scoped occurrence identities and record source-box
-identities separately. **Open:** define their concrete types, ordering and output
-payloads, plus the page inspection/rendering interface.
+Paragraph fitting initially uses explicit FirstFit, normal line height and the
+existing bridge's bottom-margin-edge atomic alignment. Retain admitted `none`
+and `manual` hyphenation policies; manual checkpoints require the planned sibling
+work. Existing unsupported preparation cases remain explicit. Oversized lines
+or atomics are non-fit for that configuration; unsupported fragmentation is an
+error. Do not clip, shrink or change source policy to manufacture a fit. Real
+zero-height items can advance logical material; marker handling/page numbering
+alone cannot justify a page.
 
-The page's renderable output and its successor state have different lifetimes.
-Frozen output remains usable after preparation closes, provided its rendering
-resources remain valid. Resuming the successor requires the matching live
-execution context. A page must not retain abandoned alternative placements or
-search workspaces merely to remain renderable.
+### Alternative enumeration and local selection
 
-### Proposed page-loss contract
+**Settled:** use synchronous callback enumeration with exhausted/stopped/error
+completion, conceptually `Enumerate(request, yield)`. Requests carry receiving
+constraints, starting continuation and optional stop boundary. Each alternative
+contains immutable fragment data, logical end position, exact continuation,
+occupied geometry and progress/completion facts. Retained alternatives must not
+borrow mutable callback scratch. Stopping early is not exhaustion.
 
-**Settled:** retain component-wise go/no-go evaluation and scalar conversion;
-feasible loss is nonnegative and finite, while blocked is absorbing and ranks
-behind every feasible value. Explicit loss operations preserve that meaning;
-the earlier `-∞` notation is not raw floating-point arithmetic. A rejected
-assessment is a normal evaluation outcome. Invalid numeric calculations remain
-errors. See [loss algebra](#loss-algebra-settled).
+Order channels main first, then secondary source order; frames in chain order;
+and prefixes by further progress first. Include one explicit empty placement
+where leaving a frame unused is legal. Order governs trial combinations, not
+eligibility: validate transitive owning relationships against the complete page.
+Compare all supported complete arrangements with the settled local comparator
+and return one result. An interrupted local enumeration returns no selected page.
+No alternative cut-off becomes an extra global successor.
 
-**Working representation hypothesis:** use a tagged blocked value or unsigned
-integer cost units; one million units represent one point. Quantize each computed
-component once and use checked addition and exact comparisons. Concrete Go types,
-rounding, diagnostics and inspection/serialization remain open. The score shape
-combines the settled components with the working missing-main charge:
+### Loss representation and scoring hypotheses
 
-```text
-page loss =
-    page cost
-    + weighted normalized underfill
-    + soft break penalties
-    + related-material penalties charged on this page
-    + missing-main-receiver penalty
-```
+**Settled representation:** private tagged blocked/finite `uint64` cost units,
+one million units per point. Blocked is distinct from all finite values. Express
+coefficients in units; quantize each complete weighted component once to nearest
+unit, ties to even; use checked sums and exact comparisons. Nonfinite calculations
+and overflow are errors. Retain component facts and quantized contributions.
+Inspection/serialization exposes exact units and a blocked tag; decimal points
+are presentation. Require positive page cost and nonnegative coefficients. Use
+the validated fixed policy's minimum page cost for the strict search bound.
 
-For ordinary vertical frames, normalized underfill can use the fitter's occupied
-block extent, including relevant spacing and edges. Do not estimate occupancy
-by summing independently measured box heights.
+**Working scoring hypotheses:** page cost 1 point; underfill up to 1 point;
+10 points per one-line split-paragraph fragment; carry 1 per distinct pending
+target/page; missing-main charge 1 while main remains in the current span.
+The already settled carry timing/counting rule is unchanged by calibration.
 
-**Settled:** use a positive per-page cost and configurable underfill and break
-weights. **Working scoring hypotheses:**
+Fix underfill participation at attempt entry, after immediately due boundary
+events: include main frames if main remains in the span, and a secondary channel's
+frames if it already has pending material. Other secondary frames are excluded
+for this attempt. A target newly activated on the page incurs carry immediately
+if incomplete, but its channel enters underfill on the next attempt. This choice
+keeps participation identical across arrangements; it remains a hypothesis.
 
-| Component | Provisional default |
-| --- | --- |
-| Page cost | 1 point per page. |
-| Underfill | Up to 1 point: the area-weighted mean of squared unused-height fractions of participating frames. |
-| One-line fragment of a split paragraph | 10 points; a soft penalty, not an automatic rejection. |
-| Carry-over | 1 point per distinct pending target on each carrying page. |
-| Missing main receiver | 1 point when material in `main` remains in the current span. |
+Use the area-weighted mean of squared unused-height fractions. Occupancy is the
+fitter's furthest allocated block extent, including surviving spacing/edges,
+excluding incidental glyph-ink overhang. No participating frames means zero
+underfill. On main's span-ending page, exempt unused space in the finishing frame
+and later main frames; earlier gaps still count. Keep the original participating
+area denominator, including exempt frames with zero contribution. Out-of-bounds
+geometry is rejected before scoring, not hidden by an underfill clamp.
 
-For secondary material, an absent receiver causes the existing carry-over charge;
-do not add a second penalty for the same deferral. Illegal fragmentation, lost
-material and duplication remain hard failures regardless of these soft weights.
+Charge a one-line penalty once per one-line fragment of a genuinely split
+paragraph, including frame-to-frame splits on one page. An unsplit one-line
+paragraph is exempt. Consecutive internal pieces of one paragraph in one frame
+count as one fragment. Secondary missing receivers incur carry only; there is no
+duplicate missing-receiver charge. These factual scoring conventions and their
+coefficients are provisional and have explicit calibration fixtures.
 
-Fix the participating frame set before comparing arrangements and exclude
-inactive secondary channels. A candidate must not lower its loss by declaring
-an inconvenient frame irrelevant. Exempt unused trailing main-flow space on the
-page where `main` reaches the span boundary, so a naturally short chapter ending
-does not receive the interior-page underfill penalty.
+### Outcomes, interruption and limits
 
-These defaults are working hypotheses for fixtures and calibration, not settled
-typographic constants. **Open:** pin exact occupancy/participation facts, empty
-frame-set handling, paragraph-fragment counting and terminal-tail measurement,
-then validate or revise the weights against representative examples.
+**Settled:** normal Page attempt outcomes are Constructed (one complete page,
+successor, loss and progress), NoFit (completed enumeration found no acceptable
+progressing page) and SpanComplete (input already complete, no new page).
+Invalid state, unsupported behavior, backend/arithmetic failure, cancellation
+and limits return errors with no page or successor. A page that completes a span
+is Constructed, not SpanComplete. Missing receivers alone do not imply NoFit.
 
-The evaluator receives current-page facts and carried state, without examining
-successor templates. **Settled accounting:** charge once per distinct pending
-target on its owning-anchor page if not fully placed, then on every following
-carrying page. Partial placement leaves a target pending; ordinary references
-do not add charges. Flow anchors allow deferral and do not end a pagespan.
-The one-point charge is a working default; the pending-state representation
-remains open. Age is needed for future scoring only if a later formula depends
-on it. Float implementation remains deferred.
+Search reports completion, infeasibility under fully explored policies, or
+heuristic exhaustion. Heuristic beam truncation and safe bound pruning remain
+distinct. On interruption, a report may retain a previously completed incumbent,
+explicitly unselected; do not commit or ship it automatically. An incomplete page
+or incomplete span is never a usable incumbent. Operational failure aborts search
+by default; ordinary NoFit drops one template edge. Preserve original causes
+through `errors.Is`/`errors.As` and include template/frame, channel, qualified
+source and continuation position where known.
 
-Construction may compare several legal arrangements within the current page,
-then returns one. **Settled:** selection and tie-breaking are deterministic.
-The scheduler prefers earlier templates when page candidates tie and uses
-lexicographic template order for equal-loss sequences. Within one template,
-compare progress in `main`, then secondary channels in source occurrence order,
-then deterministic arrangement enumeration. These rules are settled. The
-pagespan search receives no alternative cut-offs for the same state and template.
+**Working numerical limits:** 100,000 local enumeration steps per Page attempt
+(partial arrangements count), 1,000,000 Page attempts per span and 10,000 page-depth
+rounds per span. Make these configurable. No implicit wall-clock deadline; callers
+may supply one. Checks occur between work units and before/after synchronous
+backend calls. Interruption is explicit, never NoFit/proven infeasibility; no
+automatic retry or widening. These provisional caps do not alter the settled
+default-32 unfinished beam policy.
 
-Pagespan aggregation remains the already specified sum of page losses. The
-component breakdown supports inspection and explanation without introducing a
-different objective for the page constructor and the pagespan evaluator.
+### Publication, output and shipout
 
-### Proposed outcomes and failure reporting
+**Settled:** publish a complete Page candidate atomically with its exact successor,
+component/scalar loss and per-channel progress, including origin identity. Its
+page has template identity, dimensions, compiled frame paint and ordered placed
+fragment occurrences, with page geometry in CSS pixels. No source-only box map
+can identify all fragment occurrences.
 
-The following page-level outcomes form the **working reporting hypothesis**;
-their concrete Go representation and diagnostic codes remain open.
+A successful search selects a complete immutable sequence with its final exact
+state. Advancing the span is validated, requires complete transitive draining and
+preserves numbering; it cannot reset or reopen earlier selections for later
+parity. Share immutable page predecessors, not merged future search states.
 
-| Outcome | Meaning | Published result |
+Shipout separately consumes selected frozen pages, without mutable registers or
+pagination decisions. Keep geometry, paint, source references and stable rendering
+resources alive independently of rejected alternatives and execution workspaces.
+Closing preparation prevents further resumption, but frozen pages remain usable
+while borrowed font resources remain valid. Consumers use the matching output
+adapter; no concrete font dependency is introduced into content or the CSS core.
+
+On delivery failure report completed deliveries and the failing page. Selection
+remains valid; that failing page may already have external partial effects. Later-
+span failure similarly preserves earlier selected spans with explicit incomplete-
+document status. Do not send speculative pages or interrupted incumbents to output.
+
+### Remaining implementation decisions
+
+| Area | Status after SHIP-00 | Remaining work |
 | --- | --- | --- |
-| `Constructed` | The local policy selected a feasible page making permitted progress. | Page, successor state, loss and progress together. |
-| `NoFit` | This template cannot produce an acceptable page under the local policy: for example, no material progress or blocked indivisible material. A missing receiver alone contributes loss. | Structured reason; no page or successor state. |
-| `SpanComplete` | The input already reaches the boundary and all related material is drained. | No extra page or page loss; input remains unchanged. |
-| Invalid-request error | Mismatched preparation, invalid state, closed session or inconsistent span/binding data. | No result. |
-| Unsupported-feature error | Required fragmentation, CSS or paragraph behaviour is unavailable. | No result; must not masquerade as ordinary non-fit. |
-| Execution error | Font/backend failure, cancellation, resource limit or invalid loss calculation. | No result; original cause preserved. |
-
-`NoFit` describes this attempt; it is not proof that the material cannot fit any
-permitted template. Conversely, an interrupted local search must not report
-`NoFit` as though it had completed. A candidate whose page completes the span
-is `Constructed` with span completion in its progress; `SpanComplete` is for an
-input that already needs no further page.
-
-A no-go component rejects its local arrangement. If the completed local policy
-finds no acceptable arrangement, the page attempt can report `NoFit`; that normal
-rejection is distinct from malformed evaluation or backend failure. Exhausting
-a heuristically pruned pagespan frontier is a separate scheduler outcome, not
-proof of infeasibility or a synonym for this page-level `NoFit`. Search reporting
-distinguishes heuristic pruning, exhaustive failure, limits and cancellation,
-with no automatic widening/retry under the settled beam policy. Concrete API
-representations remain open.
-
-Failures should carry template/frame, channel, source box and continuation
-location when known, and preserve causes through `errors.Is`/`errors.As`.
-**Working failure hypothesis:** operational failures abort the search by default;
-ordinary `NoFit` eliminates only that template extension. **Open:** define
-diagnostic codes, concrete outcome/error types and propagation details. The
-distinction between ordinary non-fit and unsupported or failed execution must
-remain observable.
-
-Ordinary successful pages must advance material. **Working scope hypothesis:**
-exclude deliberate blank-page generation from the first contract and add it
-later through an explicit bounded rule. Merely incrementing the page number
-must never count as material progress. Pages draining secondary material can
-make progress after the main flow has reached its synchronisation boundary.
-
-### Proposed ownership boundaries
-
-The table is the **working ownership hypothesis**. Coordination APIs live in the
-root `pagelayout` package, structural fitting in `css-box-layout`, and paragraph
-continuation behind the typography bridge. Concrete cross-module interfaces
-remain to be specified against these responsibilities.
-
-| Owner | Responsibility |
-| --- | --- |
-| `css-box-layout` | Structural fragmentation, legal box boundaries, container continuation, margins/edges and receiving constraints. No channel names, page search or font backend. |
-| `content` | Access to private normalized trees, qualified source identities, preparation coverage and the adapter to core fitting. No mutable tree pointers escape. |
-| Typography bridge | Paragraph fitting/checkpoints, atomic binding and frozen paragraph/interior output. |
-| `pagelayout` page constructor | Frame traversal, channel coordination, local page selection, loss evaluation and atomic result publication. |
-| Pagespan scheduler | Template enumeration, candidate sequences, accumulated loss and selection of the winning successor state. |
-| Shipout consumer | Rendering or exporting selected frozen pages. |
-
-Temporary geometry, alternative local placements and output collectors belong to
-one attempt. Failure releases that work. Borrowed preparations, fonts and services
-remain caller-owned; the constructor does not close them. Operations sharing a
-preparation session remain serialized, with concurrency deferred.
-
-Backend memoization may be warmed by an unsuccessful attempt, as permitted by
-the existing preparation contract. It must not change observable content,
-continuation or selection semantics. **Open:** define the new fitting interfaces
-and how paragraph fragments are retained without putting backend payloads into
-CSS source nodes or register items.
-
-### Implementation prerequisites
-
-This proposal requires a new resumable fitting path. Existing
-[`content.Layout`](../content/layout.go) produces complete subtrees. The existing
-[paragraph continuation](../../typography/glyphing/paragraph/flow.go) supplies
-useful machinery, but its convenience path fixes atomic inputs and has a
-restricted break profile. The constructor should depend on an explicit fitting
-contract rather than treating either operation as a complete paginator.
-
-The span plan also requires admission of forced page-break variants of
-`break-before`, their normalization to `page`, propagation of the effective marker
-and association of routed material with pagespans through explicit owning links.
-Implement default-main semantics, retain marked-link positions through routing,
-normalization and preparation as out-of-band metadata, preserve source-order
-registers, and define validation and pending-state integration. Resumable fitting
-must apply the adopted fragment-edge omissions without mutating source styles.
-These are prerequisites, not currently implemented anchor or default-main APIs.
-`recto` and `verso` therefore
-use the same marker and draining behaviour, without a page-side or blank-page
-requirement. These prerequisites do not change the fixed phase order or permit
-implicit re-preparation during an attempt.
-
-### Open contract decisions
-
-This table distinguishes settled rules from adopted working hypotheses. Open
-entries identify interfaces or validation still needed; they do not reopen the
-accepted vocabulary, tie rules, beam policy or earlier settled requirements.
-
-| Area | Settled rule or working hypothesis | Remaining detail or validation |
-| --- | --- | --- |
-| Public operation | Settled API vocabulary; working hypothesis of root-package coordination and atomic candidate publication. | Signatures, supporting types and publication details. |
-| State and identity | Settled exact bank-plus-continuation model and source order; working logical inspection positions and shared output predecessor chain. | Concrete identities, initialisation/inspection and source/preparation/policy validation. Future merging remains deferred. |
-| Span plan and anchors | Settled out-of-band markers and default main. Working strict anchor validation, same-page-or-later activation and transitive affiliation. | Source mapping, empty-anchor affinity, suppressed-source handling and concrete validation/plan API. |
-| Fitting | Settled initial fragmentation scope and corrected edges. Working hypothesis of no margin collapse across frames. | Interfaces, precise legal boundaries, edge sizing, paint and paragraph integration. |
-| Local selection | Settled: lower loss, then progress in main and secondary channels, then stable enumeration. Working exhaustive supported-arrangement enumeration. | Enumeration interface/order and work-limit reporting. |
-| Loss implementation | Settled blocked/finite algebra; working unsigned cost units at one million units per point. | Go representation, quantization rounding, checked-arithmetic diagnostics and inspection/serialization. |
-| Page-loss policy | Settled component categories; working coefficient table, final-main-tail exemption and no duplicate secondary missing-receiver charge. | Exact component facts and calibration fixtures. |
-| Related-material accounting | Settled one charge per pending target per carrying page; working 1-point charge and explicit activation positions. | Pending-state types, mapping and coefficient validation; floats remain deferred. |
-| Search integration | Settled default-32 round-based beam, loss/sequence ranking, separate best completion, strict lower-bound pruning and explicit search outcomes without automatic retry. | Configuration/result types, limits, interrupted-incumbent handling and exhaustive-reference tests. No merging. |
-| Progress and blanks | Settled material progress; working hypothesis excludes deliberate blank pages initially. | Detailed reporting and any later bounded blank-page extension. |
-| Diagnostics | Settled infeasibility/error distinction; working page outcome model and default abort on operational failure. | Codes, concrete types and provenance/propagation details. |
-| Output and lifetime | Working atomic frozen pages, page-scoped occurrence identities, predecessor sharing and explicit resource lifetimes. | Output/inspection, retention and shipout consumer interfaces. |
-
-Template eligibility and cross-span context have working hypotheses in the
-[open design decisions](#open-decisions). Tie rules and the detailed initial
-beam policy are settled; only their implementation interfaces and checks remain.
-Concurrency is deferred and is not a prerequisite for this construction contract.
+| Public API/state/identity | Ownership, operation shape and immutable-state behavior settled. | Exact supporting Go declarations, private identity/cursor layout and diagnostics in SHIP-01/03/04. |
+| Markers/anchors | Affinity, suppression, strict ownership, propagation and activation settled. | Source/normalization/preparation mapping in DOM-SHIP-01, BOX-SHIP-01 and SHIP-01/02. |
+| Fitting | Initial profile, edge/margin rules and enumeration contract settled. | Structural/paragraph APIs and implementations in BOX/TYPE/KHIPU-SHIP slices. |
+| Loss | Algebra, uint64 units, quantization and error handling settled. | Scoring participation, occupancy, penalties/weights remain working hypotheses; validate the recorded expectations in SHIP-03/06/09. |
+| Search | Tie/beam policy and interrupted-incumbent behavior settled. | Config/result declarations and checks; numerical caps remain working hypotheses. |
+| Eligibility | Existing all-templates-in-order/optional-deterministic-filter working baseline retained. | Predicate API and eligibility fixtures in SHIP-07. |
+| Output | Atomic span selection, separate delivery and lifetime contracts settled. | Concrete frozen payload/consumer declarations and proofs in SHIP-08/09. |
+| Deferred | Floats, concurrent workers, state merging, broader fragmentation and automatic hyphenation remain deferred. | No additional abstraction is implied by SHIP-00. |
 
 ## Comments to the questions you presented
 

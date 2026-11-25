@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SHIP-00: breaks.html</title>
+  <style>
+    html, body, p, section, aside, figure, h1, h2, div { margin:0; padding:0; border:none; }
+    body { font-size:10px; hyphens:none; }
+    .notes { flow-into:notes; } .figures { flow-into:figures; }
+    .chapter { break-before:page; } #left { break-before:left; } #right { break-before:right; }
+    #recto { break-before:recto; } #verso { break-before:verso; }
+    #propagated { padding-top:3px; } #first-child { break-before:page; }
+  </style>
+</head>
+<body id="body" style="break-before:page">
+  <p id="intro">Introduction.</p>
+  <section id="page" class="chapter"><p>Page.</p></section>
+  <section id="left" class="chapter"><p>Left.</p></section>
+  <section id="right" class="chapter"><p>Right.</p></section>
+  <section id="recto" class="chapter"><p>Recto.</p></section>
+  <section id="verso" class="chapter"><p>Verso.</p></section>
+  <section id="propagated"><h2 id="first-child">Heading.</h2><p>Rest.</p></section>
+</body>
+</html>

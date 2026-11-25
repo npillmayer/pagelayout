@@ -1,0 +1,508 @@
+{
+  "status": "working-hypothesis",
+  "units_per_point": 1000000,
+  "defaults": {
+    "page_units": 1000000,
+    "underfill_weight_units": 1000000,
+    "one_line_split_units": 10000000,
+    "carry_per_target_units": 1000000,
+    "missing_main_units": 1000000
+  },
+  "arithmetic_status": "settled-contract",
+  "arithmetic": [
+    {
+      "id": "half-even-components",
+      "weighted_component_units_exact": [
+        "0.5",
+        "1.5",
+        "2.5"
+      ],
+      "expect": {
+        "rounded_units": [
+          0,
+          2,
+          2
+        ],
+        "sum_units": 4
+      }
+    },
+    {
+      "id": "finite-before-blocked",
+      "finite_units": "18446744073709551615",
+      "expect": {
+        "preferred": "finite"
+      }
+    },
+    {
+      "id": "blocked-absorbing",
+      "add": [
+        "blocked",
+        1000000
+      ],
+      "expect": {
+        "result": "blocked"
+      }
+    },
+    {
+      "id": "checked-overflow",
+      "add": [
+        "18446744073709551615",
+        1
+      ],
+      "expect": {
+        "error": "arithmetic-overflow",
+        "result": null
+      }
+    },
+    {
+      "id": "nonfinite-cost",
+      "component": "NaN",
+      "expect": {
+        "error": "invalid-cost",
+        "result": null
+      }
+    },
+    {
+      "id": "zero-page-cost",
+      "page_cost_units": 0,
+      "expect": {
+        "error": "invalid-policy"
+      }
+    },
+    {
+      "id": "positive-page-bound",
+      "page_cost_units": 2000000,
+      "accumulated_units": 3000000,
+      "expect": {
+        "minimum_final_units": 5000000
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "new-target-deferred",
+      "frames": [
+        {
+          "channel": "main",
+          "width": 100,
+          "height": 100,
+          "occupied": 50
+        },
+        {
+          "channel": "notes",
+          "width": 100,
+          "height": 100,
+          "occupied": 0
+        }
+      ],
+      "entry": {
+        "main_remaining": true,
+        "pending": []
+      },
+      "pending_after": [
+        "N"
+      ],
+      "activated": [
+        "N"
+      ],
+      "target_channels": {
+        "N": "notes"
+      },
+      "expect": {
+        "participating_frames": [
+          0
+        ],
+        "underfill_units": 250000,
+        "carry_units": 1000000,
+        "total_units": 2250000
+      }
+    },
+    {
+      "id": "new-target-completed",
+      "frames": [
+        {
+          "channel": "main",
+          "width": 100,
+          "height": 100,
+          "occupied": 50
+        },
+        {
+          "channel": "notes",
+          "width": 100,
+          "height": 100,
+          "occupied": 20
+        }
+      ],
+      "entry": {
+        "main_remaining": true,
+        "pending": []
+      },
+      "pending_after": [],
+      "activated": [
+        "N"
+      ],
+      "target_channels": {
+        "N": "notes"
+      },
+      "expect": {
+        "participating_frames": [
+          0
+        ],
+        "underfill_units": 250000,
+        "carry_units": 0,
+        "total_units": 1250000
+      }
+    },
+    {
+      "id": "pending-next-attempt",
+      "frames": [
+        {
+          "channel": "notes",
+          "width": 100,
+          "height": 100,
+          "occupied": 50
+        }
+      ],
+      "entry": {
+        "main_remaining": false,
+        "pending": [
+          "N"
+        ]
+      },
+      "pending_after": [
+        "N"
+      ],
+      "target_channels": {
+        "N": "notes"
+      },
+      "expect": {
+        "participating_frames": [
+          0
+        ],
+        "underfill_units": 250000,
+        "carry_units": 1000000,
+        "total_units": 2250000
+      }
+    },
+    {
+      "id": "area-weighting",
+      "frames": [
+        {
+          "channel": "main",
+          "width": 100,
+          "height": 100,
+          "occupied": 50
+        },
+        {
+          "channel": "notes",
+          "width": 200,
+          "height": 100,
+          "occupied": 0
+        }
+      ],
+      "entry": {
+        "main_remaining": true,
+        "pending": [
+          "N"
+        ]
+      },
+      "pending_after": [
+        "N"
+      ],
+      "target_channels": {
+        "N": "notes"
+      },
+      "expect": {
+        "participating_frames": [
+          0,
+          1
+        ],
+        "underfill_units": 750000,
+        "carry_units": 1000000,
+        "total_units": 2750000
+      }
+    },
+    {
+      "id": "final-main-tail",
+      "frames": [
+        {
+          "channel": "main",
+          "width": 100,
+          "height": 100,
+          "occupied": 50
+        },
+        {
+          "channel": "main",
+          "width": 100,
+          "height": 100,
+          "occupied": 40
+        },
+        {
+          "channel": "main",
+          "width": 100,
+          "height": 100,
+          "occupied": 0
+        }
+      ],
+      "entry": {
+        "main_remaining": true,
+        "pending": []
+      },
+      "pending_after": [],
+      "main_finishes_in_frame": 1,
+      "expect": {
+        "participating_frames": [
+          0,
+          1,
+          2
+        ],
+        "exempt_frames": [
+          1,
+          2
+        ],
+        "area_denominator": 30000,
+        "underfill_units": 83333,
+        "total_units": 1083333
+      }
+    },
+    {
+      "id": "no-participating-frames",
+      "frames": [],
+      "entry": {
+        "main_remaining": false,
+        "pending": []
+      },
+      "pending_after": [],
+      "scope": "evaluator-only; these facts do not prove a progressing page",
+      "expect": {
+        "participating_frames": [],
+        "underfill_units": 0,
+        "total_units": 1000000
+      }
+    },
+    {
+      "id": "split-single-lines",
+      "frames": [
+        {
+          "channel": "main",
+          "width": 100,
+          "height": 10,
+          "occupied": 10
+        },
+        {
+          "channel": "main",
+          "width": 100,
+          "height": 10,
+          "occupied": 10
+        }
+      ],
+      "entry": {
+        "main_remaining": true,
+        "pending": []
+      },
+      "pending_after": [],
+      "paragraph_fragments": [
+        {
+          "paragraph": "P",
+          "frame": 0,
+          "lines": 1,
+          "split": true
+        },
+        {
+          "paragraph": "P",
+          "frame": 1,
+          "lines": 1,
+          "split": true
+        }
+      ],
+      "main_finishes_in_frame": 1,
+      "expect": {
+        "underfill_units": 0,
+        "split_units": 20000000,
+        "total_units": 21000000
+      }
+    },
+    {
+      "id": "unsplit-single-line",
+      "frames": [
+        {
+          "channel": "main",
+          "width": 100,
+          "height": 10,
+          "occupied": 10
+        }
+      ],
+      "entry": {
+        "main_remaining": true,
+        "pending": []
+      },
+      "pending_after": [],
+      "paragraph_fragments": [
+        {
+          "paragraph": "P",
+          "frame": 0,
+          "lines": 1,
+          "split": false
+        }
+      ],
+      "main_finishes_in_frame": 0,
+      "expect": {
+        "underfill_units": 0,
+        "split_units": 0,
+        "total_units": 1000000
+      }
+    },
+    {
+      "id": "coalesce-internal-pieces",
+      "frames": [
+        {
+          "channel": "main",
+          "width": 100,
+          "height": 20,
+          "occupied": 20
+        }
+      ],
+      "entry": {
+        "main_remaining": true,
+        "pending": []
+      },
+      "pending_after": [],
+      "paragraph_fragments": [
+        {
+          "paragraph": "P",
+          "frame": 0,
+          "internal_piece": 0,
+          "lines": 1,
+          "split": true
+        },
+        {
+          "paragraph": "P",
+          "frame": 0,
+          "internal_piece": 1,
+          "lines": 1,
+          "split": true
+        }
+      ],
+      "expect": {
+        "underfill_units": 0,
+        "split_units": 0,
+        "total_units": 1000000
+      }
+    },
+    {
+      "id": "distinct-pending-targets",
+      "frames": [
+        {
+          "channel": "main",
+          "width": 100,
+          "height": 100,
+          "occupied": 100
+        }
+      ],
+      "entry": {
+        "main_remaining": true,
+        "pending": [
+          "N",
+          "M"
+        ]
+      },
+      "pending_after": [
+        "N",
+        "M"
+      ],
+      "ordinary_references_to_N": 4,
+      "target_channels": {
+        "N": "notes",
+        "M": "notes"
+      },
+      "expect": {
+        "underfill_units": 0,
+        "carry_units": 2000000,
+        "missing_secondary_units": 0,
+        "total_units": 3000000
+      }
+    },
+    {
+      "id": "missing-main-receiver",
+      "frames": [
+        {
+          "channel": "notes",
+          "width": 100,
+          "height": 50,
+          "occupied": 50
+        }
+      ],
+      "entry": {
+        "main_remaining": true,
+        "pending": [
+          "N"
+        ]
+      },
+      "pending_after": [],
+      "target_channels": {
+        "N": "notes"
+      },
+      "expect": {
+        "underfill_units": 0,
+        "carry_units": 0,
+        "missing_main_units": 1000000,
+        "total_units": 2000000
+      }
+    },
+    {
+      "id": "secondary-missing-receiver",
+      "frames": [
+        {
+          "channel": "main",
+          "width": 100,
+          "height": 100,
+          "occupied": 100
+        }
+      ],
+      "entry": {
+        "main_remaining": true,
+        "pending": [
+          "N"
+        ]
+      },
+      "pending_after": [
+        "N"
+      ],
+      "target_channels": {
+        "N": "notes"
+      },
+      "expect": {
+        "underfill_units": 0,
+        "carry_units": 1000000,
+        "missing_secondary_units": 0,
+        "total_units": 2000000
+      }
+    },
+    {
+      "id": "drain-fraction",
+      "frames": [
+        {
+          "channel": "figures",
+          "width": 200,
+          "height": 120,
+          "occupied": 10
+        }
+      ],
+      "entry": {
+        "main_remaining": false,
+        "pending": [
+          "F"
+        ]
+      },
+      "pending_after": [],
+      "target_channels": {
+        "F": "figures"
+      },
+      "expect": {
+        "underfill_exact_points": "121/144",
+        "underfill_units": 840278,
+        "total_units": 1840278
+      }
+    }
+  ]
+}

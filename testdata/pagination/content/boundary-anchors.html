@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SHIP-00: boundary-anchors.html</title>
+  <style>
+    html, body, p, section, aside, figure, h1, h2, div { margin:0; padding:0; border:none; }
+    body { font-size:10px; hyphens:none; }
+    .notes { flow-into:notes; } .figures { flow-into:figures; }
+
+  </style>
+</head>
+<body id="body">
+  <p id="closing">Closing.<a id="closing-owner" href="#old" data-flow-anchor></a></p>
+  <section id="next" style="break-before:page">
+    <p id="opening"><a id="opening-owner" href="#new" data-flow-anchor></a>Opening.</p>
+    <p id="terminal">Tail.<a id="terminal-owner" href="#final" data-flow-anchor></a></p>
+  </section>
+  <aside id="old" class="notes">Old-span note.</aside>
+  <aside id="new" class="notes">New-span note.</aside>
+  <aside id="final" class="notes">Terminal note.</aside>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SHIP-00: transitive.html</title>
+  <style>
+    html, body, p, section, aside, figure, h1, h2, div { margin:0; padding:0; border:none; }
+    body { font-size:10px; hyphens:none; }
+    .notes { flow-into:notes; } .figures { flow-into:figures; }
+
+  </style>
+</head>
+<body id="body">
+  <p id="chapter-one">Chapter one <a id="own-note" href="#note" data-flow-anchor>1</a>.</p>
+  <section id="chapter-two" style="break-before:page"><p>Chapter two <a id="own-later" href="#later" data-flow-anchor>2</a>.</p></section>
+  <aside id="note" class="notes">Note <a id="own-figure" href="#figure" data-flow-anchor>F</a>.</aside>
+  <figure id="figure" class="figures">Figure material.</figure>
+  <aside id="later" class="notes">Later note.</aside>
+</body>
+</html>

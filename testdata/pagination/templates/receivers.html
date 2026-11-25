@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SHIP-00 receiving geometries</title>
+  <style>
+    .page { width:240px; height:160px; }
+    .frame { position:fixed; }
+    .main { flow-from:main; }
+    .notes { flow-from:notes; }
+    .figures { flow-from:figures; }
+    .wide .main { left:10px; top:10px; width:200px; height:100px; }
+    .chain .first { left:10px; top:10px; width:100px; height:40px; }
+    .chain .second { left:130px; top:10px; width:80px; height:60px; }
+    .note-first .notes { left:10px; top:10px; width:100px; height:40px; }
+    .note-first .main { left:10px; top:60px; width:200px; height:80px; }
+    .drain .frame { left:10px; top:10px; width:200px; height:120px; }
+  </style>
+</head>
+<body>
+  <template id="wide" data-type="page"><div class="page wide"><div class="frame main"></div></div></template>
+  <template id="narrow-chain" data-type="page"><div class="page chain"><div class="frame main first"></div><div class="frame main second"></div></div></template>
+  <!-- Notes deliberately precede main in both source and geometric order. -->
+  <template id="note-first" data-type="page"><div class="page note-first"><div class="frame notes"></div><div class="frame main"></div></div></template>
+  <template id="notes-only" data-type="page"><div class="page drain"><div class="frame notes"></div></div></template>
+  <template id="figures-only" data-type="page"><div class="page drain"><div class="frame figures"></div></div></template>
+</body>
+</html>

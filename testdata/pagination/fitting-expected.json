@@ -1,0 +1,625 @@
+{
+  "status": "contract-inputs-and-hand-authored-results",
+  "units": "CSS pixels",
+  "backend": "synthetic; line breaks/ranges are supplied facts, not font measurements",
+  "cases": [
+    {
+      "id": "split-outer-edges",
+      "input": {
+        "kind": "synthetic-block",
+        "lines": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E"
+        ],
+        "line_height_px": 10,
+        "top_edges_px": 8,
+        "bottom_edges_px": 12,
+        "side_edges_px": 6,
+        "receivers": [
+          [
+            100,
+            28
+          ],
+          [
+            80,
+            20
+          ],
+          [
+            120,
+            22
+          ]
+        ]
+      },
+      "expect": {
+        "fragments": [
+          {
+            "lines": [
+              "A",
+              "B"
+            ],
+            "extent_px": 28,
+            "content_width_px": 94,
+            "top_edges_px": 8,
+            "bottom_edges_px": 0
+          },
+          {
+            "lines": [
+              "C",
+              "D"
+            ],
+            "extent_px": 20,
+            "content_width_px": 74,
+            "top_edges_px": 0,
+            "bottom_edges_px": 0
+          },
+          {
+            "lines": [
+              "E"
+            ],
+            "extent_px": 22,
+            "content_width_px": 114,
+            "top_edges_px": 0,
+            "bottom_edges_px": 12
+          }
+        ],
+        "placed_then_remainder": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E"
+        ],
+        "remainder": [],
+        "source_style_unchanged": true
+      }
+    },
+    {
+      "id": "closing-edges-must-fit",
+      "input": {
+        "kind": "synthetic-block-tail",
+        "remaining_lines": [
+          "E"
+        ],
+        "line_height_px": 10,
+        "bottom_edges_px": 12,
+        "receiver": [
+          120,
+          21
+        ]
+      },
+      "expect": {
+        "outcome": "NoFit",
+        "placed": [],
+        "remainder": [
+          "E"
+        ],
+        "bottom_edges_still_pending_px": 12,
+        "may_make_edge_only_fragment": false
+      }
+    },
+    {
+      "id": "contained-child-edges",
+      "input": {
+        "kind": "synthetic-block",
+        "parent_split": true,
+        "wholly_contained_child": {
+          "content_height_px": 10,
+          "top_edges_px": 3,
+          "bottom_edges_px": 3
+        },
+        "receiver_height_px": 16
+      },
+      "expect": {
+        "child_extent_px": 16,
+        "child_top_edges_px": 3,
+        "child_bottom_edges_px": 3,
+        "omit_child_edges": false
+      }
+    },
+    {
+      "id": "head-plus-cursor",
+      "input": {
+        "kind": "queue",
+        "queue": [
+          "A",
+          "B",
+          "C"
+        ],
+        "placed": [
+          "A",
+          "B[0:2]"
+        ],
+        "head_continuation": null
+      },
+      "expect": {
+        "queue": [
+          "B",
+          "C"
+        ],
+        "head_identity": "same-B",
+        "continuation": "B@2",
+        "untouched_channels_unchanged": true,
+        "input_queue": [
+          "A",
+          "B",
+          "C"
+        ]
+      }
+    },
+    {
+      "id": "changed-width-lines",
+      "input": {
+        "kind": "synthetic-paragraph",
+        "text": "aa bb cc dd",
+        "prepared_once": true,
+        "first_trial": {
+          "width_px": 100,
+          "line_height_px": 10,
+          "source_ranges": [
+            [
+              0,
+              6
+            ],
+            [
+              6,
+              11
+            ]
+          ],
+          "accepted_lines": 1
+        },
+        "resume": {
+          "width_px": 50,
+          "line_height_px": 10,
+          "source_ranges": [
+            [
+              6,
+              9
+            ],
+            [
+              9,
+              11
+            ]
+          ],
+          "accepted_lines": 2
+        }
+      },
+      "expect": {
+        "frozen_source_ranges": [
+          [
+            0,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            9,
+            11
+          ]
+        ],
+        "frozen_line_widths_px": [
+          100,
+          50,
+          50
+        ],
+        "logical_source_coverage": [
+          0,
+          11
+        ],
+        "base_prepare_calls": 1,
+        "accepted_prefix_changed": false,
+        "remainder": []
+      }
+    },
+    {
+      "id": "suffix-atomic-rebinding",
+      "input": {
+        "kind": "synthetic-paragraph",
+        "first_width_px": 100,
+        "accepted_atomic": {
+          "id": "first",
+          "border_width_px": 50,
+          "interior": "first-at-100"
+        },
+        "unconsumed_atomic": {
+          "id": "second",
+          "width_fraction": 0.5
+        },
+        "resume_width_px": 80
+      },
+      "expect": {
+        "accepted_atomic": {
+          "id": "first",
+          "border_width_px": 50,
+          "interior": "first-at-100"
+        },
+        "suffix_atomic": {
+          "id": "second",
+          "border_width_px": 40,
+          "interior": "second-at-80"
+        },
+        "base_reprepare": false
+      }
+    },
+    {
+      "id": "oversized-indivisible",
+      "input": {
+        "kind": "synthetic-atomic",
+        "border_size_px": [
+          120,
+          20
+        ],
+        "receivers": [
+          [
+            100,
+            30
+          ],
+          [
+            140,
+            30
+          ]
+        ]
+      },
+      "expect": {
+        "outcomes": [
+          "NoFit",
+          "Complete"
+        ],
+        "first_attempt_consumed": false,
+        "second_extent_px": 20,
+        "clip": false,
+        "scale": false,
+        "original_cursor_reusable": true
+      }
+    },
+    {
+      "id": "zero-height-material",
+      "input": {
+        "kind": "synthetic-block",
+        "items": [
+          {
+            "id": "zero",
+            "height_px": 0
+          },
+          {
+            "id": "next",
+            "height_px": 10
+          }
+        ],
+        "receiver_height_px": 0
+      },
+      "expect": {
+        "placed": [
+          "zero"
+        ],
+        "remainder": [
+          "next"
+        ],
+        "logical_progress": true,
+        "page_number_increment_is_progress": false
+      }
+    },
+    {
+      "id": "manual-nonempty-carry",
+      "input": {
+        "kind": "synthetic-khipu",
+        "before": "a",
+        "discretionary": {
+          "id": "D",
+          "no_break": "bc",
+          "pre_break": "b-",
+          "post_break": "c"
+        },
+        "after": "d",
+        "accept_break_at": "D",
+        "resume_at_changed_width": true
+      },
+      "expect": {
+        "first_output": "ab-",
+        "checkpoint": {
+          "next_original": "d",
+          "carry": "D",
+          "post_break": "c"
+        },
+        "second_output": "cd",
+        "unbroken_source": "abcd",
+        "replay_discretionary": false,
+        "accepted_prefix_changed": false
+      }
+    },
+    {
+      "id": "manual-empty-carry",
+      "input": {
+        "kind": "synthetic-khipu",
+        "before": "co",
+        "discretionary": {
+          "id": "SHY",
+          "no_break": "",
+          "pre_break": "-",
+          "post_break": ""
+        },
+        "after": "operate",
+        "accept_break_at": "SHY"
+      },
+      "expect": {
+        "first_output": "co-",
+        "checkpoint": {
+          "next_original": "operate",
+          "carry": "SHY",
+          "post_break": ""
+        },
+        "second_output": "operate",
+        "carry_identity_preserved_even_when_empty": true,
+        "base_reprepare": false
+      }
+    },
+    {
+      "id": "same-page-transitive-placement",
+      "input": {
+        "kind": "declared-page-arrangement",
+        "source": "content/transitive.html",
+        "templates": "templates/receivers.html",
+        "template": "note-first",
+        "placed_main": [
+          "chapter-one"
+        ],
+        "placed_notes": [
+          "note"
+        ],
+        "note_contains_anchor": "own-figure"
+      },
+      "expect": {
+        "valid": true,
+        "notes_frame_before_main_allowed": true,
+        "activated": [
+          "note",
+          "figure"
+        ],
+        "completed_targets": [
+          "note"
+        ],
+        "pending": [
+          "figure"
+        ],
+        "span_complete": false,
+        "future_untouched": [
+          "chapter-two",
+          "later"
+        ]
+      }
+    },
+    {
+      "id": "transitive-drain-and-transition",
+      "input": {
+        "kind": "declared-sequence",
+        "source": "content/transitive.html",
+        "templates": "templates/receivers.html",
+        "synthetic_block_heights_px": {
+          "chapter-one": 10,
+          "chapter-two": 10,
+          "note": 10,
+          "figure": 10,
+          "later": 10
+        },
+        "sequence": [
+          "note-first",
+          "figures-only",
+          "note-first"
+        ]
+      },
+      "expect": {
+        "pages": [
+          {
+            "number": 1,
+            "main": [
+              "chapter-one"
+            ],
+            "notes": [
+              "note"
+            ],
+            "pending": [
+              "figure"
+            ],
+            "notes_queue": [
+              "later"
+            ],
+            "figures_queue": [
+              "figure"
+            ],
+            "main_position": "before:chapter-two",
+            "span_complete": false,
+            "loss_units": 2000000
+          },
+          {
+            "number": 2,
+            "main": [],
+            "figures": [
+              "figure"
+            ],
+            "pending": [],
+            "notes_queue": [
+              "later"
+            ],
+            "figures_queue": [],
+            "main_position": "before:chapter-two",
+            "span_complete": true,
+            "loss_units": 1840278
+          },
+          {
+            "number": 3,
+            "main": [
+              "chapter-two"
+            ],
+            "notes": [
+              "later"
+            ],
+            "pending": [],
+            "notes_queue": [],
+            "figures_queue": [],
+            "main_position": "end:body",
+            "span_complete": true,
+            "loss_units": 1000000
+          }
+        ],
+        "span_template_sequences": [
+          [
+            "note-first",
+            "figures-only"
+          ],
+          [
+            "note-first"
+          ]
+        ],
+        "span_loss_units": [
+          3840278,
+          1000000
+        ],
+        "total_loss_units": 4840278,
+        "revisit_first_span": false,
+        "scoring_status": "working-hypothesis",
+        "scope": "validate-this-sequence-not-search-optimum"
+      }
+    },
+    {
+      "id": "shorter-local-prefix-wins",
+      "input": {
+        "kind": "local-comparator",
+        "same_template": true,
+        "main_finishes_span": false,
+        "alternatives": [
+          {
+            "id": "short",
+            "main_progress": 6,
+            "main_height_fraction": 0.6,
+            "pending_targets": [],
+            "loss_units": 1160000
+          },
+          {
+            "id": "long",
+            "main_progress": 8,
+            "main_height_fraction": 0.8,
+            "pending_targets": [
+              "N"
+            ],
+            "loss_units": 2040000
+          }
+        ],
+        "future_template_costs_ignored": true
+      },
+      "expect": {
+        "selected": "short",
+        "global_successors_for_template": 1,
+        "scoring_status": "working-hypothesis"
+      }
+    },
+    {
+      "id": "local-progress-ties",
+      "input": {
+        "kind": "local-comparator",
+        "secondary_order": [
+          "notes",
+          "figures"
+        ],
+        "alternatives": [
+          {
+            "id": "less-main",
+            "loss_units": 1000000,
+            "positions": [
+              4,
+              9,
+              9
+            ],
+            "enumeration": 0
+          },
+          {
+            "id": "more-figures",
+            "loss_units": 1000000,
+            "positions": [
+              5,
+              3,
+              9
+            ],
+            "enumeration": 1
+          },
+          {
+            "id": "more-notes",
+            "loss_units": 1000000,
+            "positions": [
+              5,
+              4,
+              1
+            ],
+            "enumeration": 2
+          },
+          {
+            "id": "same-later",
+            "loss_units": 1000000,
+            "positions": [
+              5,
+              4,
+              1
+            ],
+            "enumeration": 3
+          }
+        ]
+      },
+      "expect": {
+        "selected": "more-notes",
+        "positions_are_logical_ranks_not_box_ids": true
+      }
+    },
+    {
+      "id": "two-templates-same-start",
+      "input": {
+        "kind": "synthetic-page-comparison",
+        "templates": "templates/receivers.html",
+        "material_lines": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H"
+        ],
+        "line_height_px": 10,
+        "line_breaks_same_at_all_widths": true,
+        "initial_state": "S",
+        "eligible": [
+          "wide",
+          "narrow-chain"
+        ]
+      },
+      "expect": {
+        "attempts": [
+          {
+            "template": "wide",
+            "placed_per_frame": [
+              8
+            ],
+            "span_complete": true,
+            "loss_units": 1000000
+          },
+          {
+            "template": "narrow-chain",
+            "placed_per_frame": [
+              4,
+              4
+            ],
+            "span_complete": true,
+            "loss_units": 1000000
+          }
+        ],
+        "selected": "wide",
+        "input_state": "S",
+        "candidate_states_independent": true,
+        "scoring_status": "working-hypothesis"
+      }
+    }
+  ]
+}

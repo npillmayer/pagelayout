@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SHIP-00: anchors.html</title>
+  <style>
+    html, body, p, section, aside, figure, h1, h2, div { margin:0; padding:0; border:none; }
+    body { font-size:10px; hyphens:none; }
+    .notes { flow-into:notes; } .figures { flow-into:figures; }
+
+  </style>
+</head>
+<body id="body">
+  <p id="start"><a id="start-anchor" href="#n-start" data-flow-anchor></a>Start.</p>
+  <p id="middle">Before <a id="middle-anchor" href="#n-middle" data-flow-anchor> </a>after.</p>
+  <p id="end">End.<a id="end-anchor" href="#n-end" data-flow-anchor></a></p>
+  <div id="empty-block"><a id="empty-anchor" href="#n-empty" data-flow-anchor></a></div>
+  <p id="visible"><a id="visible-anchor" href="#n-visible" data-flow-anchor>Two words across fragments.</a></p>
+  <p id="bidi" dir="rtl">אב <a id="bidi-anchor" href="#n-bidi" data-flow-anchor>גד</a></p>
+  <p id="ordinary"><a href="#n-start">Another reference.</a></p>
+  <aside id="n-start" class="notes">Start note.</aside>
+  <aside id="n-middle" class="notes">Middle note.</aside>
+  <aside id="n-end" class="notes">End note.</aside>
+  <aside id="n-empty" class="notes">Empty-block note.</aside>
+  <aside id="n-visible" class="notes">Visible note.</aside>
+  <aside id="n-bidi" class="notes">Bidi note.</aside>
+</body>
+</html>

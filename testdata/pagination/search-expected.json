@@ -1,0 +1,566 @@
+{
+  "status": "settled-search-contract-with-declared-fake-attempt-results",
+  "missing_edges": "NoFit",
+  "costs": "Nonnegative finite page losses in units, supplied by the fake Page attempt; not calculated from HTML. Each edge is already the one locally selected result for its state/template.",
+  "cases": [
+    {
+      "id": "later-completion-better",
+      "templates": [
+        "A",
+        "B"
+      ],
+      "width": 32,
+      "initial": "S",
+      "complete_states": [
+        "D"
+      ],
+      "minimum_page_cost_units": 1000000,
+      "edges": [
+        {
+          "from": "S",
+          "template": "A",
+          "to": "D",
+          "loss_units": 8000000
+        },
+        {
+          "from": "S",
+          "template": "B",
+          "to": "U",
+          "loss_units": 1000000
+        },
+        {
+          "from": "U",
+          "template": "A",
+          "to": "D",
+          "loss_units": 2000000
+        }
+      ],
+      "expect": {
+        "outcome": "Complete",
+        "sequence": [
+          "B",
+          "A"
+        ],
+        "loss_units": 3000000,
+        "heuristic_truncation": false
+      },
+      "compare_widths": [
+        8,
+        32,
+        128
+      ]
+    },
+    {
+      "id": "strict-bound-equality",
+      "templates": [
+        "A",
+        "B"
+      ],
+      "width": 32,
+      "initial": "S",
+      "complete_states": [
+        "D"
+      ],
+      "minimum_page_cost_units": 1000000,
+      "edges": [
+        {
+          "from": "S",
+          "template": "A",
+          "to": "U",
+          "loss_units": 1000000
+        },
+        {
+          "from": "S",
+          "template": "B",
+          "to": "D",
+          "loss_units": 2000000
+        },
+        {
+          "from": "U",
+          "template": "A",
+          "to": "D",
+          "loss_units": 1000000
+        }
+      ],
+      "expect": {
+        "outcome": "Complete",
+        "sequence": [
+          "A",
+          "A"
+        ],
+        "loss_units": 2000000,
+        "heuristic_truncation": false,
+        "equal_bound_branch_must_be_extended": true
+      }
+    },
+    {
+      "id": "safe-bound-pruning",
+      "templates": [
+        "A",
+        "B"
+      ],
+      "width": 32,
+      "initial": "S",
+      "complete_states": [
+        "D"
+      ],
+      "minimum_page_cost_units": 1000000,
+      "edges": [
+        {
+          "from": "S",
+          "template": "A",
+          "to": "D",
+          "loss_units": 2000000
+        },
+        {
+          "from": "S",
+          "template": "B",
+          "to": "U",
+          "loss_units": 2000000
+        },
+        {
+          "from": "U",
+          "template": "A",
+          "to": "D",
+          "loss_units": 1000000
+        }
+      ],
+      "expect": {
+        "outcome": "Complete",
+        "sequence": [
+          "A"
+        ],
+        "loss_units": 2000000,
+        "heuristic_truncation": false,
+        "safe_pruned_unfinished": 1
+      }
+    },
+    {
+      "id": "heuristic-exhaustion",
+      "templates": [
+        "A",
+        "B"
+      ],
+      "width": 1,
+      "initial": "S",
+      "complete_states": [
+        "D"
+      ],
+      "minimum_page_cost_units": 1000000,
+      "edges": [
+        {
+          "from": "S",
+          "template": "A",
+          "to": "dead",
+          "loss_units": 1000000
+        },
+        {
+          "from": "S",
+          "template": "B",
+          "to": "good",
+          "loss_units": 2000000
+        },
+        {
+          "from": "good",
+          "template": "A",
+          "to": "D",
+          "loss_units": 1000000
+        }
+      ],
+      "expect": {
+        "outcome": "SearchExhausted",
+        "sequence": null,
+        "loss_units": null,
+        "heuristic_truncation": true,
+        "automatic_retry": false,
+        "exhaustive_reference": {
+          "sequence": [
+            "B",
+            "A"
+          ],
+          "loss_units": 3000000
+        }
+      }
+    },
+    {
+      "id": "completed-incumbent-outside-beam",
+      "templates": [
+        "A",
+        "B",
+        "C"
+      ],
+      "width": 1,
+      "initial": "S",
+      "complete_states": [
+        "D"
+      ],
+      "minimum_page_cost_units": 1000000,
+      "edges": [
+        {
+          "from": "S",
+          "template": "A",
+          "to": "D",
+          "loss_units": 5000000
+        },
+        {
+          "from": "S",
+          "template": "B",
+          "to": "U",
+          "loss_units": 1000000
+        },
+        {
+          "from": "S",
+          "template": "C",
+          "to": "V",
+          "loss_units": 2000000
+        },
+        {
+          "from": "U",
+          "template": "A",
+          "to": "D",
+          "loss_units": 1000000
+        },
+        {
+          "from": "V",
+          "template": "A",
+          "to": "D",
+          "loss_units": 1000000
+        }
+      ],
+      "expect": {
+        "outcome": "Complete",
+        "sequence": [
+          "B",
+          "A"
+        ],
+        "loss_units": 2000000,
+        "heuristic_truncation": true,
+        "round_1_unfinished_sequences": [
+          [
+            "B"
+          ]
+        ],
+        "round_1_incumbent": [
+          "A"
+        ]
+      }
+    },
+    {
+      "id": "global-round-ranking",
+      "templates": [
+        "A",
+        "B"
+      ],
+      "width": 2,
+      "initial": "S",
+      "complete_states": [
+        "D"
+      ],
+      "minimum_page_cost_units": 1000000,
+      "edges": [
+        {
+          "from": "S",
+          "template": "A",
+          "to": "U",
+          "loss_units": 1000000
+        },
+        {
+          "from": "S",
+          "template": "B",
+          "to": "V",
+          "loss_units": 1000000
+        },
+        {
+          "from": "U",
+          "template": "A",
+          "to": "U0",
+          "loss_units": 1000000
+        },
+        {
+          "from": "U",
+          "template": "B",
+          "to": "U1",
+          "loss_units": 1200000
+        },
+        {
+          "from": "V",
+          "template": "A",
+          "to": "V0",
+          "loss_units": 2000000
+        },
+        {
+          "from": "V",
+          "template": "B",
+          "to": "V1",
+          "loss_units": 2200000
+        },
+        {
+          "from": "U0",
+          "template": "A",
+          "to": "D",
+          "loss_units": 1000000
+        },
+        {
+          "from": "U1",
+          "template": "A",
+          "to": "D",
+          "loss_units": 1000000
+        },
+        {
+          "from": "V0",
+          "template": "A",
+          "to": "D",
+          "loss_units": 1000000
+        },
+        {
+          "from": "V1",
+          "template": "A",
+          "to": "D",
+          "loss_units": 1000000
+        }
+      ],
+      "expect": {
+        "outcome": "Complete",
+        "sequence": [
+          "A",
+          "A",
+          "A"
+        ],
+        "loss_units": 3000000,
+        "heuristic_truncation": true,
+        "round_2_unfinished_sequences": [
+          [
+            "A",
+            "A"
+          ],
+          [
+            "A",
+            "B"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "do-not-merge-equal-positions",
+      "templates": [
+        "A",
+        "B"
+      ],
+      "width": 2,
+      "initial": "S",
+      "complete_states": [
+        "D"
+      ],
+      "minimum_page_cost_units": 1000000,
+      "edges": [
+        {
+          "from": "S",
+          "template": "A",
+          "to": "X",
+          "loss_units": 1000000
+        },
+        {
+          "from": "S",
+          "template": "B",
+          "to": "X",
+          "loss_units": 1000000
+        },
+        {
+          "from": "X",
+          "template": "A",
+          "to": "D",
+          "loss_units": 1000000
+        }
+      ],
+      "expect": {
+        "outcome": "Complete",
+        "sequence": [
+          "A",
+          "A"
+        ],
+        "loss_units": 2000000,
+        "heuristic_truncation": false,
+        "attempt_calls": 6,
+        "round_1_unfinished_sequences": [
+          [
+            "A"
+          ],
+          [
+            "B"
+          ]
+        ]
+      },
+      "position_vectors": {
+        "X": [
+          "main@end-1",
+          "notes@start"
+        ]
+      }
+    },
+    {
+      "id": "exhaustive-infeasibility",
+      "templates": [
+        "A",
+        "B"
+      ],
+      "width": 32,
+      "initial": "S",
+      "complete_states": [
+        "D"
+      ],
+      "minimum_page_cost_units": 1000000,
+      "edges": [],
+      "expect": {
+        "outcome": "InfeasibleUnderPolicies",
+        "sequence": null,
+        "loss_units": null,
+        "heuristic_truncation": false
+      }
+    },
+    {
+      "id": "cancel-with-incumbent",
+      "templates": [
+        "A",
+        "B"
+      ],
+      "width": 32,
+      "initial": "S",
+      "complete_states": [
+        "D"
+      ],
+      "minimum_page_cost_units": 1000000,
+      "edges": [
+        {
+          "from": "S",
+          "template": "A",
+          "to": "D",
+          "loss_units": 5000000
+        },
+        {
+          "from": "S",
+          "template": "B",
+          "to": "U",
+          "loss_units": 1000000
+        },
+        {
+          "from": "U",
+          "template": "A",
+          "to": "D",
+          "loss_units": 1000000
+        }
+      ],
+      "expect": {
+        "outcome": "Interrupted",
+        "error": "cancelled",
+        "selected": null,
+        "incumbent_sequence": [
+          "A"
+        ],
+        "incumbent_loss_units": 5000000,
+        "input_state": "S",
+        "commit": false,
+        "shipout": false
+      },
+      "interrupt": {
+        "after_round": 1,
+        "kind": "cancelled"
+      }
+    },
+    {
+      "id": "limit-without-incumbent",
+      "templates": [
+        "A",
+        "B"
+      ],
+      "width": 32,
+      "initial": "S",
+      "complete_states": [
+        "D"
+      ],
+      "minimum_page_cost_units": 1000000,
+      "edges": [
+        {
+          "from": "S",
+          "template": "A",
+          "to": "U",
+          "loss_units": 1000000
+        },
+        {
+          "from": "U",
+          "template": "A",
+          "to": "D",
+          "loss_units": 1000000
+        }
+      ],
+      "expect": {
+        "outcome": "Interrupted",
+        "error": "depth-limit",
+        "selected": null,
+        "incumbent_sequence": null,
+        "incumbent_loss_units": null,
+        "commit": false
+      },
+      "interrupt": {
+        "after_round": 1,
+        "kind": "depth-limit"
+      }
+    },
+    {
+      "id": "already-complete",
+      "templates": [
+        "A",
+        "B"
+      ],
+      "width": 32,
+      "initial": "S",
+      "complete_states": [
+        "S",
+        "D"
+      ],
+      "minimum_page_cost_units": 1000000,
+      "edges": [],
+      "expect": {
+        "outcome": "Complete",
+        "sequence": [],
+        "loss_units": 0,
+        "heuristic_truncation": false,
+        "attempt_calls": 0
+      }
+    },
+    {
+      "id": "operational-error-aborts",
+      "templates": [
+        "A",
+        "B"
+      ],
+      "width": 32,
+      "initial": "S",
+      "complete_states": [
+        "D"
+      ],
+      "minimum_page_cost_units": 1000000,
+      "edges": [
+        {
+          "from": "S",
+          "template": "A",
+          "to": "D",
+          "loss_units": 5000000
+        }
+      ],
+      "expect": {
+        "outcome": "Error",
+        "error": "backend-failure",
+        "selected": null,
+        "commit": false,
+        "drop_only_failed_edge": false
+      },
+      "errors": [
+        {
+          "from": "S",
+          "template": "B",
+          "kind": "backend-failure"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,262 @@
+{
+  "status": "adopted-contract-unless-case-marked-working-hypothesis",
+  "cases": [
+    {
+      "id": "foreign-execution-context",
+      "given": {
+        "state_context": "X",
+        "run_context": "Y",
+        "same_source_and_options": true
+      },
+      "expect": {
+        "error": "invalid-request",
+        "backend_calls": 0,
+        "candidate": null
+      }
+    },
+    {
+      "id": "wrong-preparation",
+      "given": {
+        "snapshot_preparation": "P1",
+        "session_preparation": "P2"
+      },
+      "expect": {
+        "error": "invalid-request",
+        "backend_calls": 0,
+        "candidate": null
+      }
+    },
+    {
+      "id": "wrong-head-cursor",
+      "given": {
+        "head": "C",
+        "cursor_for": "B"
+      },
+      "expect": {
+        "error": "invalid-request",
+        "candidate": null
+      }
+    },
+    {
+      "id": "closed-session",
+      "given": {
+        "session": "closed",
+        "state": "valid"
+      },
+      "expect": {
+        "error": "invalid-request",
+        "backend_calls": 0,
+        "candidate": null
+      }
+    },
+    {
+      "id": "late-channel-error",
+      "given": {
+        "main_fitted": true,
+        "notes_fitted": true,
+        "figures": "backend-error",
+        "original_state": "S"
+      },
+      "expect": {
+        "error": "backend-error",
+        "cause_preserved": true,
+        "candidate": null,
+        "successor": null,
+        "input_state": "S",
+        "old_outputs_usable": true
+      }
+    },
+    {
+      "id": "local-limit-after-feasible-alternative",
+      "given": {
+        "best_so_far": "feasible-page",
+        "enumeration": "interrupted-by-limit"
+      },
+      "expect": {
+        "error": "limit",
+        "candidate": null,
+        "successor": null,
+        "NoFit": false
+      }
+    },
+    {
+      "id": "caller-stops-enumeration",
+      "given": {
+        "yield_returns_false_at_alternative": 2
+      },
+      "expect": {
+        "enumeration_outcome": "stopped",
+        "exhausted": false,
+        "retained_alternatives_immutable": true
+      }
+    },
+    {
+      "id": "no-arrangement-fits",
+      "given": {
+        "enumeration": "exhausted",
+        "progressing_feasible_alternatives": 0
+      },
+      "expect": {
+        "outcome": "NoFit",
+        "candidate": null,
+        "successor": null
+      }
+    },
+    {
+      "id": "already-complete-span",
+      "given": {
+        "at_boundary": true,
+        "related_targets_remaining": []
+      },
+      "expect": {
+        "outcome": "SpanComplete",
+        "new_pages": 0,
+        "extra_loss_units": 0,
+        "input_state_unchanged": true
+      }
+    },
+    {
+      "id": "page-completes-span",
+      "given": {
+        "page_placed_material": true,
+        "successor_at_boundary": true,
+        "related_targets_remaining": []
+      },
+      "expect": {
+        "outcome": "Constructed",
+        "span_complete": true,
+        "publish_page_state_loss_progress_together": true
+      }
+    },
+    {
+      "id": "frozen-output-lifetime",
+      "given": {
+        "selected_pages_retained": true,
+        "preparation_session": "closed",
+        "borrowed_fonts": "live",
+        "discarded_candidates": "released"
+      },
+      "expect": {
+        "renderable": true,
+        "resumable": false,
+        "retains_preparation_factory": false,
+        "retains_search_scratch": false
+      }
+    },
+    {
+      "id": "delivery-failure",
+      "given": {
+        "selected_pages": [
+          1,
+          2,
+          3
+        ],
+        "consumer_error_on_page": 2
+      },
+      "expect": {
+        "completed_deliveries": [
+          1
+        ],
+        "failed_page": 2,
+        "page_2_may_have_external_partial_effects": true,
+        "selected_sequence_unchanged": true,
+        "automatic_retry": false
+      }
+    },
+    {
+      "id": "later-span-failure",
+      "given": {
+        "span_1": "selected",
+        "span_2": "backend-error"
+      },
+      "expect": {
+        "available_selected_spans": [
+          1
+        ],
+        "document_complete": false,
+        "revisit_span_1": false
+      }
+    },
+    {
+      "id": "metadata-does-not-make-page",
+      "given": {
+        "remaining": "only-terminal-metadata",
+        "related_targets_remaining": []
+      },
+      "expect": {
+        "new_pages": 0,
+        "terminal_drain_complete": true
+      }
+    },
+    {
+      "id": "default-work-limits",
+      "status": "working-hypothesis",
+      "given": {
+        "options": "defaults"
+      },
+      "expect": {
+        "local_steps_per_attempt": 100000,
+        "attempts_per_span": 1000000,
+        "depth_rounds_per_span": 10000,
+        "implicit_wall_clock_deadline": false,
+        "partial_arrangements_count": true,
+        "automatic_retry": false
+      }
+    },
+    {
+      "id": "default-beam",
+      "status": "settled-contract",
+      "given": {
+        "options": "defaults"
+      },
+      "expect": {
+        "unfinished_width": 32,
+        "completed_incumbent_uses_slot": false,
+        "merge_states": false
+      }
+    },
+    {
+      "id": "custom-limit-boundary",
+      "status": "working-hypothesis",
+      "given": {
+        "local_limit": 2,
+        "enumeration_requires_steps": 3,
+        "steps_include_partial": true
+      },
+      "expect": {
+        "steps_completed": 2,
+        "error_before_step": 3,
+        "error": "limit",
+        "candidate": null
+      }
+    },
+    {
+      "id": "cancellation-cooperative",
+      "given": {
+        "cancel_during": "synchronous-borrowed-service-call"
+      },
+      "expect": {
+        "preempts_borrowed_call": false,
+        "check_after_return": true,
+        "error": "cancelled",
+        "candidate": null,
+        "cause_preserved": true
+      }
+    },
+    {
+      "id": "structural-anchor-before-terminal",
+      "given": {
+        "remaining_main": "empty-block owning event for N, then terminal boundary",
+        "target_N": "nonempty secondary material"
+      },
+      "expect": {
+        "activate_before_terminal_completion": [
+          "N"
+        ],
+        "span_complete_before_N_placed": false,
+        "marker_only_pages": 0,
+        "secondary_drain_required": true
+      }
+    }
+  ]
+}

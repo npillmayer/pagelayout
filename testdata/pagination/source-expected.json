@@ -1,0 +1,737 @@
+{
+  "status": "adopted-contract-fixtures-not-current-runtime-output",
+  "cases": [
+    {
+      "id": "main-default",
+      "file": "content/main-default.html",
+      "expect": {
+        "outcome": "valid",
+        "channels": [
+          "main"
+        ],
+        "main_root": "body",
+        "residual_aliases_main": true,
+        "named_secondary_branches": {},
+        "main_content_order": [
+          "a",
+          "b"
+        ],
+        "same_material_as": "main-default",
+        "no_duplicate_preparation": true
+      }
+    },
+    {
+      "id": "main-explicit",
+      "file": "content/main-explicit.html",
+      "expect": {
+        "outcome": "valid",
+        "channels": [
+          "main"
+        ],
+        "main_root": "body",
+        "residual_aliases_main": true,
+        "named_secondary_branches": {},
+        "main_content_order": [
+          "a",
+          "b"
+        ],
+        "same_material_as": "main-default",
+        "no_duplicate_preparation": true
+      }
+    },
+    {
+      "id": "anchor-affinity",
+      "file": "content/anchors.html",
+      "expect": {
+        "outcome": "valid",
+        "channels": [
+          "main",
+          "notes"
+        ],
+        "queues": {
+          "notes": [
+            "n-start",
+            "n-middle",
+            "n-end",
+            "n-empty",
+            "n-visible",
+            "n-bidi"
+          ]
+        },
+        "anchors": [
+          {
+            "id": "start-anchor",
+            "target": "n-start",
+            "attach": "following",
+            "block": "start"
+          },
+          {
+            "id": "middle-anchor",
+            "target": "n-middle",
+            "attach": "following",
+            "block": "middle"
+          },
+          {
+            "id": "end-anchor",
+            "target": "n-end",
+            "attach": "preceding",
+            "block": "end"
+          },
+          {
+            "id": "empty-anchor",
+            "target": "n-empty",
+            "attach": "structural",
+            "block": "empty-block"
+          },
+          {
+            "id": "visible-anchor",
+            "target": "n-visible",
+            "attach": "first-rendered-content",
+            "activation_count": 1
+          },
+          {
+            "id": "bidi-anchor",
+            "target": "n-bidi",
+            "attach": "first-rendered-content",
+            "use_logical_source_coverage": true
+          }
+        ],
+        "ordinary_reference_activations": 0,
+        "synthetic_marker_boxes": 0
+      }
+    },
+    {
+      "id": "normalized-provenance",
+      "file": "content/normalization.html",
+      "expect": {
+        "outcome": "valid",
+        "anchor": "split-anchor",
+        "target": "n",
+        "anchor_containing_source_block": "outer",
+        "affinity": "following",
+        "following_material": "hoisted",
+        "preserve_split_source": "split",
+        "preserve_anonymous_group_mapping": true,
+        "synthetic_marker_boxes": 0
+      }
+    },
+    {
+      "id": "forced-variants",
+      "file": "content/breaks.html",
+      "expect": {
+        "outcome": "valid",
+        "initial_boundary_no_blank": true,
+        "boundaries_before": [
+          "page",
+          "left",
+          "right",
+          "recto",
+          "verso",
+          "propagated"
+        ],
+        "effective_break": "page",
+        "propagated_from": {
+          "first-child": "propagated"
+        },
+        "opening_padding_moves_with": "propagated",
+        "terminal_drain": true,
+        "parity_constraints": false,
+        "blank_pages": 0
+      }
+    },
+    {
+      "id": "override-forced-break",
+      "file": "content/breaks.html",
+      "expect": {
+        "outcome": "valid",
+        "boundaries_before": [
+          "page",
+          "right",
+          "recto",
+          "verso",
+          "propagated"
+        ]
+      },
+      "stylesheets": [
+        "content/break-override.css"
+      ]
+    },
+    {
+      "id": "coincident-breaks",
+      "file": "content/breaks.html",
+      "expect": {
+        "outcome": "valid",
+        "boundary_before": "propagated",
+        "boundary_count_at_position": 1
+      },
+      "additional_css": "#propagated { break-before:page; }"
+    },
+    {
+      "id": "break-css-wide-initial",
+      "file": "content/breaks.html",
+      "expect": {
+        "outcome": "valid",
+        "subject": "page",
+        "effective_break": "none"
+      },
+      "additional_css": "#page { break-before:initial; }"
+    },
+    {
+      "id": "break-css-wide-unset",
+      "file": "content/breaks.html",
+      "expect": {
+        "outcome": "valid",
+        "subject": "page",
+        "effective_break": "none"
+      },
+      "additional_css": "#page { break-before:unset; }"
+    },
+    {
+      "id": "break-css-wide-inherit",
+      "file": "content/breaks.html",
+      "expect": {
+        "outcome": "valid",
+        "subject": "page",
+        "effective_break": "page"
+      },
+      "additional_css": "#page { break-before:inherit; }"
+    },
+    {
+      "id": "transitive-spans",
+      "file": "content/transitive.html",
+      "expect": {
+        "outcome": "valid",
+        "channels": [
+          "main",
+          "notes",
+          "figures"
+        ],
+        "queues": {
+          "notes": [
+            "note",
+            "later"
+          ],
+          "figures": [
+            "figure"
+          ]
+        },
+        "owners": {
+          "note": "own-note",
+          "figure": "own-figure",
+          "later": "own-later"
+        },
+        "span_targets": {
+          "1": [
+            "note",
+            "figure"
+          ],
+          "2": [
+            "later"
+          ]
+        },
+        "boundary_before": "chapter-two",
+        "first_span_must_drain": [
+          "note",
+          "figure"
+        ],
+        "first_span_must_not_consume": [
+          "chapter-two",
+          "later"
+        ]
+      }
+    },
+    {
+      "id": "authored-fifo",
+      "file": "content/fifo.html",
+      "expect": {
+        "outcome": "valid",
+        "queues": {
+          "notes": [
+            "a",
+            "b"
+          ]
+        },
+        "activation_order": [
+          "b",
+          "a"
+        ],
+        "at_first_anchor": {
+          "pending": [
+            "b"
+          ],
+          "blocked_by_head": "a",
+          "may_place": []
+        },
+        "after_second_anchor": {
+          "may_place_order": [
+            "a",
+            "b"
+          ]
+        },
+        "reorder": false
+      }
+    },
+    {
+      "id": "cross-span-fifo",
+      "file": "content/cross-span-fifo.html",
+      "expect": {
+        "outcome": "valid",
+        "queues": {
+          "notes": [
+            "a",
+            "b"
+          ]
+        },
+        "span_targets": {
+          "1": [
+            "b"
+          ],
+          "2": [
+            "a"
+          ]
+        },
+        "first_span_completion": "infeasible-under-policies-with-exhaustive-search",
+        "blocking_head": "a",
+        "may_skip_head": false,
+        "may_consume_future_span": false
+      }
+    },
+    {
+      "id": "edge-source",
+      "file": "content/fragments.html",
+      "expect": {
+        "outcome": "valid",
+        "split_box": "split-box",
+        "top_edges_px": 8,
+        "bottom_edges_px": 12,
+        "horizontal_edges_px": 6,
+        "contained_child_keeps_edges": true
+      }
+    },
+    {
+      "id": "atomic-manual-source",
+      "file": "content/atomics-manual.html",
+      "expect": {
+        "outcome": "valid",
+        "atomic_order": [
+          "first-atomic",
+          "second-atomic"
+        ],
+        "atomic_width_fraction": 0.5,
+        "manual_owner": "manual",
+        "manual_decoded_text": "co­operate",
+        "manual_requires_explicit_hyphenator": true
+      }
+    },
+    {
+      "id": "excluded-markers",
+      "file": "content/suppression.html",
+      "expect": {
+        "outcome": "valid",
+        "channels": [
+          "main"
+        ],
+        "active_owners": [],
+        "active_secondary_branches": [],
+        "excluded": [
+          "hidden-owner",
+          "hidden",
+          "storage"
+        ],
+        "main_content_order": [
+          "kept"
+        ]
+      }
+    },
+    {
+      "id": "empty-document",
+      "file": "content/empty.html",
+      "expect": {
+        "outcome": "valid",
+        "channels": [
+          "main"
+        ],
+        "terminal_drain": true,
+        "physical_pages": 0,
+        "already_complete_search": true
+      }
+    },
+    {
+      "id": "nested-main_err",
+      "file": "content/nested-main_err.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "nested-route"
+        ],
+        "source_ids": [
+          "outer",
+          "inner"
+        ],
+        "publish_plan": false
+      },
+      "gate": "SHIP-01"
+    },
+    {
+      "id": "missing-owner_err",
+      "file": "content/missing-owner_err.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "missing-owner"
+        ],
+        "source_ids": [
+          "n"
+        ],
+        "publish_plan": false
+      },
+      "gate": "SHIP-02"
+    },
+    {
+      "id": "missing-target_err",
+      "file": "content/missing-target_err.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "unresolved-target"
+        ],
+        "source_ids": [
+          "owner"
+        ],
+        "publish_plan": false
+      },
+      "gate": "SHIP-02"
+    },
+    {
+      "id": "duplicate-owner_err",
+      "file": "content/duplicate-owner_err.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "duplicate-owner"
+        ],
+        "source_ids": [
+          "owner-a",
+          "owner-b",
+          "n"
+        ],
+        "publish_plan": false
+      },
+      "gate": "SHIP-02"
+    },
+    {
+      "id": "duplicate-target_err",
+      "file": "content/duplicate-target_err.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "duplicate-target"
+        ],
+        "source_ids": [
+          "owner",
+          "n"
+        ],
+        "publish_plan": false
+      },
+      "gate": "SHIP-02"
+    },
+    {
+      "id": "inactive-target_err",
+      "file": "content/inactive-target_err.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "inactive-target"
+        ],
+        "source_ids": [
+          "owner",
+          "n"
+        ],
+        "publish_plan": false
+      },
+      "gate": "SHIP-02"
+    },
+    {
+      "id": "inactive-owner_err",
+      "file": "content/inactive-owner_err.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "missing-owner"
+        ],
+        "source_ids": [
+          "n"
+        ],
+        "publish_plan": false
+      },
+      "gate": "SHIP-02"
+    },
+    {
+      "id": "ownership-cycle_err",
+      "file": "content/ownership-cycle_err.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "ownership-cycle"
+        ],
+        "source_ids": [
+          "a",
+          "b"
+        ],
+        "publish_plan": false
+      },
+      "gate": "SHIP-02"
+    },
+    {
+      "id": "nonroot-target_err",
+      "file": "content/nonroot-target_err.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "non-root-target"
+        ],
+        "source_ids": [
+          "owner",
+          "child",
+          "n"
+        ],
+        "publish_plan": false
+      },
+      "gate": "SHIP-02"
+    },
+    {
+      "id": "secondary-break_err",
+      "file": "content/secondary-break_err.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "unsupported-break-location"
+        ],
+        "source_ids": [
+          "n"
+        ],
+        "publish_plan": false
+      },
+      "gate": "SHIP-02"
+    },
+    {
+      "id": "inline-break_err",
+      "file": "content/inline-break_err.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "unsupported-break-location"
+        ],
+        "source_ids": [
+          "inline"
+        ],
+        "publish_plan": false
+      },
+      "gate": "SHIP-02"
+    },
+    {
+      "id": "atomic-break_err",
+      "file": "content/atomic-break_err.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "unsupported-break-location"
+        ],
+        "source_ids": [
+          "inside"
+        ],
+        "publish_plan": false
+      },
+      "gate": "SHIP-02"
+    },
+    {
+      "id": "unsupported-break-avoid",
+      "file": "content/breaks.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "unsupported-break-value"
+        ],
+        "publish_document": false
+      },
+      "additional_css": "#page { break-before:avoid; }",
+      "gate": "DOM-SHIP-01/SHIP-01"
+    },
+    {
+      "id": "unsupported-break-avoid-page",
+      "file": "content/breaks.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "unsupported-break-value"
+        ],
+        "publish_document": false
+      },
+      "additional_css": "#page { break-before:avoid-page; }",
+      "gate": "DOM-SHIP-01/SHIP-01"
+    },
+    {
+      "id": "unsupported-break-column",
+      "file": "content/breaks.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "unsupported-break-value"
+        ],
+        "publish_document": false
+      },
+      "additional_css": "#page { break-before:column; }",
+      "gate": "DOM-SHIP-01/SHIP-01"
+    },
+    {
+      "id": "unsupported-break-region",
+      "file": "content/breaks.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "unsupported-break-value"
+        ],
+        "publish_document": false
+      },
+      "additional_css": "#page { break-before:region; }",
+      "gate": "DOM-SHIP-01/SHIP-01"
+    },
+    {
+      "id": "unsupported-break-revert",
+      "file": "content/breaks.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "unsupported-break-value"
+        ],
+        "publish_document": false
+      },
+      "additional_css": "#page { break-before:revert; }",
+      "gate": "DOM-SHIP-01/SHIP-01"
+    },
+    {
+      "id": "unsupported-break-revert-layer",
+      "file": "content/breaks.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "unsupported-break-value"
+        ],
+        "publish_document": false
+      },
+      "additional_css": "#page { break-before:revert-layer; }",
+      "gate": "DOM-SHIP-01/SHIP-01"
+    },
+    {
+      "id": "legacy-break-rejected",
+      "file": "content/main-default.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "unsupported-property"
+        ],
+        "publish_document": false
+      },
+      "additional_css": "#a { page-break-before:always; }",
+      "gate": "SHIP-01"
+    },
+    {
+      "id": "audit-losing-break",
+      "file": "content/breaks.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "unsupported-break-value"
+        ],
+        "publish_document": false
+      },
+      "additional_css": "#page { break-before:avoid; break-before:page; }",
+      "gate": "SHIP-01"
+    },
+    {
+      "id": "audit-nonmatching-break",
+      "file": "content/breaks.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "unsupported-break-value"
+        ],
+        "publish_document": false
+      },
+      "additional_css": ".absent { break-before:avoid; }",
+      "gate": "SHIP-01"
+    },
+    {
+      "id": "audit-suppressed-source",
+      "file": "content/suppression.html",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "unsupported-break-value"
+        ],
+        "publish_document": false
+      },
+      "additional_css": "#hidden { break-before:avoid; }",
+      "gate": "SHIP-01"
+    },
+    {
+      "id": "boundary-anchor-affinity",
+      "file": "content/boundary-anchors.html",
+      "expect": {
+        "outcome": "valid",
+        "boundary_before": "next",
+        "queues": {
+          "notes": [
+            "old",
+            "new",
+            "final"
+          ]
+        },
+        "span_targets": {
+          "1": [
+            "old"
+          ],
+          "2": [
+            "new",
+            "final"
+          ]
+        },
+        "anchors": [
+          {
+            "id": "closing-owner",
+            "attach": "preceding",
+            "block": "closing",
+            "span": 1
+          },
+          {
+            "id": "opening-owner",
+            "attach": "following",
+            "block": "opening",
+            "span": 2
+          },
+          {
+            "id": "terminal-owner",
+            "attach": "preceding",
+            "block": "terminal",
+            "span": 2
+          }
+        ],
+        "terminal_activation_before_drain_completion": true,
+        "marker_only_pages": 0
+      }
+    },
+    {
+      "id": "fixed-height-stays-unsupported",
+      "file": "content/main-default.html",
+      "additional_css": "#a { height:10px; }",
+      "gate": "existing-content-profile",
+      "expect": {
+        "outcome": "error",
+        "required_diagnostics": [
+          "unsupported-content-value"
+        ],
+        "publish_document": false
+      }
+    }
+  ]
+}
