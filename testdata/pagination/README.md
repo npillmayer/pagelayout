@@ -208,3 +208,20 @@ The state/outcome tests exercise context/preparation/session mismatches, exact
 head/cursor pairing, A-complete/B-partial queue suffixes, draining, atomic
 publication, interruption and separate tie comparators. These tests use no
 real fitter and do not claim the later frozen-output or delivery proofs.
+
+## Structural fitting evidence
+
+BOX-SHIP-02's synthetic tests live in
+[css-box-layout/layout/fit_test.go](../../../css-box-layout/layout/fit_test.go),
+beside an [executable client example](../../../css-box-layout/layout/fit_example_test.go).
+They exercise nested auto-width, zero-edge blocks and deterministic paragraph
+prefixes: every supported cut conserves ordered material, selected checkpoints
+resume at changed widths, empty/zero-height material advances, and rejected or
+failed alternatives leave earlier output usable. Enumeration distinguishes
+exhaustion from stops, errors, cancellation and limits. Payload cloning is checked
+with a backend that mutates scratch immediately after yielding.
+
+These tests do not consume `fitting-expected.json` wholesale. Its nonzero-edge,
+margin, atomic and manual-carry cases remain the BOX-SHIP-03 and paragraph bridge
+gates; complete page arrangements and span transitions remain page-runtime gates.
+The structural tests do not establish page-level scoring, search or rendering.

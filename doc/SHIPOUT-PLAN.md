@@ -4,11 +4,12 @@ Recorded on 2026-11-25 against the current implementation and the decisions in
 [SHIPOUT.md](SHIPOUT.md). This is a plan, not a report of implemented pagination.
 **SHIP-00 is complete as a contract-and-fixture slice; DOM-SHIP-01 is implemented
 in w3c-dom; SHIP-01 is implemented in content; BOX-SHIP-01 is implemented
-in css-box-layout; SHIP-02 source planning and SHIP-03 state/loss/outcome
-contracts are implemented.** All remaining slices
-are planned; pagination execution is not implemented. Plan inspection is callable;
-finite-height fitting and page/search execution remain subsequent work. Scoring and numerical
-execution limits remain working hypotheses.
+in css-box-layout; SHIP-02 source planning, SHIP-03 state/loss/outcome contracts
+and BOX-SHIP-02 structural finite-height fitting are implemented.** All remaining
+slices are planned; pagination execution is not implemented. Plan inspection and
+the synthetic structural fitter are callable. Real paragraph-prefix fitting,
+used fragment geometry and page/search execution remain subsequent work.
+Scoring and numerical execution limits remain working hypotheses.
 
 The author's initial remarks, scattered remarks and closing answers remain in
 SHIPOUT.md, unchanged. That document remains the design authority. This plan
@@ -71,7 +72,7 @@ general output backend is not required.
 | [Group extraction](../content/extract.go) | Processed UTF-8 text, source maps, policy spans and atomic occurrences. | A complete mapping for structural and zero-width events through normalization and preparation. |
 | [Preparation](../content/prepare.go) | Eager preparation barrier, immutable snapshot, separately owned serialized session. | Fitting operations that reuse the pair and retain exact continuations. |
 | [Whole-tree layout](../content/layout.go) and [typography adapter](../preparation/typography/layout.go) | Used values, atomic interiors, source/paint copying and frozen output ownership. | Finite-height partial results, multiple alternatives/fragments of one group, and resumable collection of output. |
-| [CSS layout core](../../css-box-layout/layout/flow.go) | Structural flow, margins and invocation-specific geometry. | A pure finite-height fitter, open-container continuation and fragment-edge omission. |
+| [CSS layout core](../../css-box-layout/layout/flow.go) and [structural fitting](../../css-box-layout/layout/fit.go) | Structural flow, margins and whole-tree geometry; finite-height zero-edge block fitting with neutral callbacks and open-container continuation. | Used fragment geometry, edge omission, margin collapse and atomic integration in the finite-height fitter. |
 | [Paragraph trials](../../typography/glyphing/paragraph/trial.go), [checkpoints](../../typography/glyphing/paragraph/trial_checkpoint.go) and [fragment fitting](../../typography/glyphing/paragraph/fragment_fit.go) | Accepted prefixes, changed-width suffix breaking and authoritative line geometry. | Enumeration/selection of arbitrary legal fitting prefixes and a complete fragment/checkpoint/output handoff. |
 | [Paragraph flow convenience API](../../typography/glyphing/paragraph/flow.go) | Useful reference for whole-line continuation. | It fixes atomic inputs and currently restricts hyphenation; it is not the complete page-fitting backend. |
 | [Khipu checkpoints](../../khipu/checkpoint.go) | Immutable accepted-prefix certificates and suffix atomic rebinding. | `Checkpoint` currently rejects policies other than `NoHyphenation`; manual discretionary continuation must be completed. |
@@ -139,7 +140,7 @@ real backend, as noted in the detailed steps.
 | 4 | BOX-SHIP-01 — complete | css-box-layout | SHIP-00 | Normalized source-boundary provenance. |
 | 5 | SHIP-02 — complete | pagelayout/content and root | SHIP-01, BOX-SHIP-01 | Validated ownership/span plan and mapped positions. |
 | 6 | SHIP-03 — complete | pagelayout root | SHIP-00, SHIP-02 | Immutable state, loss and outcome contracts. |
-| 7 | BOX-SHIP-02 | css-box-layout | SHIP-00, BOX-SHIP-01 | Structural finite-height fitting with neutral paragraph callbacks. |
+| 7 | BOX-SHIP-02 — complete | css-box-layout | SHIP-00, BOX-SHIP-01 | Structural finite-height fitting with neutral paragraph callbacks. |
 | 8 | TYPE-SHIP-01 | typography | SHIP-00 | Enumerated paragraph prefixes and frozen fragments for `none`. |
 | 9 | KHIPU-SHIP-01 | khipu | SHIP-00 | Manual discretionary checkpoint/carry support. |
 | 10 | TYPE-SHIP-02 | typography | TYPE-SHIP-01, KHIPU-SHIP-01 | Manual paragraph continuation through the same API. |
@@ -457,6 +458,41 @@ local and sequence comparators separately, including main/secondary progress
 ties and lexicographic sequences of different lengths.
 
 ### BOX-SHIP-02 — Pure finite-height structural fitting
+
+**Status: implemented (2026-11-25).** `layout.NewStructuralFitter` snapshots
+normalized block structure and binds a neutral `ParagraphFitter`.
+`Enumerate(ctx, FitRequest, visitor)` returns immutable `FitAlternative` values
+with paragraph outputs, occupied CSS-pixel extents, first/last container facts,
+logical end positions and exact opaque continuations. Requests carry finite
+width/height, optional qualified continuation/stop, optional empty choice and
+an explicit local work cap. Only `FitExhausted` certifies complete enumeration;
+`FitStopped` is interruption, while cancellation, limits and invalid/unsupported
+input or callback failures are errors with box identity and preserved causes.
+
+The current profile is static auto-width blocks with zero edges, nested block
+sequences and ordinary inline/text groups. Pending opening/closing obligations
+are preserved with open ancestors and next-child indices, including an unopened
+container reached by an explicit stop. Actual nonzero/unresolved CSS edges,
+specified block widths and inline atomics are diagnosed as unsupported until
+BOX-SHIP-03. Results contain structural/paragraph facts, not a painted box tree.
+
+Paragraph services provide all legal prefixes and exact opaque
+checkpoint/output associations. Core freezes cloneable payloads on receipt,
+inspection and resumption, filtering oversized choices as non-fit. Per-group
+choices are collected before depth-first traversal: complete choices first,
+then descending logical ends, stable in provider order for ties; extensions
+precede their shorter block prefix. Caller stops and work caps never certify
+the current best choice. Logical comparison is independent of width or height
+and never authorizes exchange of continuations between fitter instances.
+
+Sibling tests cover every supported structural/line cut, repeated and
+changed-width resumption, zero-height advancing material, root/group stops,
+foreign cursors and unsupported inline cuts, exact-height/oversized non-fit,
+copied inspection, callback scratch reuse, rejection, late errors and concurrent
+independent runs. The executable example retains a selected prefix while fitting
+its suffix at a narrower width. No typography, register, channel or page policy
+enters this API. TYPE-SHIP-01 supplies real paragraph choices; BOX-SHIP-03 adds
+used fragment geometry; SHIP-04 connects the content/preparation bridge.
 
 **Work:** add a structural fitter over an immutable normalized tree, receiving
 constraints, optional opaque continuation and an optional stop boundary. Return
@@ -829,5 +865,7 @@ Useful completion checkpoints are:
    including manual continuation within the declared profile, failure reporting
    and lifetime proofs. Record any still-provisional scoring calibration openly.
 
-The next implementation task is **BOX-SHIP-02**: pure finite-height structural
-fitting. SHIP-00, DOM-SHIP-01, SHIP-01, BOX-SHIP-01, SHIP-02 and SHIP-03 are complete; the remaining pagination/runtime and real-font proof slices are planned.
+The next implementation task is **TYPE-SHIP-01**: paragraph prefix alternatives
+for `none`. SHIP-00, DOM-SHIP-01, SHIP-01, BOX-SHIP-01, SHIP-02, SHIP-03 and
+BOX-SHIP-02 are complete; real paragraph/geometry integration, pagination/runtime
+and real-font proof slices remain planned.

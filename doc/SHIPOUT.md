@@ -154,12 +154,22 @@ If anything, the pagespan optimization could be handled by a pool of workers.
 
 ## Design discussion: pagination and shipout
 
+BOX-SHIP-02 implementation update (2026-11-25): css-box-layout now enumerates
+finite-height structural alternatives over nested auto-width, zero-edge blocks.
+Neutral paragraph callbacks provide shorter prefixes with matching frozen output
+and exact opaque checkpoints. Results preserve open-container obligations,
+logical progression, occupied extents and selected continuations across changed
+receiving widths. Exhaustion, voluntary interruption and errors/limits are
+distinct. Used fragment geometry/paint, nonzero edges/margins and atomics remain
+BOX-SHIP-03; actual paragraph-prefix services and the content bridge remain
+TYPE-SHIP-01/02 and SHIP-04. The page/search runtime is still pending.
+
 SHIP-03 implementation update (2026-11-25): initialization now binds immutable
 state to a source/plan, preparation and execution context. Checked loss algebra,
 factual scoring, local/sequence comparators and page/search publication contracts
 are implemented. Scoring and numeric caps remain working hypotheses. Actual
-fitter checkpoints, page construction, boundary-event execution and search remain
-later slices; initialization itself does not create pages or activate targets.
+fitter checkpoint integration, page construction, boundary-event execution and
+search remain later slices; initialization itself does not create pages or activate targets.
 
 SHIP-02 implementation update (2026-11-25): `pagelayout.Plan(document)` validates
 ownership and main-only breaks, and returns copied source-qualified branches,
