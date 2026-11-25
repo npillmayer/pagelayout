@@ -4,7 +4,9 @@ Use these inputs and independently authored expectations to exercise the adopted
 [SHIP-00 contracts](../../doc/SHIPOUT.md#adopted-page-construction-contract-ship-00).
 They are independently authored expectations, not generated paginator output.
 The source table is exercised by SHIP-01/02 tests against content loading and
-`pagelayout.Plan`; fitting, scoring and search tables remain later runtime gates.
+`pagelayout.Plan`; the scoring table is exercised by SHIP-03. State/outcome protocol cases are
+checked at their contract boundary; fitting, search execution and rendering/
+delivery cases remain later runtime gates.
 
 Keep template and content documents separate. The template collection can already
 be checked with:
@@ -196,3 +198,13 @@ Only the numerical work-cap cases are marked as limit hypotheses. The default
 32 unfinished beam, explicit interruption, no automatic retry and absence of
 state merging remain settled. This fixture set does not reopen the omitted
 CONT-03 fuzz test.
+
+## State and scoring contract tests
+
+SHIP-03 tests consume all scoring cases with explicit synthetic factual
+assessments. Arithmetic tests cover ties-to-even, adjacent quantization values,
+maximum finite cost, absorbing blocked values, overflow and nonfinite rejection.
+The state/outcome tests exercise context/preparation/session mismatches, exact
+head/cursor pairing, A-complete/B-partial queue suffixes, draining, atomic
+publication, interruption and separate tie comparators. These tests use no
+real fitter and do not claim the later frozen-output or delivery proofs.

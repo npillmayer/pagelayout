@@ -105,3 +105,73 @@ Forced breaks on ordinary inline content, secondary branches or inside inline
 atomics are rejected by `Plan`. Initial breaks produce no leading span, coincident
 boundaries coalesce, and a terminal boundary closes the last span. Planning
 activates no targets, consumes no material and produces no physical pages.
+
+## Initialize pagination state
+
+Bind a plan, compiled catalog and the matching completed preparation/session:
+
+```go
+run, err := pagelayout.NewPagination(pagelayout.PaginationConfig{
+    Plan: plan,
+    Catalog: catalog,
+    Prepared: prepared,
+    Session: session,
+})
+if err != nil {
+    return err
+}
+state := run.InitialState()
+fmt.Println(state.Info().Span, state.Info().NextPage) // 1 1
+if err := run.Validate(state); err != nil {
+    return err
+}
+```
+
+Keep the borrowed preparation session open and serialize execution access.
+Initialization and validation invoke no font or layout backend. A state from
+another run is invalid even when its source and options match. Closing the
+session prevents execution validation; copied source/state inspection remains
+available. State inspection returns independent heads, activated-target and
+pending-target slices. Deriving a bank with `state.Bank().Take(...)` does not
+change the state.
+
+A missing head continuation means that head's beginning. Completed branches
+leave their registers together with their cursors; partial branches retain their
+original handles. State advancement is private: source positions alone cannot
+supply a resumable fitter checkpoint. Initialization is available, but page
+construction and search execution are not yet callable.
+
+## Evaluate page loss and compare choices
+
+`AssessPage(policy, facts)` evaluates supplied frame occupancy, pending targets
+and paragraph-fragment facts. It does not establish that material fits.
+`DefaultLossPolicy()` provides adjustable weights in integer cost units;
+one point is `UnitsPerPoint` (1,000,000 units). Page cost must be positive.
+For custom initialization, set `PaginationConfig.Policy` and/or `Limits`;
+nil selects defaults. `BeamWidth: 0` selects 32.
+
+`Loss.Info()` exposes exact units and a separate blocked tag. `Compare` prefers
+smaller finite losses over blocked; `Add` detects overflow. `QuantizeLoss`
+rounds a complete floating weighted component in units, with ties to even.
+`AssessPage` preserves integer coefficients exactly and rounds each component
+once. Errors return no partial score.
+
+Underfill uses participating frame areas at entry. Newly activated incomplete
+targets incur carry immediately, but their channels enter underfill on the next
+attempt. The finishing and later main frames are exempt on a span-ending page,
+with their areas retained in the denominator. Use normalized group handles for
+`ParagraphFragment.Paragraph`; consecutive pieces in the same frame coalesce
+before counting one-line split penalties.
+
+`CompareLocal` ranks arrangements within one template by loss, further main
+progress, secondary progress in source-channel order, then enumeration order.
+`CompareSequences` ranks by accumulated loss then lexicographic template
+ordinals, including sequences of different lengths. Neither comparison merges
+states or certifies interchangeable continuations.
+
+Outcome contracts distinguish `Constructed`, `NoFit` and `SpanComplete`.
+Search reports distinguish completion, proven infeasibility, heuristic exhaustion
+and interruption. An interrupted report's `Incumbent()` is explicitly unselected.
+`PaginationError` retains a category, diagnostic location and original cause for
+`errors.Is`/`errors.As`. Candidate/sequence inspection returns copies; public
+constructors for speculative pages or forged successors are not provided.

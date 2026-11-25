@@ -4,6 +4,7 @@
 //
 // Load separate template and content documents with the template and content
 // subpackages. Preparation, width-dependent layout and source planning are
-// available; finite-height page fitting and pagination execution are separate
+// available. NewPagination binds immutable state to a borrowed preparation session;
+// AssessPage evaluates checked loss facts. Finite-height fitting and execution are separate
 // work. Planning neither consumes banks nor activates targets or creates pages.
 package pagelayout

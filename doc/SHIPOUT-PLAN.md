@@ -4,9 +4,10 @@ Recorded on 2026-11-25 against the current implementation and the decisions in
 [SHIPOUT.md](SHIPOUT.md). This is a plan, not a report of implemented pagination.
 **SHIP-00 is complete as a contract-and-fixture slice; DOM-SHIP-01 is implemented
 in w3c-dom; SHIP-01 is implemented in content; BOX-SHIP-01 is implemented
-in css-box-layout; SHIP-02 source planning is implemented.** All remaining slices
+in css-box-layout; SHIP-02 source planning and SHIP-03 state/loss/outcome
+contracts are implemented.** All remaining slices
 are planned; pagination execution is not implemented. Plan inspection is callable;
-execution/state declarations remain subsequent work. Scoring and numerical
+finite-height fitting and page/search execution remain subsequent work. Scoring and numerical
 execution limits remain working hypotheses.
 
 The author's initial remarks, scattered remarks and closing answers remain in
@@ -137,7 +138,7 @@ real backend, as noted in the detailed steps.
 | 3 | SHIP-01 — complete | pagelayout/content | SHIP-00, DOM-SHIP-01 | Default main and detached source events. |
 | 4 | BOX-SHIP-01 — complete | css-box-layout | SHIP-00 | Normalized source-boundary provenance. |
 | 5 | SHIP-02 — complete | pagelayout/content and root | SHIP-01, BOX-SHIP-01 | Validated ownership/span plan and mapped positions. |
-| 6 | SHIP-03 | pagelayout root | SHIP-00, SHIP-02 | Immutable state, loss and outcome contracts. |
+| 6 | SHIP-03 — complete | pagelayout root | SHIP-00, SHIP-02 | Immutable state, loss and outcome contracts. |
 | 7 | BOX-SHIP-02 | css-box-layout | SHIP-00, BOX-SHIP-01 | Structural finite-height fitting with neutral paragraph callbacks. |
 | 8 | TYPE-SHIP-01 | typography | SHIP-00 | Enumerated paragraph prefixes and frozen fragments for `none`. |
 | 9 | KHIPU-SHIP-01 | khipu | SHIP-00 | Manual discretionary checkpoint/carry support. |
@@ -377,6 +378,38 @@ branch. `[A, B]` remains `[A, B]` when B's owner is first. Cross-span queue
 obstructions remain observable and are not repaired or mislabeled as bad HTML.
 
 ### SHIP-03 — Immutable state, loss and outcome contracts
+
+**Status: implemented (2026-11-25).** `NewPagination(PaginationConfig)` binds a
+copied plan/catalog, matching prepared snapshot/borrowed session and fixed
+policy/limits/beam settings. `InitialState` and `Validate` provide opaque
+context-qualified immutable state and copied head/activation/pending inspection.
+Private tested transitions retain unfinished heads and their paired positions,
+clear completed heads/cursors together, and validate draining before span
+advancement. State retains no session or backend. `PreparationSession.Check`
+validates availability/identity without backend calls.
+
+`Loss` is private tagged finite/blocked uint64 units with checked sums and
+ties-to-even component quantization. `AssessPage` consumes detached factual
+assessments, using exact rational underfill intermediates and exact integer
+coefficients/counts. It preserves component contributions and entry participation;
+the validated positive page weight supplies the search lower bound.
+Scoring weights, participation rules and numerical limits remain **working
+hypotheses**, not newly settled calibration decisions.
+
+Page/search result contracts, typed cause-preserving diagnostics, separate local
+and sequence comparators, and cooperative work budgets are implemented and tested.
+Publication helpers reject interrupted/incomplete attempts and retain only
+completed, explicitly unselected interrupted incumbents. All scoring fixtures are
+executable; state, arithmetic, identity, cursor, comparator and publication tests
+pin this slice's protocol boundary.
+
+There is no page constructor/search loop or resumable fitter yet. Private
+synthetic advances test the state contract; actual opaque structural/paragraph
+checkpoint payloads arrive in SHIP-04. Immediate boundary-event processing belongs
+to page orchestration; initial state preserves source registers without trying to
+infer fit or manufacture metadata-only pages. Candidate contracts currently carry
+completed-attempt metadata; geometry/frozen fragments are added by SHIP-04/05.
+Rendering/delivery lifetime proofs remain in their later slices.
 
 **Work:** introduce root-level pagination initialization and opaque immutable
 state. Bind the bank, per-head continuation, pending/activation facts, current
@@ -786,5 +819,5 @@ Useful completion checkpoints are:
    including manual continuation within the declared profile, failure reporting
    and lifetime proofs. Record any still-provisional scoring calibration openly.
 
-The next implementation task is **SHIP-03**: immutable state, loss and outcome
-contracts. SHIP-00, DOM-SHIP-01, SHIP-01, BOX-SHIP-01 and SHIP-02 are complete; the remaining pagination/runtime and real-font proof slices are planned.
+The next implementation task is **BOX-SHIP-02**: pure finite-height structural
+fitting. SHIP-00, DOM-SHIP-01, SHIP-01, BOX-SHIP-01, SHIP-02 and SHIP-03 are complete; the remaining pagination/runtime and real-font proof slices are planned.

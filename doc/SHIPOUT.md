@@ -154,6 +154,13 @@ If anything, the pagespan optimization could be handled by a pool of workers.
 
 ## Design discussion: pagination and shipout
 
+SHIP-03 implementation update (2026-11-25): initialization now binds immutable
+state to a source/plan, preparation and execution context. Checked loss algebra,
+factual scoring, local/sequence comparators and page/search publication contracts
+are implemented. Scoring and numeric caps remain working hypotheses. Actual
+fitter checkpoints, page construction, boundary-event execution and search remain
+later slices; initialization itself does not create pages or activate targets.
+
 SHIP-02 implementation update (2026-11-25): `pagelayout.Plan(document)` validates
 ownership and main-only breaks, and returns copied source-qualified branches,
 anchors and spans without advancing queues. Content propagates source events
@@ -1080,8 +1087,8 @@ attempt, err := run.PageAttempt(ctx, state, templateID)
 report, err := run.PaginationSearch(ctx, state)
 ```
 
-`Plan(document)` is implemented by SHIP-02. The other operations remain an API
-sketch, not currently callable code. `config` supplies the plan,
+`Plan(document)` and `NewPagination(config)`/initial state are implemented.
+PageAttempt and PaginationSearch remain API sketches, not callable execution. `config` supplies the plan,
 catalog, matching PreparedSnapshot/PreparationSession, fitting adapter and
 options. `PaginationSearch` searches one pagespan. A document-level operation
 may repeatedly select complete spans and advance their boundaries.

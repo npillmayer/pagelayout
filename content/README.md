@@ -288,3 +288,7 @@ ranges and add no text or boxes. PreparedSnapshot.Input and backend inputs own
 independent event slices, retained after session closure. Structural events
 outside groups remain in the source plan. Glyph/cluster coverage is supplied by
 the paragraph backend when fitting actual fragments, not by this source map.
+
+`session.Check(prepared)` checks preparation identity and whether the session is
+open and idle, without invoking a backend. Serialize it with execution and Close.
+Errors preserve `ErrInvalidPreparation`, `ErrClosedSession` or `ErrSessionBusy`.

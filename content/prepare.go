@@ -375,3 +375,9 @@ func preparationFailure(stage PreparationStage, info GroupInfo, err error) *Prep
 	}
 	return e
 }
+
+// Check validates this borrowed session's identity and availability without
+// invoking backend services. Like WithGroup, callers serialize it with execution.
+func (s *PreparationSession) Check(p *PreparedSnapshot) error {
+	return s.withAccess(p, func(*preparationState) error { return nil })
+}
