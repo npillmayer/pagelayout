@@ -206,7 +206,7 @@ func TestExtractAtomicScopesAndOwnerDefaults(t *testing.T) {
 }
 
 func TestExtractAfterRoutingAndSplit(t *testing.T) {
-	d := loaded(t, `<body><div id="p">left <div style="flow-into:main">removed</div> right</div></body>`, LoadOptions{})
+	d := loaded(t, `<body><div id="p">left <div style="flow-into:article">removed</div> right</div></body>`, LoadOptions{})
 	groups := extractAllGroups(t, d)
 	if len(groups) != 2 || groups[0].Text != "left right" || groups[1].Text != "removed" {
 		t.Fatal("routing adjacency", groups)
@@ -248,8 +248,8 @@ func TestExtractEmptyAndSuppressed(t *testing.T) {
 }
 
 func TestExtractDetachedAndConcurrent(t *testing.T) {
-	d := loaded(t, `<body><div style="flow-into:main">a<span dir="rtl">ב<span style="display:inline-block">in</span>ג</span>z</div>`, LoadOptions{})
-	group := d.Groups(d.Branches("main")[0].Tree)[0].Group
+	d := loaded(t, `<body><div style="flow-into:article">a<span dir="rtl">ב<span style="display:inline-block">in</span>ג</span>z</div>`, LoadOptions{})
+	group := d.Groups(d.Branches("article")[0].Tree)[0].Group
 	want := extractKnownGroup(t, group)
 	// JSON snapshots all exported structural/style/child/text data; retained
 	// public descriptions also check source and bank lifetime.
@@ -257,7 +257,7 @@ func TestExtractDetachedAndConcurrent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	branch := d.Branches("main")[0].Root
+	branch := d.Branches("article")[0].Root
 	branchInfo, _ := branch.Info()
 	var wg sync.WaitGroup
 	for range 8 {
@@ -283,12 +283,12 @@ func TestExtractDetachedAndConcurrent(t *testing.T) {
 	if err != nil || string(before) != string(after) || gotInfo != branchInfo || !reflect.DeepEqual(want, extractKnownGroup(t, group)) {
 		t.Fatal("extraction mutated retained material")
 	}
-	got, bank, ok := d.Bank().Take("main")
-	if !ok || got != branch || bank.Len() != 0 || d.Bank().Len() != 1 {
+	got, bank, ok := d.Bank().Take("article")
+	if !ok || got != branch || bank.Len() != 1 || d.Bank().Len() != 2 {
 		t.Fatal("extraction consumed bank")
 	}
-	other := loaded(t, `<body><div style="flow-into:main">a<span dir="rtl">ב<span style="display:inline-block">in</span>ג</span>z</div>`, LoadOptions{})
-	foreign := other.Groups(other.Branches("main")[0].Tree)[0].Group
+	other := loaded(t, `<body><div style="flow-into:article">a<span dir="rtl">ב<span style="display:inline-block">in</span>ג</span>z</div>`, LoadOptions{})
+	foreign := other.Groups(other.Branches("article")[0].Tree)[0].Group
 	if group.id != foreign.id || group == foreign || want.Occurrences[0].Box == extractKnownGroup(t, foreign).Occurrences[0].Box {
 		t.Fatal("unqualified identity")
 	}

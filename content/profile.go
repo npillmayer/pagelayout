@@ -15,7 +15,7 @@ import (
 // This is the content authoring vocabulary, independent of the template profile.
 // Check every declaration, including losing/nonmatching and suppressed sources.
 var profileProperties = strings.Fields(`
-display position float visibility box-sizing writing-mode direction flow-into flow-from
+display position float visibility box-sizing writing-mode direction flow-into flow-from break-before
 width height min-width min-height max-width max-height top right bottom left
 margin padding margin-top margin-right margin-bottom margin-left
 padding-top padding-right padding-bottom padding-left
@@ -111,7 +111,7 @@ func checkProfileValue(key string, value style.Property) error {
 		return err
 	}
 	switch key {
-	case "position", "float", "visibility", "box-sizing", "writing-mode", "direction":
+	case "break-before", "position", "float", "visibility", "box-sizing", "writing-mode", "direction":
 		word, err := style.ParseBoxKeyword(key, string(value))
 		if err != nil {
 			return err
@@ -172,6 +172,8 @@ func checkProfileValue(key string, value style.Property) error {
 
 func profileKeyword(key, value string) bool {
 	switch key {
+	case "break-before":
+		return value == "auto" || value == "page" || value == "left" || value == "right" || value == "recto" || value == "verso"
 	case "position":
 		return value == "static"
 	case "float":

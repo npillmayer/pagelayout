@@ -1,7 +1,9 @@
 [
   {
     "file": "text-only.html",
-    "channels": [],
+    "channels": [
+      "main"
+    ],
     "branches": [],
     "prepare_calls": 1,
     "raw": {
@@ -120,7 +122,9 @@
   },
   {
     "file": "nested.html",
-    "channels": [],
+    "channels": [
+      "main"
+    ],
     "branches": [],
     "prepare_calls": 3,
     "raw": {
@@ -235,7 +239,9 @@
   },
   {
     "file": "empty-atomic.html",
-    "channels": [],
+    "channels": [
+      "main"
+    ],
     "branches": [],
     "prepare_calls": 3,
     "raw": {
@@ -313,6 +319,7 @@
     "file": "branches.html",
     "channels": [
       "main",
+      "article",
       "notes"
     ],
     "branches": [
@@ -436,7 +443,9 @@
   },
   {
     "file": "manual.html",
-    "channels": [],
+    "channels": [
+      "main"
+    ],
     "branches": [],
     "prepare_calls": 1,
     "raw": {
@@ -473,7 +482,9 @@
   },
   {
     "file": "manual-many.html",
-    "channels": [],
+    "channels": [
+      "main"
+    ],
     "branches": [],
     "prepare_calls": 1,
     "measure_error": "unsupported-policy",
@@ -511,7 +522,9 @@
   },
   {
     "file": "mixed_err.html",
-    "channels": [],
+    "channels": [
+      "main"
+    ],
     "branches": [],
     "prepare_calls": 0,
     "prepare_error": "mixed-hyphens",
@@ -566,7 +579,9 @@
   },
   {
     "file": "auto_err.html",
-    "channels": [],
+    "channels": [
+      "main"
+    ],
     "branches": [],
     "prepare_calls": 0,
     "prepare_error": "automatic-hyphens",

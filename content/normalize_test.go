@@ -168,7 +168,7 @@ func TestNormalizedSnapshotDetachesWorkingInput(t *testing.T) {
 		t.Fatal("input mutates published box")
 	}
 	s, _ := d.NodeSource(root.ID)
-	if s.Children[0] == 0 || s.Attributes[0].Val == "changed" || d.Channels()[0] != "article" || len(d.Groups(a.tree)) != 2 {
+	if s.Children[0] == 0 || s.Attributes[0].Val == "changed" || d.Channels()[1] != "article" || len(d.Groups(a.tree)) != 2 {
 		t.Fatal("input mutates published source/index")
 	}
 }

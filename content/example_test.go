@@ -38,10 +38,11 @@ func ExampleLoad() {
 	fmt.Printf("residual: %s, %d group\n", root.Source.Path, len(doc.Groups(residual.Tree)))
 	fmt.Printf("named registers: %d\n", doc.Bank().Len())
 	// Output:
+	// main: branches=1 groups=1
 	// heading-flow: branches=1 groups=1
 	// article-flow: branches=1 groups=2
 	// residual: /html[1]/body[1], 1 group
-	// named registers: 2
+	// named registers: 3
 }
 
 // A diagnostic report needs only copied public records and comparable handles.
@@ -104,15 +105,19 @@ func ExampleDocument() {
 	}
 	fmt.Print(describeMaterial(doc))
 	// Output:
-	// channels: article, notes
+	// channels: main, article, notes
+	// channel "main": branches=1
+	//   branch 1: /html[1]/body[1] testdata/routing.html:/html[1]/body[1]
+	//     group 1: owner=#intro context=/html[1]/body[1]/p[1] atomics=[] inside=-
+	//     group 2: owner=#ending context=/html[1]/body[1]/section[1]/p[1] atomics=[] inside=-
 	// channel "article": branches=2
-	//   branch 1: #story-a testdata/routing.html:/html[1]/body[1]/section[1]/article[1]
+	//   branch 2: #story-a testdata/routing.html:/html[1]/body[1]/section[1]/article[1]
 	//     group 1: owner=#paragraph-a context=/html[1]/body[1]/section[1]/article[1]/p[1] atomics=[#tag] inside=-
 	//     group 2: owner=#tag context=/html[1]/body[1]/section[1]/article[1]/p[1]/span[1] atomics=[] inside=#tag
-	//   branch 3: #story-b testdata/routing.html:/html[1]/body[1]/section[1]/article[2]
+	//   branch 4: #story-b testdata/routing.html:/html[1]/body[1]/section[1]/article[2]
 	//     group 1: owner=#paragraph-b context=/html[1]/body[1]/section[1]/article[2]/p[1] atomics=[] inside=-
 	// channel "notes": branches=1
-	//   branch 2: #note testdata/routing.html:/html[1]/body[1]/section[1]/aside[1]
+	//   branch 3: #note testdata/routing.html:/html[1]/body[1]/section[1]/aside[1]
 	//     group 1: owner=#note context=/html[1]/body[1]/section[1]/aside[1] atomics=[] inside=-
 	// residual: testdata/routing.html:/html[1]/body[1]
 	//     group 1: owner=#intro context=/html[1]/body[1]/p[1] atomics=[] inside=-
@@ -149,7 +154,7 @@ func ExampleDocument_Bank() {
 	// initial: #story-a
 	// candidate: #story-b
 	// restored: #story-a
-	// source inventory: article, notes
+	// source inventory: main, article, notes
 }
 
 func ExampleLoad_stylesheets() {
@@ -173,7 +178,7 @@ func ExampleLoad_stylesheets() {
 	fmt.Printf("base channels: %s\n", strings.Join(base.Channels(), ", "))
 	fmt.Printf("override channels: %s\n", strings.Join(override.Channels(), ", "))
 	for _, doc := range []*content.Document{base, override} {
-		b := doc.Branches(doc.Channels()[0])[1]
+		b := doc.Branches(doc.Channels()[1])[1]
 		info, _ := b.Root.Info()
 		fmt.Printf("story-b: font=%.0fpx margin-left=%.0fpx width=%.0f%% color=%s\n",
 			float64(info.TextStyle.FontSize)/float64(dimen.PX), info.Constraints.Margin.Left.Value,
@@ -183,8 +188,8 @@ func ExampleLoad_stylesheets() {
 	// Width is still a percentage constraint, not measured geometry.
 
 	// Output:
-	// base channels: article, notes
-	// override channels: features, notes
+	// base channels: main, article, notes
+	// override channels: main, features, notes
 	// story-b: font=20px margin-left=20px width=75% color=#203040
 	// story-b: font=24px margin-left=24px width=75% color=#008855
 }

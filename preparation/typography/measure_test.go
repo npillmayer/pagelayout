@@ -178,13 +178,13 @@ func TestMeasurementPolicyFailureAndRetry(t *testing.T) {
 
 func TestMeasurementPercentageFailureKeepsOtherTrees(t *testing.T) {
 	b, services := testBackend(t)
-	d := load(t, `<body style="hyphens:none;font-size:20px"><p style="flow-into:main">good</p><p style="flow-into:main"><span style="display:inline-block"><span style="display:block;width:50%">cycle</span></span></p></body>`)
+	d := load(t, `<body style="hyphens:none;font-size:20px"><p style="flow-into:article">good</p><p style="flow-into:article"><span style="display:inline-block"><span style="display:block;width:50%">cycle</span></span></p></body>`)
 	p, s, err := content.Prepare(d, b)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer s.Close()
-	branches := d.Branches("main")
+	branches := d.Branches("article")
 	oldBank := d.Bank()
 	base := services.created
 	first, err := MeasureIntrinsic(p, s, branches[0].Root, layout.ResolveContext{})

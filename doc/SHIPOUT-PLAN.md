@@ -3,7 +3,7 @@
 Recorded on 2026-11-25 against the current implementation and the decisions in
 [SHIPOUT.md](SHIPOUT.md). This is a plan, not a report of implemented pagination.
 **SHIP-00 is complete as a contract-and-fixture slice; DOM-SHIP-01 is implemented
-in w3c-dom.** All remaining slices are planned; pagination is not implemented. The adopted operation shape is recorded
+in w3c-dom; SHIP-01 is implemented in content.** All remaining slices are planned; pagination is not implemented. The adopted operation shape is recorded
 in SHIPOUT; supporting Go declarations remain implementation work. Scoring and
 numerical execution limits remain working hypotheses.
 
@@ -132,7 +132,7 @@ real backend, as noted in the detailed steps.
 | --- | --- | --- | --- | --- |
 | 1 | SHIP-00 — complete | pagelayout, with sibling contract review | Existing loading/preparation | Adopted contracts and checked-in fixture expectations; runtime implementation remains pending. |
 | 2 | DOM-SHIP-01 — complete | w3c-dom | SHIP-00 | Checked break-before metadata, parsing and cascaded resolution. |
-| 3 | SHIP-01 | pagelayout/content | SHIP-00, DOM-SHIP-01 | Default main and detached source events. |
+| 3 | SHIP-01 — complete | pagelayout/content | SHIP-00, DOM-SHIP-01 | Default main and detached source events. |
 | 4 | BOX-SHIP-01 | css-box-layout | SHIP-00 | Normalized source-boundary provenance. |
 | 5 | SHIP-02 | pagelayout/content and root | SHIP-01, BOX-SHIP-01 | Validated ownership/span plan and mapped positions. |
 | 6 | SHIP-03 | pagelayout root | SHIP-00, SHIP-02 | Immutable state, loss and outcome contracts. |
@@ -231,7 +231,7 @@ source ordering, remainder, tie or beam rules.
 `css.GetBoxKeyword(node, "break-before")` through the existing shared declaration
 normalization and cascade. Its full Level 3 vocabulary preserves page-side,
 avoidance, column and region values. The narrower pagination profile and
-page-value normalization remain SHIP-01 work. Checked resolution supports
+page-value normalization are implemented by SHIP-01. Checked resolution supports
 initial/inherit/unset and reports unsupported rollback/deferred values. Tests
 cover malformed declarations through inline, inspected and legacy stylesheet
 paths, cascade precedence and retention of losing/nonmatching source declarations.
@@ -252,6 +252,13 @@ declarations remain available for pagelayout's profile audit. Existing template
 and text-style behavior is unchanged. No font or paginator dependency is added.
 
 ### SHIP-01 — Default main and source event capture
+
+**Status: implemented (2026-11-25).** Default main aliases the residual tree;
+`SourceEvents()` returns copied original-node ID/anchor/break records and
+`SourceInfo.BreakBefore` retains normalized effective policy. Excluded IDs and
+anchors remain inactive records. Ownership validation and normalized/prepared
+position mapping remain SHIP-02 and BOX-SHIP-01 work. Tests cover main equivalence,
+route validation, preparation once per group, cascade and declaration auditing.
 
 **Work:** adapt routing in two stages: validate the original effective flow
 directives, then treat valid `main` directives as redundant for extraction.
@@ -746,6 +753,5 @@ Useful completion checkpoints are:
    including manual continuation within the declared profile, failure reporting
    and lifetime proofs. Record any still-provisional scoring calibration openly.
 
-The next implementation task is **SHIP-01**: integrate default main and detached
-source events using the checked break-before support. SHIP-00 and DOM-SHIP-01 are
-complete; the remaining pagination/runtime and real-font proof slices are planned.
+The next implementation task is **BOX-SHIP-01**: normalized source-boundary
+provenance. SHIP-00, DOM-SHIP-01 and SHIP-01 are complete; the remaining pagination/runtime and real-font proof slices are planned.

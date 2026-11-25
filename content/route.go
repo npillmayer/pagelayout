@@ -91,6 +91,14 @@ func partitionSource(p *sourceProjection) (*partitionProjection, error) {
 	if len(ds) != 0 {
 		return nil, newLoadError(ds)
 	}
+	// Validation above sees every original directive, including redundant main.
+	// Only after it succeeds may main-owned material stay in the residual tree.
+	roots = slices.DeleteFunc(roots, func(id sourceID) bool { return p.sources[id].flow == "main" })
+	for id, owner := range owners {
+		if owner != 0 && p.sources[owner].flow == "main" {
+			owners[id] = 0
+		}
+	}
 	result := &partitionProjection{sources: slices.Clone(p.sources), rootFontSize: p.rootFontSize, owners: owners}
 	for i := range result.sources {
 		result.sources[i].attributes = slices.Clone(p.sources[i].attributes)

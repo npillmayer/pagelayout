@@ -191,7 +191,7 @@ func TestPrepareLateFailureAndRetry(t *testing.T) {
 }
 
 func TestPreparePreflightBeforeAnyGroup(t *testing.T) {
-	d := loaded(t, `<body style="hyphens:none"><p>first</p><div style="flow-into:main">last <span style="hyphens:auto">bad</span></div>`, LoadOptions{})
+	d := loaded(t, `<body style="hyphens:none"><p>first</p><div style="flow-into:article">last <span style="hyphens:auto">bad</span></div>`, LoadOptions{})
 	m := &mockPreparer{preflight: mockPolicyPreflight}
 	p, s, err := Prepare(d, m)
 	if p != nil || s != nil || !errors.Is(err, errMockPolicy) || len(m.calls) != 0 {
@@ -205,7 +205,7 @@ func TestPreparePreflightBeforeAnyGroup(t *testing.T) {
 	}
 	// A late extraction failure occurs even before backend preflight.
 	d = preparationDocument(t, "branches.html")
-	tree := d.Branches("main")[1].Tree
+	tree := d.Branches("article")[1].Tree
 	n := d.Groups(tree)[0].Group.node().Children[0]
 	n.Text.Range.End++
 	m = &mockPreparer{}
@@ -237,7 +237,7 @@ func TestPrepareReturnedIdentityAndHandles(t *testing.T) {
 				r := m.result(g)
 				switch mode {
 				case "foreign":
-					r.Group = foreign.Groups(foreign.Branches("main")[1].Tree)[0].Group
+					r.Group = foreign.Groups(foreign.Branches("article")[1].Tree)[0].Group
 				case "owner":
 					r.Owner = g.Group
 				case "duplicate":

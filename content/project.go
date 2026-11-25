@@ -53,6 +53,7 @@ type projectedSource struct {
 	typography                            textstyle.Style
 	display                               layout.Display
 	position, visibility, boxSizing, flow string
+	breakBefore                           string
 	constraints                           layout.ComputedStyle
 	paint                                 boxPaint
 	textRef                               boxtext.TextRef
@@ -253,12 +254,17 @@ func (a *projectionAdapter) element(id sourceID) {
 	s := layout.DefaultComputedStyle()
 	s.FontSizePx = float32(float64(r.typography.FontSize) / float64(dimen.PX))
 	s.WhiteSpace = layout.WhiteSpaceNormal
-	for _, key := range []string{"position", "float", "visibility", "box-sizing", "writing-mode", "direction"} {
+	for _, key := range []string{"break-before", "position", "float", "visibility", "box-sizing", "writing-mode", "direction"} {
 		word, err := css.GetBoxKeyword(n, key)
 		if err != nil || !profileKeyword(key, word) {
 			a.fail(id, "profile", "profile.value", key, "unsupported effective box policy", err)
 		}
 		switch key {
+		case "break-before":
+			r.breakBefore = word
+			if word != "auto" && err == nil && profileKeyword(key, word) {
+				r.breakBefore = "page"
+			}
 		case "position":
 			r.position = word
 		case "visibility":

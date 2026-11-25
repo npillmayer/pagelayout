@@ -295,13 +295,13 @@ func TestLayoutAtomicRequestValidation(t *testing.T) {
 
 func TestLayoutMeasurementFailureAndBankIsolation(t *testing.T) {
 	b, svc := testBackend(t)
-	d := load(t, `<body style="hyphens:none;font-size:20px"><p style="flow-into:main">Good text.</p><p style="flow-into:main"><span style="display:inline-block"><span style="display:block;width:50%">cycle</span></span></p></body>`)
+	d := load(t, `<body style="hyphens:none;font-size:20px"><p style="flow-into:article">Good text.</p><p style="flow-into:article"><span style="display:inline-block"><span style="display:block;width:50%">cycle</span></span></p></body>`)
 	p, s, err := content.Prepare(d, b)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer s.Close()
-	branches := d.Branches("main")
+	branches := d.Branches("article")
 	base := svc.created
 	old, err := Layout(p, s, branches[0].Root, LayoutRequest{80, paragraph.FirstFit})
 	if err != nil {
@@ -319,7 +319,7 @@ func TestLayoutMeasurementFailureAndBankIsolation(t *testing.T) {
 	}
 	bank := d.Bank()
 	for _, branch := range branches {
-		item, next, ok := bank.Take("main")
+		item, next, ok := bank.Take("article")
 		if !ok || item != branch.Root {
 			t.Fatal("trial changed bank")
 		}

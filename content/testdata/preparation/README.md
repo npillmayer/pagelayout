@@ -16,7 +16,7 @@ Use the tables below to interpret `PreparedSnapshot.Groups()` and `Input(group)`
 | [text-only.html](text-only.html) | text | 1 | `Café & tea U+FFFC NBSP ok.` with exact spacing in JSON. Whitespace collapses across a source-element boundary. Authored U+FFFC remains text, with no atomic occurrence. |
 | [nested.html](nested.html) | outer, wide, inner | 3 | Outer: `Before U+FFFC after.`; wide: `Wide U+FFFC`; inner: `Inner.`. Atomic occurrences point to wide at byte 7 and inner at byte 5. Both inline-blocks have auto width. |
 | [empty-atomic.html](empty-atomic.html) | empty, object, blank | 3 | An empty group, atomic-only group and empty atomic interior. Outer/object owner context is 20px; blank's own context is 12px. Only the structural occurrence inserts U+FFFC. |
-| [branches.html](branches.html) | residual, a, note, b | 4 | Residual first, then global branch source order. Main contains a then b; notes contains note. Preparation leaves the bank unchanged. |
+| [branches.html](branches.html) | residual, a, note, b | 4 | Residual first, then global branch source order. Article contains a then b; notes contains note. Preparation leaves the bank unchanged. |
 | [manual.html](manual.html) | manual | 1 | Preserves `co­operate`. Requires an explicit-marker hyphenator. With the marker behavior below, intrinsic measurement succeeds. |
 | [manual-many.html](manual-many.html) | many | 1 | Preserves both soft hyphens. Preparation succeeds; intrinsic measurement with the marker behavior below reports unsupported policy for multiple eligible splits in one textbox. |
 | [mixed_err.html](mixed_err.html) | mixed | 0 | Loading succeeds. A group mixes none and manual; typography preparation fails at #manual before font or shaping calls. |
@@ -70,7 +70,7 @@ the same snapshot/session pair and explicit `paragraph.FirstFit`. Both layout
 results can coexist; neither changes the source boxes or register bank. See
 [the two-width outline preview](../../../preparation/typography/testdata/README.md).
 
-For `branches.html`, the same prepared document covers main, notes and residual
+For `branches.html`, the same prepared document covers article, notes and default main (the residual tree)
 content. Taking a branch from a derived bank does not require another preparation.
 Use the returned whole-branch handle with the matching preparation pair.
 
@@ -80,3 +80,7 @@ completed handles in reverse order. A successful session can be closed while
 retaining frozen output, provided the font resources remain valid. Two separate
 preparations of one document have different preparation identities but share
 the same source `Box` handles; do not mix their snapshot/session pairs.
+
+The branches fixture routes its independent branches to `article` and `notes`.
+All fixtures also expose default `main`; expected `branches` lists secondary
+roots only, with the main tree covered by the existing `residual` group entries.

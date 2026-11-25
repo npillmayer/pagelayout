@@ -68,12 +68,12 @@ func TestLoadMaterialAcceptance(t *testing.T) {
 			channel, font = "features", 24*dimen.PX
 		}
 		d := loaded(t, fixture(t, "routing.html"), opts)
-		if !reflect.DeepEqual(d.Channels(), []string{channel, "notes"}) || d.Bank().Len() != 2 {
+		if !reflect.DeepEqual(d.Channels(), []string{"main", channel, "notes"}) || d.Bank().Len() != 3 {
 			t.Fatal("channel inventory")
 		}
 		branches := d.Branches(channel)
 		notes := d.Branches("notes")
-		if len(branches) != 2 || len(notes) != 1 || branches[0].Order != 1 || notes[0].Order != 2 || branches[1].Order != 3 {
+		if len(branches) != 2 || len(notes) != 1 || branches[0].Order != 2 || notes[0].Order != 3 || branches[1].Order != 4 {
 			t.Fatal("global branch order")
 		}
 		r := d.Residual()
@@ -112,7 +112,7 @@ func TestLoadMaterialAcceptance(t *testing.T) {
 		}
 		for _, name := range []string{"source", "intro", "ending"} {
 			s := materialSource(t, d, name)
-			if s.Classification != SourceResidual || s.Tree != r.Tree || s.Channel != "" {
+			if s.Classification != SourceResidual || s.Tree != r.Tree || s.Channel != "main" {
 				t.Fatal("residual ownership", name)
 			}
 		}
@@ -170,7 +170,7 @@ func TestResidualGroupsAndSuppression(t *testing.T) {
 		checkGroups(t, d, b.Tree, name)
 	}
 	d = loaded(t, fixture(t, "suppression.html"), LoadOptions{})
-	if d.Bank().Len() != 0 || len(d.Channels()) != 0 {
+	if d.Bank().Len() != 1 || !reflect.DeepEqual(d.Channels(), []string{"main"}) {
 		t.Fatal("excluded material entered bank")
 	}
 	checkGroups(t, d, d.Residual().Tree, "visible")
@@ -244,7 +244,7 @@ func TestMaterialBankIdentityCopiesAndLifetime(t *testing.T) {
 	if !ok || a == b {
 		t.Fatal("branch identity")
 	}
-	if zero, _, ok := drained.Take("article"); ok || zero.Valid() || drained.Len() != 1 {
+	if zero, _, ok := drained.Take("article"); ok || zero.Valid() || drained.Len() != 2 {
 		t.Fatal("drained channel")
 	}
 	if first, _ := initial.First("article"); first != a {
@@ -258,7 +258,7 @@ func TestMaterialBankIdentityCopiesAndLifetime(t *testing.T) {
 		t.Fatal("restoring whole item")
 	}
 	_, alternate, _ := initial.Take("notes")
-	if alternate.Len() != 1 || initial.Len() != 2 {
+	if alternate.Len() != 2 || initial.Len() != 3 {
 		t.Fatal("checkpoint mutation")
 	}
 	channels := d.Channels()
@@ -274,7 +274,7 @@ func TestMaterialBankIdentityCopiesAndLifetime(t *testing.T) {
 	info, _ := a.Info()
 	info.Constraints.Width.Value = 999
 	info.Paint.Background.R = 255
-	if d.Channels()[0] != "article" || d.Branches("article")[0].Root != a || !d.Groups(a.tree)[0].Atomics[0].Valid() || materialSource(t, d, "story-a").Children[0] == 0 {
+	if d.Channels()[1] != "article" || d.Branches("article")[0].Root != a || !d.Groups(a.tree)[0].Atomics[0].Valid() || materialSource(t, d, "story-a").Children[0] == 0 {
 		t.Fatal("inspection mutated snapshot")
 	}
 	if again, _ := a.Info(); again.Constraints.Width.Value == 999 || again.Paint.Background == info.Paint.Background {
@@ -286,7 +286,7 @@ func TestMaterialBankIdentityCopiesAndLifetime(t *testing.T) {
 		t.Fatal("snapshot qualification")
 	}
 	override := loaded(t, input, LoadOptions{Stylesheets: []Stylesheet{{CSS: fixture(t, "routing-override.css")}}})
-	if override.Channels()[0] != "features" || d.Channels()[0] != "article" {
+	if override.Channels()[1] != "features" || d.Channels()[1] != "article" {
 		t.Fatal("reload changed original")
 	}
 	if failed, err := Load(strings.NewReader(fixture(t, "nested-flow_err.html")), LoadOptions{}); err == nil || failed != nil {
@@ -347,8 +347,8 @@ func TestMaterialConcurrentReadsAndLoads(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for range 20 {
-				item, rest, ok := d.Bank().Take(registers.RegisterID(d.Channels()[0]))
-				if !ok || item != a || rest.Len() != 2 {
+				item, rest, ok := d.Bank().Take(registers.RegisterID(d.Channels()[1]))
+				if !ok || item != a || rest.Len() != 3 {
 					t.Error("concurrent bank")
 				}
 				info, _ := item.Info()

@@ -7,8 +7,8 @@
 // source text and styles, and qualify identity by snapshot and tree.
 //
 // The initial register bank contains whole branch-root Boxes in source order.
-// Deriving another bank leaves the Document unchanged. Residual material remains
-// separate, without an implicit main channel. Groups include empty paragraphs
+// Deriving another bank leaves the Document unchanged. Residual() aliases the default main tree; valid main directives stay in source
+// order there. SourceEvents exposes detached IDs, anchors and forced breaks. Groups include empty paragraphs
 // and nested inline-block interiors, with source owner context preserved.
 //
 // Loading fetches no resources, executes no scripts and consults no fonts. Boxes

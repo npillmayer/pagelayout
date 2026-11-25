@@ -61,7 +61,7 @@ func ExampleLayout() {
 	g, ok := first.Group(first.Groups()[0].Group)
 	fmt.Println("retained after Close:", ok && len(g.Paragraph.VList.Lines()) > 0)
 	// Output:
-	// prepared groups: 4
+	// prepared groups: 3
 	// candidate widths: 120 240
 	// bank unchanged: true
 	// retained after Close: true

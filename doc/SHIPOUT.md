@@ -154,6 +154,13 @@ If anything, the pagespan optimization could be handled by a pool of workers.
 
 ## Design discussion: pagination and shipout
 
+Implementation status (2026-11-25): SHIP-01 now publishes default main as the
+existing residual tree and captures detached original-source ID, owning-link
+and normalized forced-break records through `content.Document.SourceEvents`.
+These are source facts, not placed markers: ownership validation, first-child
+propagation and normalized/prepared boundary mapping remain subsequent work.
+
+
 Discussion recorded on 2026-11-23 and revised through 2026-11-25 against the
 author's remarks, preserved verbatim above, within this discussion and in the
 closing answers. This revision also incorporates the subsequent clarification

@@ -39,7 +39,7 @@ func TestLayoutScopeAndSessionGuard(t *testing.T) {
 		calls = append(calls, r.Group)
 		return layout.InlineResult{Extent: layout.InlineExtent{W: r.Width, H: 10}}, nil
 	}}
-	root := d.Branches("main")[0].Root
+	root := d.Branches("article")[0].Root
 	before := cloneTrialTree(root.node())
 	for _, w := range []float32{100, 200} {
 		r, err := Layout(p, s, root, w, b)
@@ -57,8 +57,8 @@ func TestLayoutScopeAndSessionGuard(t *testing.T) {
 		t.Fatal("layout changed source/preparation")
 	}
 	bank := d.Bank()
-	for _, branch := range d.Branches("main") {
-		item, next, ok := bank.Take("main")
+	for _, branch := range d.Branches("article") {
+		item, next, ok := bank.Take("article")
 		if !ok || item != branch.Root {
 			t.Fatal("layout consumed bank")
 		}

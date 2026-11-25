@@ -1,5 +1,13 @@
 # Content loading and routing implementation plan
 
+SHIP-01 update (2026-11-25): the historical residual policy below is superseded.
+`main` is now the first channel and contains the existing residual root as one
+item; `Residual()` aliases it. Valid explicit main directives are ignored only
+after original routing validation. Secondary queues retain source order.
+`SourceEvents()` exposes copied source ID/anchor/break facts; the break-before
+profile admits auto and page/left/right/recto/verso, normalizing forced variants
+to page. Ownership and span validation remain pagination-plan work.
+
 Date: 2026-11-23. Status: CONT-00 adopted and complete. CONT-01 source parsing,
 inspection and styling, CONT-02 typed projection/effective profile, and CONT-03
 route ownership/partitioning are implemented. DOM-CONT-01's shared text-style

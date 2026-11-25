@@ -12,7 +12,7 @@ import "github.com/npillmayer/pagelayout/content"
 
 ## Load and route HTML
 
-This complete program loads two `main` branches and takes one from a derived
+This complete program loads a default `main` tree and takes it from a derived
 bank:
 
 ```go
@@ -28,7 +28,7 @@ import (
 
 func main() {
 	const source = `<body style="font-size:16px;hyphens:none">
-      <p>Content outside named channels.</p>
+      <p>Introductory content.</p>
       <section style="flow-into:main"><p>First article.</p></section>
       <aside style="flow-into:notes">A note.</aside>
       <section style="flow-into:main"><p>Second article.</p></section>
@@ -48,9 +48,9 @@ func main() {
 		log.Fatal("main is empty")
 	}
 	originalFirst, _ := initial.First("main")
-	second, _ := remaining.First("main")
+	_, hasMore := remaining.First("main")
 	fmt.Println("original bank unchanged:", originalFirst == first)
-	fmt.Println("derived bank advanced:", second.Valid() && second != first)
+	fmt.Println("derived bank advanced:", !hasMore)
 	fmt.Println("residual available:", doc.Residual().Root.Valid())
 }
 ```
@@ -59,7 +59,7 @@ Output:
 
 ```text
 channels: [main notes]
-main branches: 2
+main branches: 1
 original bank unchanged: true
 derived bank advanced: true
 residual available: true
@@ -76,10 +76,10 @@ and template styles have no effect on these source styles.
 
 ## Work with channels and residual content
 
-`Channels()` returns names in first-occurrence order. `Branches(name)` returns
+`Channels()` returns `main` first, then secondary names in first-occurrence order. `Branches(name)` returns
 that channel's branches in source order. Names are case-sensitive; branches
-with the same name remain separate items. Each `BranchInfo.Order` records the
-branch's global source order across all channels.
+with the same secondary name remain separate items. Main has `BranchInfo.Order` 1;
+secondary branches follow in global source order.
 
 `Bank()` returns a persistent `RegisterBank[content.Box]` containing whole
 branch roots. `First` inspects an item; `Take` returns the item, a derived bank,
@@ -95,10 +95,12 @@ remainder. A `Box` is a comparable handle: compare complete handles, not bare
 numeric IDs. It retains its source material independently of the public
 `Document` handle.
 
-`Residual()` holds content outside all named branches. It is not placed in an
-implicit `main` channel. An empty body is valid and has a residual root and an
+`Residual()` aliases the single default `main` tree. Valid `flow-into:main`
+directives are redundant: their content stays in source order in that tree.
+Routing validation still rejects nested directives, even when both name `main`. An empty body is valid and has a residual root and an
 empty group. A completely `display:none` body has a residual tree identity but
-no root or groups; check `Root.Valid()` before using it.
+no root or groups; check `Root.Valid()` before using it. Its channel inventory
+still contains `main`, but its bank and main branch list are empty.
 
 Named flow roots must be non-nested block branches under block ancestry.
 Routing html/body, inline elements, inline-blocks or descendants inside an
@@ -250,3 +252,16 @@ handle for one callback. Do not retain or release that handle or reenter the
 session from the callback. Immutable output may be retained. See the
 [recording-backend example](prepare_example_test.go) for a complete custom
 `Preparer` and its lifecycle.
+
+## Inspect pagination source facts
+
+`doc.SourceEvents()` returns copied records for authored IDs, `data-flow-anchor`
+presence with raw `href`, and effective forced `break-before` values. `page`,
+`left`, `right`, `recto` and `verso` all produce `SourcePageBreak` with value
+`page`; `auto` produces no break event. Additional CSS follows normal cascade
+rules. Avoidance, column/region breaks and legacy `page-break-before` are rejected.
+
+Use each event’s `Source` and `Parent` with `NodeSource` to inspect its original
+position. Excluded ID/anchor annotations have `Active == false`; ordinary links
+do not create anchor events. These records do not resolve targets, validate an
+ownership graph, or identify prepared-text offsets. No boxes or text are inserted.

@@ -66,7 +66,9 @@ func TestPreparationAcceptanceInputs(t *testing.T) {
 			}
 			var branches []BranchInfo
 			for _, channel := range d.Channels() {
-				branches = append(branches, d.Branches(channel)...)
+				if channel != "main" {
+					branches = append(branches, d.Branches(channel)...)
+				}
 			}
 			slices.SortFunc(branches, func(a, b BranchInfo) int { return a.Order - b.Order })
 			if len(branches) != len(tc.Branches) {

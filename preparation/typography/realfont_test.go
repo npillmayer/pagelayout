@@ -211,11 +211,11 @@ func TestRealFontBankVersionsAndNewPreparation(t *testing.T) {
 	b, calls, _ := realBackend(t, "GentiumPlus-R.ttf")
 	d := fixture(t, "branches.html")
 	original := d.Bank()
-	first, advanced, ok := original.Take("main")
+	first, advanced, ok := original.Take("article")
 	if !ok {
 		t.Fatal("missing branch")
 	}
-	next, ok := advanced.First("main")
+	next, ok := advanced.First("article")
 	if !ok || first == next {
 		t.Fatal("derived bank")
 	}
@@ -224,7 +224,7 @@ func TestRealFontBankVersionsAndNewPreparation(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s.Close()
-	branches := d.Branches("main")
+	branches := d.Branches("article")
 	ga, gb := d.Groups(branches[0].Tree)[0], d.Groups(branches[1].Tree)[0]
 	if ga.Group == gb.Group {
 		t.Fatal("branches must have separate group identities")
@@ -280,7 +280,7 @@ func TestRealFontBankVersionsAndNewPreparation(t *testing.T) {
 	for _, bank := range []struct {
 		want  content.Box
 		first func() (content.Box, bool)
-	}{{first, func() (content.Box, bool) { return original.First("main") }}, {next, func() (content.Box, bool) { return advanced.First("main") }}, {first, func() (content.Box, bool) { return d.Bank().First("main") }}} {
+	}{{first, func() (content.Box, bool) { return original.First("article") }}, {next, func() (content.Box, bool) { return advanced.First("article") }}, {first, func() (content.Box, bool) { return d.Bank().First("article") }}} {
 		got, ok := bank.first()
 		if !ok || got != bank.want {
 			t.Fatal("bank version advanced implicitly")
@@ -291,7 +291,7 @@ func TestRealFontBankVersionsAndNewPreparation(t *testing.T) {
 func TestRealFontCollidingBranchesAndStyleChanges(t *testing.T) {
 	// Identical DOM structure yields colliding tree-local IDs across loads. CSS
 	// overrides change source style/policy without changing that local numbering.
-	const source = `<html><head><style>body {font-size:20px;hyphens:none} section {flow-into:main}</style></head><body><section>co&shy;operate</section></body></html>`
+	const source = `<html><head><style>body {font-size:20px;hyphens:none} section {flow-into:article}</style></head><body><section>co&shy;operate</section></body></html>`
 	var oldGroup content.Box
 	var oldPreparation *content.PreparedSnapshot
 	var oldResult *Result
@@ -310,7 +310,7 @@ func TestRealFontCollidingBranchesAndStyleChanges(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer s.Close()
-		branch := d.Branches("main")[0]
+		branch := d.Branches("article")[0]
 		group := d.Groups(branch.Tree)[0].Group
 		if _, err := MeasureIntrinsic(p, s, branch.Root, layout.ResolveContext{}); err != nil {
 			t.Fatal(err)

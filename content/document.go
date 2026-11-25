@@ -58,6 +58,8 @@ type SourceInfo struct {
 	Tree            TreeID
 	Channel         string
 	BranchRoot      layout.NodeID
+	// BreakBefore is auto or normalized page for styled elements; empty for excluded sources.
+	BreakBefore string
 }
 
 // TextInfo retains raw decoded UTF-8, including excluded/omitted source text.
@@ -146,8 +148,8 @@ type TreeInfo struct {
 	Root Box
 }
 
-// BranchInfo identifies a routed subtree. Order is its one-based global source
-// order across all channels, not its position within a register.
+// BranchInfo identifies a channel root. Main has Order 1; secondary roots follow
+// in global source order. Order is not the position within a register.
 type BranchInfo struct {
 	Tree   TreeID
 	Root   Box
@@ -184,6 +186,7 @@ type snapshot struct {
 	channels []string
 	branches map[string][]BranchInfo
 	bank     registers.RegisterBank[Box]
+	events   []SourceEvent
 }
 
 // Document owns immutable normalized content and its initial register bank.
@@ -193,7 +196,7 @@ type snapshot struct {
 type Document struct{ material *snapshot }
 
 // Bank returns the initial persistent bank. Items are whole branch-root Boxes;
-// residual content is separate. Deriving another bank does not update Document.
+// main contains the existing residual root when present. Derivation does not update Document.
 func (d *Document) Bank() registers.RegisterBank[Box] {
 	if d == nil || d.material == nil {
 		return registers.RegisterBank[Box]{}
@@ -201,7 +204,7 @@ func (d *Document) Bank() registers.RegisterBank[Box] {
 	return d.material.bank
 }
 
-// Channels returns named channels in first-occurrence source order.
+// Channels returns main first, then secondary channels in first-occurrence source order.
 func (d *Document) Channels() []string {
 	if d == nil || d.material == nil {
 		return nil
@@ -217,8 +220,7 @@ func (d *Document) Branches(channel string) []BranchInfo {
 	return slices.Clone(d.material.branches[channel])
 }
 
-// Residual describes material outside named branches. It is never put into an
-// implicit default channel; binding it to receivers belongs to page composition.
+// Residual inspects the same tree stored under main, never a second material queue.
 func (d *Document) Residual() TreeInfo {
 	if d == nil || d.material == nil {
 		return TreeInfo{}

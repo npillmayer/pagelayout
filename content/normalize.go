@@ -33,13 +33,16 @@ func normalizePartition(p *partitionProjection) (*Document, error) {
 		v := SourceInfo{Source: publicSource(source.ref), Parent: layout.NodeID(source.parent),
 			Kind: source.nodeType, Name: source.name, Namespace: source.namespace,
 			Attributes: slices.Clone(source.attributes), TextStyle: source.typography,
-			HasTextStyle: source.typography.FontSize > 0}
+			HasTextStyle: source.typography.FontSize > 0, BreakBefore: source.breakBefore}
 		for _, child := range source.children {
 			v.Children = append(v.Children, layout.NodeID(child))
 		}
 		switch source.participation {
 		case materialNode:
-			v.Classification, v.Tree = SourceResidual, 1
+			v.Classification, v.Tree, v.Channel = SourceResidual, 1, "main"
+			if p.residual != nil {
+				v.BranchRoot = p.residual.ID
+			}
 			if root := p.owners[id]; root != 0 {
 				v.Classification, v.Tree = SourceNamed, branchTrees[root]
 				v.Channel, v.BranchRoot = branchChannels[root], layout.NodeID(root)
@@ -100,6 +103,12 @@ func normalizePartition(p *partitionProjection) (*Document, error) {
 	if err := build(1, p.residual); err != nil {
 		return nil, err
 	}
+	s.channels = []string{"main"}
+	if root := s.trees[1].root; root != nil {
+		box := Box{s, 1, root.BoxID}
+		s.branches["main"] = []BranchInfo{{Tree: 1, Root: box, Source: publicSource(p.sources[p.residual.ID].ref), Order: 1}}
+		s.bank = s.bank.Append("main", box)
+	}
 	for i, branch := range p.branches {
 		tree := TreeID(i + 2)
 		if err := build(tree, branch.root); err != nil {
@@ -107,12 +116,13 @@ func normalizePartition(p *partitionProjection) (*Document, error) {
 		}
 		root := Box{s, tree, s.trees[tree].root.BoxID}
 		s.branches[branch.channel] = append(s.branches[branch.channel], BranchInfo{
-			Tree: tree, Root: root, Source: publicSource(p.sources[branch.source].ref), Order: i + 1})
+			Tree: tree, Root: root, Source: publicSource(p.sources[branch.source].ref), Order: i + 2})
 		s.bank = s.bank.Append(registers.RegisterID(branch.channel), root)
 	}
 	for _, channel := range p.channels {
 		s.channels = append(s.channels, channel.name)
 	}
+	s.captureEvents()
 	return &Document{material: s}, nil
 }
 
