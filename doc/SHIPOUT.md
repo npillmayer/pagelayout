@@ -1157,6 +1157,11 @@ visitation order. An earlier inactive register head still blocks a later target.
 
 ### Forced-break and fitting profiles
 
+Implementation status: DOM-SHIP-01 now supplies checked break-before metadata,
+parsing and cascade resolution in w3c-dom, preserving all Level 3 keyword values.
+The content loader's narrower admission/normalization and marker propagation
+remain SHIP-01/02 work; this does not implement page breaks or pagination.
+
 **Settled initial profile:** admit `break-before: auto`, and normalize `page`,
 `left`, `right`, `recto` and `verso` to the same forced page boundary. Resolve
 `initial`, `inherit` and `unset` through the shared CSS service. Avoidance,

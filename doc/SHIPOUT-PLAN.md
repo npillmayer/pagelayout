@@ -2,8 +2,8 @@
 
 Recorded on 2026-11-25 against the current implementation and the decisions in
 [SHIPOUT.md](SHIPOUT.md). This is a plan, not a report of implemented pagination.
-**SHIP-00 is complete as a contract-and-fixture slice.** All later slices remain
-planned; pagination is not implemented. The adopted operation shape is recorded
+**SHIP-00 is complete as a contract-and-fixture slice; DOM-SHIP-01 is implemented
+in w3c-dom.** All remaining slices are planned; pagination is not implemented. The adopted operation shape is recorded
 in SHIPOUT; supporting Go declarations remain implementation work. Scoring and
 numerical execution limits remain working hypotheses.
 
@@ -131,7 +131,7 @@ real backend, as noted in the detailed steps.
 | Order | Slice | Owner | Depends on | Deliverable |
 | --- | --- | --- | --- | --- |
 | 1 | SHIP-00 — complete | pagelayout, with sibling contract review | Existing loading/preparation | Adopted contracts and checked-in fixture expectations; runtime implementation remains pending. |
-| 2 | DOM-SHIP-01 | w3c-dom | SHIP-00 | Checked page-break property support. |
+| 2 | DOM-SHIP-01 — complete | w3c-dom | SHIP-00 | Checked break-before metadata, parsing and cascaded resolution. |
 | 3 | SHIP-01 | pagelayout/content | SHIP-00, DOM-SHIP-01 | Default main and detached source events. |
 | 4 | BOX-SHIP-01 | css-box-layout | SHIP-00 | Normalized source-boundary provenance. |
 | 5 | SHIP-02 | pagelayout/content and root | SHIP-01, BOX-SHIP-01 | Validated ownership/span plan and mapped positions. |
@@ -225,6 +225,16 @@ limits and the retained eligibility baseline. Calibration does not reopen settle
 source ordering, remainder, tie or beam rules.
 
 ### DOM-SHIP-01 — Checked `break-before` support
+
+**Status: implemented.** w3c-dom supplies the non-inherited `auto` default,
+`style.ParseBoxKeyword("break-before", value)` and
+`css.GetBoxKeyword(node, "break-before")` through the existing shared declaration
+normalization and cascade. Its full Level 3 vocabulary preserves page-side,
+avoidance, column and region values. The narrower pagination profile and
+page-value normalization remain SHIP-01 work. Checked resolution supports
+initial/inherit/unset and reports unsupported rollback/deferred values. Tests
+cover malformed declarations through inline, inspected and legacy stylesheet
+paths, cascade precedence and retention of losing/nonmatching source declarations.
 
 **Work:** add the property metadata/default and shared checked value support
 needed by the agreed profile. Reuse w3c-dom's declaration parsing and computed-
@@ -736,6 +746,6 @@ Useful completion checkpoints are:
    including manual continuation within the declared profile, failure reporting
    and lifetime proofs. Record any still-provisional scoring calibration openly.
 
-The next implementation task is **DOM-SHIP-01**: add checked break-before
-metadata/value support in w3c-dom, then integrate the adopted source contract in
-SHIP-01. SHIP-00 is complete; all runtime and real-font proof slices remain planned.
+The next implementation task is **SHIP-01**: integrate default main and detached
+source events using the checked break-before support. SHIP-00 and DOM-SHIP-01 are
+complete; the remaining pagination/runtime and real-font proof slices are planned.
