@@ -3,7 +3,8 @@
 Recorded on 2026-11-25 against the current implementation and the decisions in
 [SHIPOUT.md](SHIPOUT.md). This is a plan, not a report of implemented pagination.
 **SHIP-00 is complete as a contract-and-fixture slice; DOM-SHIP-01 is implemented
-in w3c-dom; SHIP-01 is implemented in content.** All remaining slices are planned; pagination is not implemented. The adopted operation shape is recorded
+in w3c-dom; SHIP-01 is implemented in content; BOX-SHIP-01 is implemented
+in css-box-layout.** All remaining slices are planned; pagination is not implemented. The adopted operation shape is recorded
 in SHIPOUT; supporting Go declarations remain implementation work. Scoring and
 numerical execution limits remain working hypotheses.
 
@@ -133,7 +134,7 @@ real backend, as noted in the detailed steps.
 | 1 | SHIP-00 — complete | pagelayout, with sibling contract review | Existing loading/preparation | Adopted contracts and checked-in fixture expectations; runtime implementation remains pending. |
 | 2 | DOM-SHIP-01 — complete | w3c-dom | SHIP-00 | Checked break-before metadata, parsing and cascaded resolution. |
 | 3 | SHIP-01 — complete | pagelayout/content | SHIP-00, DOM-SHIP-01 | Default main and detached source events. |
-| 4 | BOX-SHIP-01 | css-box-layout | SHIP-00 | Normalized source-boundary provenance. |
+| 4 | BOX-SHIP-01 — complete | css-box-layout | SHIP-00 | Normalized source-boundary provenance. |
 | 5 | SHIP-02 | pagelayout/content and root | SHIP-01, BOX-SHIP-01 | Validated ownership/span plan and mapped positions. |
 | 6 | SHIP-03 | pagelayout root | SHIP-00, SHIP-02 | Immutable state, loss and outcome contracts. |
 | 7 | BOX-SHIP-02 | css-box-layout | SHIP-00, BOX-SHIP-01 | Structural finite-height fitting with neutral paragraph callbacks. |
@@ -256,8 +257,9 @@ and text-style behavior is unchanged. No font or paginator dependency is added.
 **Status: implemented (2026-11-25).** Default main aliases the residual tree;
 `SourceEvents()` returns copied original-node ID/anchor/break records and
 `SourceInfo.BreakBefore` retains normalized effective policy. Excluded IDs and
-anchors remain inactive records. Ownership validation and normalized/prepared
-position mapping remain SHIP-02 and BOX-SHIP-01 work. Tests cover main equivalence,
+anchors remain inactive records. Ownership validation and content integration
+of normalized/prepared positions remain SHIP-02 work; BOX-SHIP-01 now supplies
+the underlying normalized boundary provenance. Tests cover main equivalence,
 route validation, preparation once per group, cascade and declaration auditing.
 
 **Work:** adapt routing in two stages: validate the original effective flow
@@ -286,6 +288,18 @@ additional stylesheets and original diagnostic sources remain correctly audited.
 Metadata introduces no text, fake boxes or changed widths.
 
 ### BOX-SHIP-01 — Normalization boundary provenance
+
+**Status: implemented (2026-11-25).** The opt-in sibling API
+`BuildLayoutTreesWithProvenance` returns the same trees plus a detached
+`NormalizationProvenance`. `Sources()` exposes source before/after mappings
+and retained occurrences; `Boundaries()` exposes per-root structural enter/exit
+order and anonymous-group identities. Split/hoist tracing stays inside the
+builder. Empty, suppressed and omitted endpoints are explicit, without guessed
+positions. Inputs require unique source IDs, including suppressed descendants;
+zero is allowed. TextRef ranges remain unchanged. Copies, independent builds,
+fixed roots, omitted whitespace and empty-inline fixtures are tested.
+Content integration and consumer affinity/prepared-position mapping are SHIP-02;
+structural positions alone do not establish legal fragmentation opportunities.
 
 **Work:** expose enough neutral normalization provenance to map requested source
 boundaries into structural/group positions. Reuse existing source IDs and text
@@ -753,5 +767,5 @@ Useful completion checkpoints are:
    including manual continuation within the declared profile, failure reporting
    and lifetime proofs. Record any still-provisional scoring calibration openly.
 
-The next implementation task is **BOX-SHIP-01**: normalized source-boundary
-provenance. SHIP-00, DOM-SHIP-01 and SHIP-01 are complete; the remaining pagination/runtime and real-font proof slices are planned.
+The next implementation task is **SHIP-02**: ownership graph, span plan and
+position propagation. SHIP-00, DOM-SHIP-01, SHIP-01 and BOX-SHIP-01 are complete; the remaining pagination/runtime and real-font proof slices are planned.

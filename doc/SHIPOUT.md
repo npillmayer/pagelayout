@@ -154,6 +154,12 @@ If anything, the pagespan optimization could be handled by a pool of workers.
 
 ## Design discussion: pagination and shipout
 
+BOX-SHIP-01 implementation update (2026-11-25): css-box-layout now provides
+`BuildLayoutTreesWithProvenance`, returning detached source endpoints, retained
+occurrences and ordered structural boundaries alongside unchanged trees. Omitted,
+empty and suppressed endpoints are explicit. Pagination affinity, ownership and
+prepared-text mapping remain SHIP-02; structural ordinals are not legal cut points.
+
 Implementation status (2026-11-25): SHIP-01 now publishes default main as the
 existing residual tree and captures detached original-source ID, owning-link
 and normalized forced-break records through `content.Document.SourceEvents`.
