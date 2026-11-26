@@ -154,6 +154,18 @@ If anything, the pagespan optimization could be handled by a pool of workers.
 
 ## Design discussion: pagination and shipout
 
+SHIP-05 implementation update (2026-11-26): `Pagination.PageAttempt` now builds
+main-only pages from compiled template frame chains. It compares complete local
+arrangements, including shorter prefixes and unused frames, and publishes one
+frozen page with loss, progress and exact successor. Partial branches keep their
+original head and matching fitting checkpoint. Stops inside main and empty
+material are handled without metadata-only pages. The typography-neutral output
+contract supplies line counts; real-font tests retain none/manual rendering and
+atomic interiors after session/execution collection. Secondary placement and
+activation remain SHIP-06; search and public span delivery remain later slices.
+The scoring formulas and numerical caps remain working hypotheses. Author remarks
+are unchanged.
+
 SHIP-04 implementation update (2026-11-26): content now provides a reusable,
 source/preparation-qualified fitter and transactional finite-height fitting.
 The typography bridge uses retained `none`/`manual` preparations, exact paragraph
@@ -163,8 +175,8 @@ geometry, source paint, decoded/processed/cluster mappings and owning-anchor
 affinities, without execution handles. Real-font and GC tests prove retained
 rendering across changed-width continuation and session closure. Structural
 source-plan stops are supported; page-state advances and event activation remain
-the page layer's responsibility. SHIP-05, the single-channel Page attempt, is
-next. Scoring/limits remain working hypotheses; author remarks are unchanged.
+the page layer's responsibility. SHIP-05 now connects main-only page construction.
+Scoring/limits remain working hypotheses; author remarks are unchanged.
 
 BOX-SHIP-03 implementation update (2026-11-26): css-box-layout now fits used
 fragment geometry through its existing width/intrinsic/flow rules, including
@@ -222,21 +234,23 @@ logical progression, occupied extents and selected continuations across changed
 receiving widths. Exhaustion, voluntary interruption and errors/limits are
 distinct. BOX-SHIP-03 now supplies fragment geometry/paint, nonzero edges/margins
 and atomics; TYPE-SHIP-01/02 supply paragraph-prefix services, connected by
-SHIP-04. The page/search runtime is still pending.
+SHIP-04. SHIP-05 supplies main-only page construction; multi-channel/search
+runtime remains pending.
 
 SHIP-03 implementation update (2026-11-25): initialization now binds immutable
 state to a source/plan, preparation and execution context. Checked loss algebra,
 factual scoring, local/sequence comparators and page/search publication contracts
-are implemented. Scoring and numeric caps remain working hypotheses. Actual
-fitter checkpoint integration, page construction, boundary-event execution and
-search remain later slices; initialization itself does not create pages or activate targets.
+are implemented. Scoring and numeric caps remain working hypotheses. SHIP-05
+now integrates checkpoints and main-only pages. Secondary boundary/activation
+execution and search remain later slices; initialization itself creates no pages.
 
 SHIP-02 implementation update (2026-11-25): `pagelayout.Plan(document)` validates
 ownership and main-only breaks, and returns copied source-qualified branches,
 anchors and spans without advancing queues. Content propagates source events
 through normalized provenance and processed paragraph coordinates. Initial and
 coincident boundaries coalesce; the terminal drain is represented explicitly.
-Placement activation, page fitting and search execution remain later work.
+SHIP-05 now supplies main-only page fitting; placement activation and search
+execution remain later work.
 
 BOX-SHIP-01 implementation update (2026-11-25): css-box-layout now provides
 `BuildLayoutTreesWithProvenance`, returning detached source endpoints, retained
@@ -1157,8 +1171,8 @@ attempt, err := run.PageAttempt(ctx, state, templateID)
 report, err := run.PaginationSearch(ctx, state)
 ```
 
-`Plan(document)` and `NewPagination(config)`/initial state are implemented.
-PageAttempt and PaginationSearch remain API sketches, not callable execution. `config` supplies the plan,
+`Plan(document)`, `NewPagination(config)`/initial state and main-only PageAttempt
+are implemented. PaginationSearch remains an API sketch. `config` supplies the plan,
 catalog, matching PreparedSnapshot/PreparationSession, fitting adapter and
 options. `PaginationSearch` searches one pagespan. A document-level operation
 may repeatedly select complete spans and advance their boundaries.
@@ -1258,8 +1272,8 @@ visitation order. An earlier inactive register head still blocks a later target.
 Implementation status: DOM-SHIP-01 now supplies checked break-before metadata,
 parsing and cascade resolution in w3c-dom, preserving all Level 3 keyword values.
 The content loader's narrower admission/normalization and source marker mapping
-are implemented by SHIP-01/02; finite-height page breaking and pagination execution
-remain subsequent work.
+are implemented by SHIP-01/02. SHIP-05 supplies main-only finite-height page
+construction; multi-channel pagination/search remain subsequent work.
 
 **Settled initial profile:** admit `break-before: auto`, and normalize `page`,
 `left`, `right`, `recto` and `verso` to the same forced page boundary. Resolve

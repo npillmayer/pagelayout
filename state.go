@@ -19,7 +19,7 @@ func (l WorkLimits) valid() bool    { return l.LocalSteps > 0 && l.SpanAttempts 
 
 // PaginationConfig binds immutable inputs to a borrowed serialized session.
 // Nil Policy/Limits select defaults; BeamWidth zero selects the settled 32.
-// No fitter or page execution is installed by this initialization slice.
+// Fitter is required for PageAttempt; nil permits state/plan inspection only.
 type PaginationConfig struct {
 	Plan      *SpanPlan
 	Catalog   *template.Catalog
@@ -28,6 +28,7 @@ type PaginationConfig struct {
 	Policy    *LossPolicy
 	Limits    *WorkLimits
 	BeamWidth int
+	Fitter    content.GroupFitter
 }
 type stateContext struct {
 	plan        *SpanPlan
@@ -47,6 +48,9 @@ type Pagination struct {
 	catalog  template.Catalog
 	prepared *content.PreparedSnapshot
 	session  *content.PreparationSession
+	backend  content.GroupFitter
+	fitters  map[content.Box]*content.Fitter
+	busy     bool
 }
 
 func NewPagination(config PaginationConfig) (*Pagination, error) {
@@ -92,7 +96,7 @@ func NewPagination(config PaginationConfig) (*Pagination, error) {
 		}
 		c.branches[b.Material.Root] = b
 	}
-	return &Pagination{c, *config.Catalog, &prepared, config.Session}, nil
+	return &Pagination{context: c, catalog: *config.Catalog, prepared: &prepared, session: config.Session, backend: config.Fitter, fitters: map[content.Box]*content.Fitter{}}, nil
 }
 func (r *Pagination) Policy() LossPolicy {
 	if r == nil || r.context == nil {
@@ -114,7 +118,7 @@ func (r *Pagination) BeamWidth() int {
 }
 
 // headContinuation identifies the unchanged head and its logical position.
-// Actual fitter checkpoints are added by SHIP-04, never inferred from position.
+// Exact fitter checkpoints are held separately, never inferred from position.
 type headContinuation struct {
 	head     content.Box
 	position content.LogicalPosition
@@ -126,6 +130,12 @@ type stateData struct {
 	activated map[BranchID]bool
 	span      int
 	page      uint64
+	fits      map[string]fitCursor
+}
+
+type fitCursor struct {
+	continuation content.FitContinuation
+	end          content.FitPosition
 }
 
 // State is an immutable context-qualified value. Its zero value is invalid.
@@ -269,6 +279,14 @@ func (r *Pagination) Validate(s State) error {
 			}
 		}
 	}
+	for channel, cursor := range d.fits {
+		head, ok := d.cursors[channel]
+		f := r.fitters[head.head]
+		comparison, comparable := cursor.end.Logical().Compare(head.position)
+		if !ok || !f.Owns(cursor.continuation) || !comparable || comparison != 0 {
+			return fail(fmt.Errorf("foreign or detached fitting checkpoint"))
+		}
+	}
 	for id, active := range d.activated {
 		if !active || id == 0 || uint64(id) > uint64(len(c.plan.branches)) {
 			return fail(fmt.Errorf("invalid activation"))
@@ -303,14 +321,15 @@ type headAdvance struct {
 	position content.LogicalPosition
 }
 
-// advance is private until a real fitter can supply certified continuations.
-// Placement eligibility and exact conservation remain the page builder's job.
+// advance derives bank/position changes privately. The page builder pairs each
+// partial head with its certified fitting checkpoint before publication.
 func (r *Pagination) advance(s State, steps []headAdvance, activate []BranchID, page bool) (State, error) {
 	if err := r.Validate(s); err != nil {
 		return State{}, err
 	}
 	d := *s.data
 	d.cursors = maps.Clone(d.cursors)
+	d.fits = maps.Clone(d.fits)
 	if d.cursors == nil {
 		d.cursors = map[string]headContinuation{}
 	}
@@ -322,6 +341,7 @@ func (r *Pagination) advance(s State, steps []headAdvance, activate []BranchID, 
 		d.activated[id] = true
 	}
 	for _, step := range steps {
+		delete(d.fits, step.channel)
 		head, ok := d.bank.First(registers.RegisterID(step.channel))
 		if !ok || head != step.head {
 			return State{}, paginationError(InvalidRequest, DiagnosticLocation{Channel: step.channel, Box: step.head, Position: step.position}, fmt.Errorf("wrong head"))
@@ -440,7 +460,7 @@ func CompareSequences(a, b SequenceRank) int {
 }
 
 // SpanComplete reports factual exhaustion at the stop boundary and complete
-// transitive draining. Immediately due metadata must be processed by the later
+// transitive draining. Immediately due metadata must be processed by the
 // page constructor before calling it; this query does not synthesize pages.
 func (s State) SpanComplete() bool {
 	if !s.Valid() {

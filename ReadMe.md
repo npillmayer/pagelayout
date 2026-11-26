@@ -1,7 +1,7 @@
 # pagelayout
 
 Load HTML/CSS page templates and content, inspect their flow channels, and
-prepare content for layout and finite-frame fitting, and compile ownership/span plans.
+prepare content, compile ownership/span plans and construct main-channel pages.
 
 A **page template** describes a page and its receiving **frames**. A frame's
 `flow-from` names the channel it receives. In a separate content document,
@@ -12,14 +12,14 @@ from its own document; a template's styles do not restyle the content.
 
 | Package | Use it to |
 | --- | --- |
-| `pagelayout` | Validate owning links, inspect page spans and source positions with `Plan`. |
+| `pagelayout` | Validate owning links and page spans; construct main-channel pages with exact remainders and inspectable loss. |
 | [`template`](template/README.md) | Load and validate collections; select templates and inspect page dimensions, frame rectangles, paint and flow chains. |
 | [`content`](content/README.md) | Load styled HTML, inspect source material and take whole branches from persistent channel registers. Prepare material and fit fragments with an explicit backend. |
 | [`preparation/typography`](preparation/typography/README.md) | Supply fonts and shaping services, prepare paragraphs once, measure intrinsic widths, lay out complete subtrees or fit resumable fragments. |
 | [`pgtmpl`](pgtmpl/README.md) | Check, locate and preview template collections from the command line. |
 
-Import `github.com/npillmayer/pagelayout` for source planning and the subpackages
-for loading, preparation and layout.
+Import `github.com/npillmayer/pagelayout` for source planning and page construction,
+and the subpackages for loading, preparation and layout.
 
 ## Preview a collection
 
@@ -118,6 +118,7 @@ run, err := pagelayout.NewPagination(pagelayout.PaginationConfig{
     Catalog: catalog,
     Prepared: prepared,
     Session: session,
+    Fitter: prep.FittingAdapter(),
 })
 if err != nil {
     return err
@@ -129,6 +130,8 @@ if err := run.Validate(state); err != nil {
 }
 ```
 
+Here `prep` is `github.com/npillmayer/pagelayout/preparation/typography`.
+Omit `Fitter` only when using initialization and state inspection without execution.
 Keep the borrowed preparation session open and serialize execution access.
 Initialization and validation invoke no font or layout backend. A state from
 another run is invalid even when its source and options match. Closing the
@@ -140,8 +143,66 @@ change the state.
 A missing head continuation means that head's beginning. Completed branches
 leave their registers together with their cursors; partial branches retain their
 original handles. State advancement is private: source positions alone cannot
-supply a resumable fitter checkpoint. Initialization is available, but page
-construction and search execution are not yet callable.
+supply a resumable fitter checkpoint.
+
+## Construct a main-channel page
+
+Call `PageAttempt` with an explicit state and a template ID from the bound catalog:
+
+```go
+attempt, err := run.PageAttempt(ctx, state, "two-column")
+if err != nil {
+    return err
+}
+switch attempt.Outcome() {
+case pagelayout.Constructed:
+    candidate := attempt.Candidate()
+    page := candidate.Page()
+    fmt.Println(page.Number(), candidate.Score().Total.Info())
+    state = candidate.Successor()
+    for _, frame := range page.Frames() {
+        if frame.Fragment == nil {
+            continue
+        }
+        shaped, err := prep.InspectFragment(frame.Fragment)
+        if err != nil {
+            return err
+        }
+        // Draw shaped at frame.Frame.ContentBox.X/Y in page-local CSS pixels.
+        _ = shaped
+    }
+case pagelayout.NoFit:
+    // Try another template from the same unchanged state.
+case pagelayout.SpanComplete:
+    // This span was already complete; no page was created.
+}
+```
+
+The attempt compares whole-page arrangements, including shorter prefixes and
+unused frames. It returns one candidate per template. Try several templates from
+the same state to compare their pages; rejecting a candidate changes no bank or
+previous output. `Origin()` identifies that original state. Successive attempts
+use `Successor()` with its exact checkpoint, even when frame widths change.
+
+`Page.Info()` and each frame retain the catalog's geometry and paint. Content
+keeps its own source styles. Frozen fragments use frame-content-relative CSS
+coordinates; typography paragraph coordinates are local big points. Inspect
+`Containers()` for fragment-specific edges and paint. Keep a `Page` handle for
+rendering after closing the session, while retaining its borrowed font resources.
+It holds no successor or execution services.
+
+Page construction accepts main-only documents. Secondary branches return
+`ErrUnsupported`. Forced main breaks stop the current span inside its retained
+head. Span transitions, multi-channel construction and template-sequence search
+are unavailable through the public execution API. A page that finishes its span
+is still `Constructed`; `SpanComplete` describes an already-complete input.
+
+Work limits and cancellation return errors without a candidate or successor.
+The local budget counts arrangement visits, frame calls, measurements, paragraph
+calls and yielded choices; core traversal is also bounded. Backend failures
+preserve their original causes and identify the template/frame where known.
+Custom fitting backends implement `content.GroupFitter`; their frozen paragraph
+outputs must implement `content.ParagraphOutput` to supply factual line counts.
 
 ## Evaluate page loss and compare choices
 

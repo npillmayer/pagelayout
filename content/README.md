@@ -269,6 +269,9 @@ Alternatives preserve core enumeration order and pair `Progress`, `Complete`,
 `fitter.Boundary(box, edge)` or `fitter.BoundaryAt(structuralPosition)` for stops.
 A text position cannot manufacture a structural cut or continuation. Distinct
 fitters have distinct cursors, even for the same source and preparation.
+`End().Logical()` maps the fitted endpoint to a source-qualified position. Its
+inspection includes the backend's within-offset step for discretionary progress;
+use `Compare`, not raw offsets, to order it. It cannot replace a continuation.
 
 `FitFragment` contains copied `Geometry`, `UsedValues`, container paint/edge
 facts, and cloned paragraph payloads. Each paragraph has a distinct `FragmentID`
@@ -284,6 +287,11 @@ exhaustive non-fit. Failed attempts leave old cursors, banks and frozen fragment
 usable. Extract a `FitFragment` to retain render data without a continuation;
 resumption requires the matching live session. No fit selects pages or consumes
 a register bank.
+
+For use with the page constructor, frozen paragraph payloads also implement
+`ParagraphOutput.LineCount() uint64`. Report lines in that occurrence, including
+zero for empty material. The page constructor combines this fact with exact
+from/to and completion facts to assess split penalties without a font dependency.
 
 ### Supply a custom backend
 

@@ -74,9 +74,7 @@ const (
 	SpanComplete
 )
 
-// Candidate is immutable completed-attempt metadata. Geometry/frozen-fragment
-// payloads will be supplied by page construction; clients cannot fabricate a
-// selected candidate through this API.
+// Candidate pairs an immutable page with its exact successor and loss.
 type Candidate struct {
 	// Set only from factual placement, never metadata/cursor advancement alone.
 	placedMaterial bool
@@ -85,6 +83,19 @@ type Candidate struct {
 	template       string
 	score          Score
 	progress       []ChannelProgress
+	page           *Page
+}
+
+// Page returns frozen rendering data without retaining resumption state.
+func (c *Candidate) Page() *Page {
+	if c == nil {
+		return nil
+	}
+	if c.page == nil {
+		return nil
+	}
+	p := *c.page
+	return &p
 }
 
 // Origin returns the exact immutable input version for this attempt.
@@ -132,7 +143,7 @@ type PageAttemptResult struct {
 func (r PageAttemptResult) Outcome() PageOutcome  { return r.outcome }
 func (r PageAttemptResult) Candidate() *Candidate { return r.candidate }
 
-// finishAttempt is the atomic boundary for later enumeration. An error or
+// finishAttempt is the atomic boundary for page enumeration. An error or
 // stopped enumeration cannot expose a provisional best or its successor.
 func finishAttempt(input State, exhausted bool, best *Candidate, err error) (PageAttemptResult, error) {
 	if err != nil {

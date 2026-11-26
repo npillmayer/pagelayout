@@ -8,11 +8,10 @@ in css-box-layout; SHIP-02 source planning, SHIP-03 state/loss/outcome contracts
 BOX-SHIP-02 structural finite-height fitting, TYPE-SHIP-01 paragraph-prefix
 fitting for `none`, KHIPU-SHIP-01 manual discretionary continuation and
 TYPE-SHIP-02 manual paragraph-prefix fitting and BOX-SHIP-03 used fragment
-geometry/atomics/paint facts and SHIP-04 content/typography fitting are implemented.** All remaining slices are planned;
-pagination execution is not implemented. Plan inspection, the structural fitter and real
-paragraph-prefix selection for `none` and `manual`, and used fragment geometry
-are callable through the content/preparation fitting bridge. Page/search execution
-remains subsequent work.
+geometry/atomics/paint facts, SHIP-04 content/typography fitting and SHIP-05
+single-channel Page attempts are implemented.** Main-only page construction is
+callable with exact remainders, frozen pages and factual loss. Multi-channel
+coordination, template-sequence search and span delivery remain subsequent work.
 Scoring and numerical execution limits remain working hypotheses.
 
 The author's initial remarks, scattered remarks and closing answers remain in
@@ -67,6 +66,9 @@ PDF/browser/CLI product. A small rendering proof is part of validation; a new
 general output backend is not required.
 
 ## 2. Existing foundations and actual gaps
+
+This table records the starting inventory when the plan was written. The slice
+statuses in sections 4–5 describe which of these gaps are now implemented.
 
 | Existing foundation | Reuse | Missing capability |
 | --- | --- | --- |
@@ -150,7 +152,7 @@ real backend, as noted in the detailed steps.
 | 10 | TYPE-SHIP-02 — complete | typography | TYPE-SHIP-01, KHIPU-SHIP-01 | Manual paragraph continuation through the same API. |
 | 11 | BOX-SHIP-03 — complete | css-box-layout | BOX-SHIP-02 | Used-value, margin, atomic and fragment-paint integration. |
 | 12 | SHIP-04 — complete | pagelayout/content and preparation/typography | SHIP-03, BOX-SHIP-03, TYPE-SHIP-02 | Real resumable fitting bridge. |
-| 13 | SHIP-05 | pagelayout root | SHIP-02, SHIP-03, SHIP-04 | Single-channel Page attempt and two-template proof. |
+| 13 | SHIP-05 — complete | pagelayout root | SHIP-02, SHIP-03, SHIP-04 | Single-channel Page attempt and two-template proof. |
 | 14 | SHIP-06 | pagelayout root | SHIP-05 | Multi-channel local arrangements, anchors and draining. |
 | 15 | SHIP-07 | pagelayout root | SHIP-03, SHIP-06 | Deterministic beam search and search outcomes. |
 | 16 | SHIP-08 | pagelayout root | SHIP-07 | Span transitions, selected output and shipout handoff. |
@@ -419,13 +421,12 @@ completed, explicitly unselected interrupted incumbents. All scoring fixtures ar
 executable; state, arithmetic, identity, cursor, comparator and publication tests
 pin this slice's protocol boundary.
 
-There is no page constructor/search loop or resumable fitter yet. Private
-synthetic advances test the state contract; actual opaque structural/paragraph
-checkpoint payloads are supplied by SHIP-04; binding them into page state remains SHIP-05. Immediate boundary-event processing belongs
-to page orchestration; initial state preserves source registers without trying to
-infer fit or manufacture metadata-only pages. Candidate contracts currently carry
-completed-attempt metadata; geometry/frozen fragments are added by SHIP-04/05.
-Rendering/delivery lifetime proofs remain in their later slices.
+Private synthetic advances test the original state contract. SHIP-04/05 now
+supply actual opaque checkpoints and single-channel page construction; the
+search loop remains pending. Initial state preserves source registers without
+inferring fit or manufacturing metadata-only pages. Candidates pair completed
+page data, loss and exact successors; their separate frozen Page handles retain
+rendering without execution. General delivery remains a later slice.
 
 **Work:** introduce root-level pagination initialization and opaque immutable
 state. Bind the bank, per-head continuation, pending/activation facts, current
@@ -772,8 +773,9 @@ late errors/retry, strict units and source/marker affinity. Real-font ligature
 and bidi tests pin logical coverage. GC proofs retain rendering with both
 hyphenation policies after execution handles and fitters are collected, even
 while retaining a continuation. An executable `ExampleFit` demonstrates two
-receivers and unchanged banks. No sibling changes were needed. **SHIP-05** is
-next; scoring and numerical limits remain working hypotheses.
+receivers and unchanged banks. No sibling changes were needed. SHIP-05 now
+uses this bridge for main-only pages; scoring and numerical limits remain
+working hypotheses.
 
 **Work:** add the neutral content fitting entry point beside whole-tree Layout.
 It owns private-tree access, complete preparation coverage checks, source/tree
@@ -801,6 +803,44 @@ closed sessions, reentrancy, late errors and retry. Failed attempts publish no
 partial bundle and leave banks, old cursors and frozen results unchanged.
 
 ### SHIP-05 — Single-channel Page attempt
+
+**Status: implemented (2026-11-26).** `PaginationConfig.Fitter` supplies a
+neutral `content.GroupFitter`; typography clients use `FittingAdapter()` and
+recover typed frame output with `InspectFragment`. `PageAttempt` uses compiled
+frame chains/rectangles and paint, enumerates whole-frame prefixes and unused
+frames, then selects one complete arrangement by `CompareLocal`. It never
+commits a greedy frame choice. One reusable content fitter per branch keeps
+exact checkpoints paired across invocations and widths. Root production code
+has no typography/font dependency.
+
+Success returns a Candidate with frozen `Page`, loss facts/components, progress
+and an immutable successor. Partial main branches keep their original bank head
+plus an opaque checkpoint; completed branches leave only the derived bank.
+`FitPosition.Logical()` maps inspection positions through normalization provenance
+and processed source spans, retaining within-offset discretionary progress.
+Forced-break stops work inside a head and across paragraph continuations.
+Already-complete spans return SpanComplete; no material progress returns NoFit.
+Empty groups can make genuine zero-height progress without a marker-only page.
+
+`content.ParagraphOutput.LineCount` supplies scoring facts without a typography
+type. Tests pin one-line split penalties, entry participation and final-main-tail
+exemption, including the original area denominator and earlier gaps. Scoring
+and numerical limits remain **working hypotheses**. The attempt-wide work budget
+counts visited arrangements, receiver invocations, backend measurements/paragraph
+calls and yielded paragraph choices; each core invocation also caps internal
+structural steps at the remaining allowance. Cancellation and caps are checked
+around synchronous work. No interrupted or failed call publishes a provisional
+winner. Errors retain frame/template/source context and original causes.
+
+Synthetic tests exercise the adopted two-template fixture, shorter-prefix wins,
+progress/enumeration ties, changed widths, missing/unused receivers, forced stops,
+late errors, retry, cancellation, limits and session/identity checks. Real Gentium
+proofs cover none/manual, percentage atomics, source conservation and rendering
+after execution/session collection while a successor is retained. No sibling
+changes were necessary. Secondary branches currently produce Unsupported; their
+activation, FIFO placement and draining are SHIP-06. Public span driving/search
+remain SHIP-07/08. Initial main is the existing sole residual-tree bank item;
+no new queue or content representation was introduced.
 
 **Work:** implement one-template page construction over main and its ordered
 frame chain. Use compiled content rectangles and paint directly. Enumerate legal
@@ -1031,8 +1071,8 @@ Useful completion checkpoints are:
    including manual continuation within the declared profile, failure reporting
    and lifetime proofs. Record any still-provisional scoring calibration openly.
 
-The next implementation task is **SHIP-05**: single-channel Page attempt and a
-two-template proof using the resumable bridge. SHIP-00, DOM-SHIP-01, SHIP-01,
+The next implementation task is **SHIP-06**: multi-channel page arrangements,
+anchor activation and transitive draining. SHIP-00, DOM-SHIP-01, SHIP-01,
 BOX-SHIP-01, SHIP-02, SHIP-03, BOX-SHIP-02, TYPE-SHIP-01, KHIPU-SHIP-01,
-TYPE-SHIP-02, BOX-SHIP-03 and SHIP-04 are complete. Page construction, multi-channel
-coordination, search and end-to-end page proofs remain planned.
+TYPE-SHIP-02, BOX-SHIP-03, SHIP-04 and SHIP-05 are complete. Multi-channel
+coordination, search, span delivery and broader end-to-end proofs remain planned.

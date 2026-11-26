@@ -31,16 +31,18 @@ type LogicalPosition struct {
 	source              SourceRef
 	keyOrder, keyOffset uint64
 	textPosition        bool
+	step                uint64 // fitted discretionary progress at one processed offset
 }
 type PositionInfo struct {
 	Box, Group    Box
 	Source        SourceRef
 	Order, Offset uint64 // source-box traversal order and processed group byte offset; use Compare for ordering
 	Edge          layout.BoundaryEdge
+	Step          uint64 // backend logical step, not a line count or checkpoint
 }
 
 func (p LogicalPosition) Info() PositionInfo {
-	return PositionInfo{p.box, p.group, p.source, p.order, p.offset, p.edge}
+	return PositionInfo{p.box, p.group, p.source, p.order, p.offset, p.edge, p.step}
 }
 func (p LogicalPosition) Valid() bool { return p.box.Valid() && p.order != 0 }
 
@@ -53,7 +55,10 @@ func (p LogicalPosition) Compare(q LogicalPosition) (int, bool) {
 	if c := cmp.Compare(p.keyOrder, q.keyOrder); c != 0 {
 		return c, true
 	}
-	return cmp.Compare(p.keyOffset, q.keyOffset), true
+	if c := cmp.Compare(p.keyOffset, q.keyOffset); c != 0 {
+		return c, true
+	}
+	return cmp.Compare(p.step, q.step), true
 }
 
 type EventAffinity string

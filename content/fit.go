@@ -32,6 +32,14 @@ type GroupFitter interface {
 	FitGroup(context.Context, GroupHandle, GroupFitRequest, func(layout.ParagraphAlternative) bool) (layout.FitEnumeration, error)
 }
 
+// ParagraphOutput supplies the line count used to assess a frozen fragment.
+// Zero lines is valid for empty material. The count describes this occurrence,
+// not the entire source paragraph or its previously accepted prefix.
+type ParagraphOutput interface {
+	layout.FitPayload
+	LineCount() uint64
+}
+
 type fitIdentity struct {
 	preparation PreparationID
 	root        Box
@@ -41,12 +49,13 @@ type fitIdentity struct {
 // It retains no session or backend between calls. Use the same fitter to resume;
 // distinct fitters, including those for the same root, have distinct cursors.
 type Fitter struct {
-	id     *fitIdentity
-	core   *layout.StructuralFitter
-	relay  *fitRelay
-	groups map[Box]GroupInfo
-	order  []Box
-	boxes  map[layout.BoxID]Box
+	id            *fitIdentity
+	core          *layout.StructuralFitter
+	relay         *fitRelay
+	groups        map[Box]GroupInfo
+	order         []Box
+	boxes         map[layout.BoxID]Box
+	before, after map[Box]layout.StructuralBoundary
 }
 
 // NewFitter checks the live pair and complete subtree preparation coverage,
@@ -66,6 +75,15 @@ func NewFitter(p *PreparedSnapshot, s *PreparationSession, root Box) (*Fitter, e
 			}
 		}
 		walk(root.node())
+		f.before, f.after = map[Box]layout.StructuralBoundary{}, map[Box]layout.StructuralBoundary{}
+		for _, b := range root.owner.trees[root.tree].provenance.Boundaries() {
+			box := Box{root.owner, root.tree, b.Box}
+			if b.Edge == layout.BoundaryBefore {
+				f.before[box] = b
+			} else {
+				f.after[box] = b
+			}
+		}
 		for g := range layout.InlineGroups(root.node()) {
 			group, owner := f.boxes[g.Group.BoxID], f.boxes[g.Owner.BoxID]
 			index, ok := st.index[group]
@@ -106,9 +124,20 @@ func (c FitContinuation) Valid() bool { return c.id != nil && c.core.Valid() }
 
 // FitPosition is inspection/comparison only, never resumption authority.
 type FitPosition struct {
-	id   *fitIdentity
-	core layout.FitPosition
+	id      *fitIdentity
+	core    layout.FitPosition
+	logical LogicalPosition
 }
+
+// Logical returns the source-qualified inspection coordinate, including the
+// backend's within-offset step. It is never resumption authority.
+func (p FitPosition) Logical() LogicalPosition { return p.logical }
+
+// Owns checks opaque continuation identity without executing a backend.
+func (f *Fitter) Owns(c FitContinuation) bool {
+	return f != nil && f.id != nil && c.id == f.id && c.Valid()
+}
+
 type FitPositionInfo struct {
 	Next      Box
 	Paragraph layout.ParagraphPosition
@@ -199,7 +228,11 @@ func Fit(ctx context.Context, p *PreparedSnapshot, s *PreparationSession, f *Fit
 			if err != nil {
 				return fitFailure(f.Root(), err)
 			}
-			out = append(out, FitAlternative{fragment, FitContinuation{f.id, a.Continuation()}, FitPosition{f.id, a.End()}, a.Progress(), a.Complete(), a.StopReached()})
+			logical, err := f.logicalPosition(a.End(), st)
+			if err != nil {
+				return fitFailure(f.Root(), err)
+			}
+			out = append(out, FitAlternative{fragment, FitContinuation{f.id, a.Continuation()}, FitPosition{f.id, a.End(), logical}, a.Progress(), a.Complete(), a.StopReached()})
 		}
 		return nil
 	})
@@ -207,6 +240,36 @@ func Fit(ctx context.Context, p *PreparedSnapshot, s *PreparationSession, f *Fit
 		return nil, err
 	}
 	return out, nil
+}
+
+func (f *Fitter) logicalPosition(end layout.FitPosition, st *preparationState) (LogicalPosition, error) {
+	root := f.Root()
+	s := root.owner
+	before, after := f.before, f.after
+	i := end.Info()
+	if i.Complete {
+		return s.logical(root.tree, after[root], SourceRef{}), nil
+	}
+	box := f.boxes[i.Next]
+	p := s.logical(root.tree, before[box], SourceRef{})
+	if !p.Valid() {
+		return LogicalPosition{}, ErrPreparationProtocol
+	}
+	if i.Paragraph != (layout.ParagraphPosition{}) {
+		index, ok := st.prepared.index[box]
+		if !ok {
+			return LogicalPosition{}, ErrPreparationProtocol
+		}
+		input := st.prepared.inputs[index]
+		if i.Paragraph.Offset > uint64(len(input.Text)) {
+			return LogicalPosition{}, ErrPreparationProtocol
+		}
+		p.group, p.offset, p.textPosition, p.step = box, i.Paragraph.Offset, true, i.Paragraph.Step
+		events := []PositionedEvent{{Position: p}}
+		canonicalizeEventPositions([]GroupInput{input}, before, after, events)
+		p = events[0].Position
+	}
+	return p, nil
 }
 
 func fitFailure(root Box, err error) error {

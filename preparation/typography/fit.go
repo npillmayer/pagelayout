@@ -21,6 +21,28 @@ type FitRequest struct {
 	Breaker paragraph.Breaker
 }
 
+// FittingAdapter supplies the neutral page-fitting backend. It uses explicit
+// FirstFit and the retained group's source hyphenation policy. It owns no session.
+func FittingAdapter() content.GroupFitter { return fitInvocation{breaker: paragraph.FirstFit} }
+
+// InspectFragment recovers typed rendering data from a neutral frozen fragment,
+// for example a frame returned by pagelayout.PageAttempt. It needs no live session.
+func InspectFragment(f *content.FitFragment) (*Fragment, error) {
+	if f == nil {
+		return nil, content.ErrPreparationProtocol
+	}
+	bundle := &Fragment{css: f, groups: map[content.FragmentID]FragmentGroup{}}
+	for _, g := range f.Paragraphs() {
+		payload, ok := g.Output.(*fitOutput)
+		if !ok || payload == nil || payload.input.Group != g.Group || payload.input.Owner != g.Owner {
+			return nil, content.ErrPreparationProtocol
+		}
+		bundle.groups[g.ID] = FragmentGroup{g.ID, payload.input, g.X, g.Y, payload.info, payload.fragment, payload.coverage, payload.events}
+		bundle.order = append(bundle.order, g.ID)
+	}
+	return bundle, nil
+}
+
 // FragmentGroup is one occurrence of a source group. X/Y use receiver-relative
 // CSS pixels; Paragraph uses local big points. Input retains source paint and
 // processed/original correspondence. All returned slices are independent.
@@ -134,14 +156,9 @@ func Fit(ctx context.Context, p *content.PreparedSnapshot, s *content.Preparatio
 		if err := ctx.Err(); err != nil {
 			return fail(err)
 		}
-		bundle := &Fragment{css: a.Fragment(), groups: map[content.FragmentID]FragmentGroup{}}
-		for _, g := range a.Fragment().Paragraphs() {
-			payload, ok := g.Output.(*fitOutput)
-			if !ok || payload == nil || payload.input.Group != g.Group || payload.input.Owner != g.Owner {
-				return fail(content.ErrPreparationProtocol)
-			}
-			bundle.groups[g.ID] = FragmentGroup{g.ID, payload.input, g.X, g.Y, payload.info, payload.fragment, payload.coverage, payload.events}
-			bundle.order = append(bundle.order, g.ID)
+		bundle, err := InspectFragment(a.Fragment())
+		if err != nil {
+			return fail(err)
 		}
 		out = append(out, FitAlternative{a, bundle})
 	}
@@ -167,6 +184,7 @@ type fitOutput struct {
 }
 
 func (o *fitOutput) Clone() layout.FitPayload { return o }
+func (o *fitOutput) LineCount() uint64        { return uint64(o.info.Lines) }
 
 type fitInvocation struct {
 	groupMeasurer

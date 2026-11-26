@@ -5,8 +5,9 @@ Use these inputs and independently authored expectations to exercise the adopted
 They are independently authored expectations, not generated paginator output.
 The source table is exercised by SHIP-01/02 tests against content loading and
 `pagelayout.Plan`; the scoring table is exercised by SHIP-03. State/outcome protocol cases are
-checked at their contract boundary; fitting, search execution and rendering/
-delivery cases remain later runtime gates.
+checked at their contract boundary. SHIP-05 now exercises single-channel page
+construction and frozen rendering; multi-channel/search/delivery cases remain
+later runtime gates.
 
 Keep template and content documents separate. The template collection can already
 be checked with:
@@ -29,6 +30,30 @@ passing catalog load does not prove content routing, fitting or pagination.
 | [scoring-expected.json](scoring-expected.json) | Supply the stated page facts directly to the evaluator. | Participating frames, components, exact integer loss and arithmetic failures. Scoring cases are working hypotheses. |
 | [search-expected.json](search-expected.json) | Supply the finite graph as a fake Page attempt. | Selected sequence, loss, retained frontier, pruning, completion/failure and interrupted-incumbent behavior. |
 | [protocol-expected.json](protocol-expected.json) | Construct the stated identity, session, failure or delivery scenario. | Atomic publication, error category/cause, state stability and output lifetime. |
+
+## Single-channel page evidence
+
+`page_test.go` runs `two-templates-same-start` from the fitting table through the
+actual `PageAttempt` API with a deterministic paragraph backend. `wide` consumes
+eight lines; `narrow-chain` consumes four in each frame. Both cost 1,000,000 units
+and leave the original state unchanged. Selecting between templates is a separate
+search concern; this test does not claim to implement search.
+
+Additional synthetic cases in that test file pin these working scoring facts:
+
+| Input | Selected result |
+| --- | --- |
+| Four 10px lines; main frames 100×30 and 100×20 | 2+2 lines, loss 1,066,667; the 3+1 arrangement incurs a one-line split penalty. |
+| Two-line paragraph followed by four-line paragraph; 100×30 frame | Stop after the first paragraph, loss 1,111,111; taking one line of the second paragraph costs more. |
+| Equal-loss arrangements with sufficient total space | Further logical progress wins; equal progress keeps longest-first stable arrangement order. |
+| First receiver 100×1, then two 100×20 receivers; two-line material | First frame unused; finishing and later frames exempt, with all main areas retained in the denominator. |
+| Main paragraph split before a forced marker | Exact continuation stays at the unchanged head; marker completion finishes the span without consuming the next block. |
+
+`page_realfont_test.go` uses the checked-in Gentium fixture with the same compiled
+receiver collection. It checks none/manual source conservation, percentage
+atomics, multiple widths, immutable outline proofs and collection of the execution
+object/session while frozen pages and a partial successor remain retained.
+No installed fonts, network resources or new renderer are needed.
 
 All tables except the catalog table contain `cases`, each with a stable `id`.
 `expect` is the independently specified result, never a value to regenerate from
