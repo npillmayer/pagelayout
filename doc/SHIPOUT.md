@@ -154,6 +154,18 @@ If anything, the pagespan optimization could be handled by a pool of workers.
 
 ## Design discussion: pagination and shipout
 
+KHIPU-SHIP-01 implementation update (2026-11-26): khipu now certifies manual
+(`ExplicitHyphenation`) prefixes and first-fit resumes with the exact selected
+post-break replacement, including empty spelling and zero-width material.
+Accepted geometry, alternatives and consumed atomic advances remain fixed;
+later authored opportunities may discover replacement pairs lazily. Failed
+services publish no plan and leave earlier checkpoints/output reusable. Source
+conservation, repeated changed-width resumes and release of working handles
+are tested. Automatic continuation remains unsupported. Typography still admits
+only `none` through its fragment/checkpoint surface; TYPE-SHIP-02 integrates
+manual fragments and source coverage next. Scoring and numerical limits remain
+working hypotheses; author remarks are unchanged.
+
 TYPE-SHIP-01 implementation update (2026-11-26): typography now supplies all
 fitting whole-line prefixes for `none` through `Trial.FitPrefixes`, with explicit
 selection of a matching frozen fragment, checkpoint and accepted atomic geometry.

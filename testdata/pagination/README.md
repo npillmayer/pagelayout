@@ -241,5 +241,19 @@ completion. The [client example](../../../typography/glyphing/paragraph/prefix_e
 demonstrates selecting a shorter prefix.
 
 These are paragraph-boundary proofs, not whole-page fixture results. Manual
-carry, CSS fragment edges/geometry and content/event integration remain later
-gates; the working scoring and limit expectations are unchanged.
+fragment/source mapping, CSS fragment edges/geometry and content/event integration
+remain later gates; working scoring and limit expectations are unchanged.
+
+## Manual continuation evidence
+
+KHIPU-SHIP-01 tests in
+[khipu/linebreak/firstfit/manual_continue_test.go](../../../khipu/linebreak/firstfit/manual_continue_test.go)
+and [khipu/manual_checkpoint_integration_test.go](../../../khipu/manual_checkpoint_integration_test.go)
+prove exact manual replacement carry, including synthetic empty/silent halves
+with nonempty original provenance. Accepted FF/KP prefixes, changed-width and
+repeated resumes, source conservation, suffix atomic rebinding and rejection of
+changed consumed atomics are checked. Lazy-service failure publishes no plan;
+retry and concurrent reuse preserve old output. Lifetime checks keep frozen
+replacement output usable after collecting working handles. TYPE-SHIP-02 still
+owns manual fragments and coverage in typography; these tests do not establish
+page fitting, page loss or span search.
