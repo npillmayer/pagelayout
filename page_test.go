@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -20,19 +21,22 @@ type pageHandle struct{ input content.GroupInput }
 func (*pageHandle) Release() error { return nil }
 
 type pagePayload struct {
-	text  string
-	lines uint64
-	end   uint64
+	text   string
+	lines  uint64
+	end    uint64
+	events []content.GroupEvent
 }
 
-func (p pagePayload) Clone() layout.FitPayload { return p }
-func (p pagePayload) LineCount() uint64        { return p.lines }
+func (p pagePayload) Clone() layout.FitPayload           { p.events = slices.Clone(p.events); return p }
+func (p pagePayload) LineCount() uint64                  { return p.lines }
+func (p pagePayload) PlacedEvents() []content.GroupEvent { return slices.Clone(p.events) }
 
 type pageBackend struct {
 	prepared, calls int
 	before          func(content.GroupFitRequest) error
 	widthDependent  bool
 	stopped         bool
+	whole           bool
 }
 
 func (*pageBackend) Preflight([]content.GroupInput) error { return nil }
@@ -61,13 +65,32 @@ func (b *pageBackend) FitGroup(ctx context.Context, h content.GroupHandle, r con
 	if b.widthDependent {
 		per = max(1, int(r.Width)/50)
 	}
+	if b.whole {
+		per = max(1, len(g.Text))
+	}
 	lines := uint64(0)
 	for end := start; ; {
 		if end < len(g.Text) {
 			end = min(len(g.Text), end+per)
 			lines++
 		}
-		output := pagePayload{g.Text[start:end], lines, uint64(end)}
+		output := pagePayload{text: g.Text[start:end], lines: lines, end: uint64(end)}
+		for _, e := range g.Events {
+			matched := false
+			switch e.Affinity {
+			case content.AffinityVisible:
+				matched = e.Start < uint64(end) && e.End > uint64(start)
+			case content.AffinityFollowing:
+				matched = uint64(end) > e.Start
+			case content.AffinityPreceding:
+				matched = uint64(end) >= e.Start && uint64(start) < e.Start
+			case content.AffinityStructural:
+				matched = g.Text == ""
+			}
+			if matched {
+				output.events = append(output.events, e)
+			}
+		}
 		a := layout.ParagraphAlternative{End: layout.ParagraphPosition{Offset: uint64(end)}, Complete: end == len(g.Text), Extent: layout.InlineExtent{H: float32(lines) * 10}, Output: output, AllowsMarginCollapse: lines == 0}
 		if !a.Complete {
 			a.Checkpoint = output
@@ -128,8 +151,8 @@ func attempt(t *testing.T, r *Pagination, s State, id string) *Candidate {
 func pageText(p *Page) string {
 	var text string
 	for _, f := range p.Frames() {
-		if f.Fragment != nil {
-			for _, g := range f.Fragment.Paragraphs() {
+		for _, fragment := range f.Fragments() {
+			for _, g := range fragment.Paragraphs() {
 				text += g.Output.(pagePayload).text
 			}
 		}
@@ -147,7 +170,7 @@ func TestPageAttemptChoosesShorterFirstFrame(t *testing.T) {
 		t.Fatal(text)
 	}
 	for _, f := range frames {
-		if f.Fragment.Paragraphs()[0].Output.(pagePayload).lines != 2 {
+		if f.Fragments()[0].Paragraphs()[0].Output.(pagePayload).lines != 2 {
 			t.Fatal("greedy frame choice", frames)
 		}
 	}
@@ -160,8 +183,8 @@ func TestPageAttemptChoosesShorterFirstFrame(t *testing.T) {
 	if frames[0].Frame.ContentBox.X != 13 || frames[0].Frame.ContentBox.Y != 13 || got.Page().Info().Paint.Background.R != 0xab {
 		t.Fatal("compiled geometry/paint")
 	}
-	first := frames[0].Fragment.Paragraphs()[0]
-	second := frames[1].Fragment.Paragraphs()[0]
+	first := frames[0].Fragments()[0].Paragraphs()[0]
+	second := frames[1].Fragments()[0].Paragraphs()[0]
 	if first.Group != second.Group || first.ID == second.ID || first.To != second.From {
 		t.Fatal("fragment occurrence/checkpoint pairing")
 	}
@@ -218,7 +241,7 @@ func TestPageAttemptStableArrangementTieAndFinalTail(t *testing.T) {
 	r, _ := pageRun(t, `<body style="hyphens:none">ABCD</body>`, [][][2]int{{{100, 30}, {100, 30}, {100, 30}}}, &pageBackend{}, &policy, nil)
 	c := attempt(t, r, r.InitialState(), "t0")
 	f := c.Page().Frames()
-	if f[0].Fragment.Paragraphs()[0].Output.(pagePayload).text != "ABC" || f[1].Fragment.Paragraphs()[0].Output.(pagePayload).text != "D" || f[2].Fragment != nil {
+	if f[0].Fragments()[0].Paragraphs()[0].Output.(pagePayload).text != "ABC" || f[1].Fragments()[0].Paragraphs()[0].Output.(pagePayload).text != "D" || len(f[2].Fragments()) != 0 {
 		t.Fatal("unstable arrangement tie")
 	}
 	if !reflect.DeepEqual(c.Score().Exempt, []int{1, 2}) || c.Score().AreaDenominator != 9000 {
@@ -339,8 +362,9 @@ func TestPageAttemptLimitsAndSecondaryProfile(t *testing.T) {
 		t.Fatal(out, err)
 	}
 	r, _ = pageRun(t, `<body style="hyphens:none"><p><a href="#n" data-flow-anchor>N</a></p><aside id="n" style="flow-into:notes">Note</aside></body>`, [][][2]int{{{100, 30}}}, &pageBackend{}, nil, nil)
-	if out, err := r.PageAttempt(t.Context(), r.InitialState(), "t0"); out.Candidate() != nil || !errors.Is(err, ErrUnsupported) {
-		t.Fatal(out, err)
+	c := attempt(t, r, r.InitialState(), "t0")
+	if len(c.Successor().Info().Pending) != 1 || c.Score().Carry.Info().Units != UnitsPerPoint {
+		t.Fatal(c.Score())
 	}
 }
 
@@ -352,7 +376,7 @@ func TestPageAttemptShorterPagePrefixAndUnusedFrames(t *testing.T) {
 	}
 	r, _ = pageRun(t, `<body style="hyphens:none">AB</body>`, [][][2]int{{{100, 1}, {100, 20}, {100, 20}}}, &pageBackend{}, nil, nil)
 	c = attempt(t, r, r.InitialState(), "t0")
-	if c.Page().Frames()[0].Fragment != nil || pageText(c.Page()) != "AB" || !reflect.DeepEqual(c.Score().Exempt, []int{1, 2}) {
+	if len(c.Page().Frames()[0].Fragments()) != 0 || pageText(c.Page()) != "AB" || !reflect.DeepEqual(c.Score().Exempt, []int{1, 2}) {
 		t.Fatal("unused receiver/final tail")
 	}
 	// An absent main receiver cannot produce a progressing page.
@@ -434,8 +458,8 @@ func TestPageAttemptAdoptedTwoTemplateFixture(t *testing.T) {
 			var placed []uint64
 			for _, f := range candidate.Page().Frames() {
 				var n uint64
-				if f.Fragment != nil {
-					for _, p := range f.Fragment.Paragraphs() {
+				for _, fragment := range f.Fragments() {
+					for _, p := range fragment.Paragraphs() {
 						n += p.Output.(content.ParagraphOutput).LineCount()
 					}
 				}

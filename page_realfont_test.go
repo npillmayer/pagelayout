@@ -35,30 +35,29 @@ func pageProofs(t *testing.T, p *page.Page) []*render.ParagraphProof {
 	backend := renderot.New()
 	var proofs []*render.ParagraphProof
 	for _, f := range p.Frames() {
-		if f.Fragment == nil {
-			continue
-		}
-		fragment, err := prep.InspectFragment(f.Fragment)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, id := range fragment.Groups() {
-			g, _ := fragment.Group(id)
-			paints := make([]style.PaintSpan, len(g.Input.Paint))
-			for i, s := range g.Input.Paint {
-				c := s.Color
-				paints[i] = style.PaintSpan{Start: s.Start, End: s.End, Paint: style.Paint{Color: fmt.Sprintf("#%02x%02x%02x%02x", c.R, c.G, c.B, c.A)}}
-			}
-			proof, err := render.BuildFragmentProof(render.FragmentInput{Fragment: g.Paragraph, Text: g.Input.Text, Paint: paints}, render.Services{Backend: backend, Identity: backend})
+		for _, part := range f.Fragments() {
+			fragment, err := prep.InspectFragment(part)
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, glyph := range proof.Glyphs {
-				if glyph.Path == "" || glyph.FaceSHA256 == "" {
-					t.Fatal("missing frozen outline")
+			for _, id := range fragment.Groups() {
+				g, _ := fragment.Group(id)
+				paints := make([]style.PaintSpan, len(g.Input.Paint))
+				for i, s := range g.Input.Paint {
+					c := s.Color
+					paints[i] = style.PaintSpan{Start: s.Start, End: s.End, Paint: style.Paint{Color: fmt.Sprintf("#%02x%02x%02x%02x", c.R, c.G, c.B, c.A)}}
 				}
+				proof, err := render.BuildFragmentProof(render.FragmentInput{Fragment: g.Paragraph, Text: g.Input.Text, Paint: paints}, render.Services{Backend: backend, Identity: backend})
+				if err != nil {
+					t.Fatal(err)
+				}
+				for _, glyph := range proof.Glyphs {
+					if glyph.Path == "" || glyph.FaceSHA256 == "" {
+						t.Fatal("missing frozen outline")
+					}
+				}
+				proofs = append(proofs, proof)
 			}
-			proofs = append(proofs, proof)
 		}
 	}
 	return proofs
@@ -130,18 +129,17 @@ func retainedPageAttempt(t *testing.T, manual bool) ([]*page.Page, [][]*render.P
 	var previousEnd uint64
 	check := func(p *page.Page) {
 		for _, f := range p.Frames() {
-			if f.Fragment == nil {
-				continue
-			}
-			for _, g := range f.Fragment.Paragraphs() {
-				if g.ParentAtomic.Valid() {
-					continue
+			for _, part := range f.Fragments() {
+				for _, g := range part.Paragraphs() {
+					if g.ParentAtomic.Valid() {
+						continue
+					}
+					if seen[g.ID] || g.From.Offset != previousEnd {
+						t.Fatal("replayed or missing source prefix", g.From, previousEnd)
+					}
+					seen[g.ID] = true
+					previousEnd = g.To.Offset
 				}
-				if seen[g.ID] || g.From.Offset != previousEnd {
-					t.Fatal("replayed or missing source prefix", g.From, previousEnd)
-				}
-				seen[g.ID] = true
-				previousEnd = g.To.Offset
 			}
 		}
 	}
@@ -187,6 +185,81 @@ func TestPageAttemptRealFontAndFrozenLifetime(t *testing.T) {
 				if !reflect.DeepEqual(proofs[i], pageProofs(t, p)) {
 					t.Fatal("frozen proof changed")
 				}
+			}
+		})
+	}
+}
+
+func TestMultiChannelRealFontEventsAndFrozenRendering(t *testing.T) {
+	for _, manual := range []bool{false, true} {
+		t.Run(fmt.Sprint(manual), func(t *testing.T) {
+			ctx := t.Context()
+			services := glyphot.Services{}
+			face, err := services.Load(ctx, "../opentype/testdata/fonts/GentiumPlus-R.ttf", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			mapper, err := glyphing.NewStyleMapper(glyphing.SelectedFonts{Default: face.Resource.ID(), Size: 15 * dimen.BP, Faces: []glyphing.FaceEntry{face}}, services)
+			if err != nil {
+				t.Fatal(err)
+			}
+			backend, err := prep.New(prep.Config{Resolver: mapper, NewShaper: func() (contracts.StreamingShaper, error) { return glyphot.NewStream(32) }, Hyphenator: pageMarkers{}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			policy := "none"
+			main := `o<a href="#n" data-flow-anchor>f</a>fice`
+			if manual {
+				policy = "manual"
+				main = `<a href="#n" data-flow-anchor>co&shy;operate</a>`
+			}
+			doc, err := content.Load(strings.NewReader(`<body style="font-size:20px;hyphens:`+policy+`;color:#234567"><p>`+main+`</p><figure id="f" style="flow-into:figures">Figure.</figure><aside id="n" style="flow-into:notes">Note <a href="#f" data-flow-anchor>F</a>.</aside></body>`), content.LoadOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			prepared, session, err := content.Prepare(doc, backend)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer session.Close()
+			plan, err := page.Plan(doc)
+			if err != nil {
+				t.Fatal(err)
+			}
+			catalog, err := template.Load(strings.NewReader(`<style>.page{width:250px;height:400px}.frame{position:fixed;left:10px;width:180px;height:50px}.figures{flow-from:figures;top:10px}.notes{flow-from:notes;top:80px}.main{flow-from:main;top:150px;width:30px;height:32px}.tail{flow-from:main;top:210px;height:100px}</style><body><template id="proof" data-type="page"><div class="page"><div class="frame figures"></div><div class="frame notes"></div><div class="frame main"></div><div class="frame tail"></div></div></template></body>`), template.LoadOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			weights := page.DefaultLossPolicy()
+			weights.OneLineSplit = 0
+			run, err := page.NewPagination(page.PaginationConfig{Plan: plan, Catalog: catalog, Prepared: prepared, Session: session, Fitter: prep.FittingAdapter(), Policy: &weights})
+			if err != nil {
+				t.Fatal(err)
+			}
+			initial := run.InitialState()
+			out, err := run.PageAttempt(ctx, initial, "proof")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if out.Outcome() != page.Constructed || !out.Candidate().Successor().SpanComplete() || len(out.Candidate().Successor().Info().Activated) != 2 {
+				t.Fatal("rendered owning edges", out.Outcome())
+			}
+			frozen := out.Candidate().Page()
+			proofs := pageProofs(t, frozen)
+			if len(frozen.Frames()[0].Fragments()) != 1 || len(frozen.Frames()[1].Fragments()) != 1 {
+				t.Fatal("earlier target frames unused")
+			}
+			if manual && len(frozen.Frames()[2].Fragments()) == 0 {
+				t.Fatal("manual prefix was not split")
+			}
+			if err := session.Close(); err != nil {
+				t.Fatal(err)
+			}
+			for range 3 {
+				runtime.GC()
+			}
+			if !reflect.DeepEqual(proofs, pageProofs(t, frozen)) || len(initial.Info().Activated) != 0 {
+				t.Fatal("retained page/source changed")
 			}
 		})
 	}

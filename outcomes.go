@@ -136,8 +136,34 @@ func (c *Candidate) Score() Score {
 }
 
 type PageAttemptResult struct {
-	outcome   PageOutcome
-	candidate *Candidate
+	outcome      PageOutcome
+	candidate    *Candidate
+	obstructions []QueueObstruction
+}
+
+type ObstructionReason string
+
+const (
+	AwaitingOwner   ObstructionReason = "awaiting-owner"
+	FutureSpanHead  ObstructionReason = "future-span-head"
+	MissingReceiver ObstructionReason = "missing-receiver"
+)
+
+// QueueObstruction describes an entry-state reason that a channel cannot drain.
+// PendingBehind retains authored order. These facts are not a search-infeasibility proof.
+type QueueObstruction struct {
+	Channel       string
+	Head          BranchID
+	Reason        ObstructionReason
+	PendingBehind []BranchID
+}
+
+func (r PageAttemptResult) Obstructions() []QueueObstruction {
+	out := slices.Clone(r.obstructions)
+	for i := range out {
+		out[i].PendingBehind = slices.Clone(out[i].PendingBehind)
+	}
+	return out
 }
 
 func (r PageAttemptResult) Outcome() PageOutcome  { return r.outcome }
@@ -177,7 +203,7 @@ func finishAttempt(input State, exhausted bool, best *Candidate, err error) (Pag
 	}
 	frozen := freezeCandidate(best)
 	frozen.progress = stateProgress(best.successor)
-	return PageAttemptResult{Constructed, frozen}, nil
+	return PageAttemptResult{outcome: Constructed, candidate: frozen}, nil
 }
 
 type SearchOutcome uint8

@@ -46,6 +46,9 @@ func (p LogicalPosition) Info() PositionInfo {
 }
 func (p LogicalPosition) Valid() bool { return p.box.Valid() && p.order != 0 }
 
+// IsText distinguishes processed paragraph coordinates from structural edges.
+func (p LogicalPosition) IsText() bool { return p.Valid() && p.textPosition }
+
 // Compare only compares positions within the same source tree. Equal positions
 // do not imply interchangeable fitter continuations.
 func (p LogicalPosition) Compare(q LogicalPosition) (int, bool) {

@@ -5,8 +5,9 @@
 // Load separate template and content documents with the template and content
 // subpackages. Preparation, width-dependent layout and source planning are
 // available. NewPagination binds immutable state to a borrowed preparation session
-// and fitting backend. PageAttempt constructs one main-only page, returning its
-// frozen output, checked loss and exact successor together. Planning itself
-// neither consumes banks nor activates targets or creates pages. Multi-channel
-// construction, template-sequence search and span delivery remain separate work.
+// and fitting backend. PageAttempt constructs one page across flow channels,
+// returning frozen output, checked loss and exact successor together. Selected
+// owning material activates targets; FIFO queues and transitive draining are
+// preserved. Planning itself neither consumes banks nor activates targets or
+// creates pages. Template-sequence search and span delivery remain separate work.
 package pagelayout

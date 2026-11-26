@@ -470,14 +470,8 @@ func (s State) SpanComplete() bool {
 	if d.span < 1 || d.span > len(c.plan.spans) {
 		return false
 	}
-	if _, present := d.bank.First("main"); present {
-		cursor, ok := d.cursors["main"]
-		if !ok {
-			return false
-		}
-		if v, ok := cursor.position.Compare(c.plan.spans[d.span-1].End); !ok || v != 0 {
-			return false
-		}
+	if s.mainRemaining() {
+		return false
 	}
 	pending := map[BranchID]bool{}
 	for _, h := range s.Info().Pending {
@@ -489,6 +483,22 @@ func (s State) SpanComplete() bool {
 		}
 	}
 	return true
+}
+
+func (s State) mainRemaining() bool {
+	if !s.Valid() {
+		return false
+	}
+	d := s.data
+	if _, present := d.bank.First("main"); !present {
+		return false
+	}
+	cursor, ok := d.cursors["main"]
+	if !ok {
+		return true
+	}
+	v, comparable := cursor.position.Compare(d.context.plan.spans[d.span-1].End)
+	return !comparable || v != 0
 }
 func (r *Pagination) advanceSpan(s State) (State, error) {
 	if err := r.Validate(s); err != nil {

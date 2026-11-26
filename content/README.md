@@ -293,6 +293,31 @@ For use with the page constructor, frozen paragraph payloads also implement
 zero for empty material. The page constructor combines this fact with exact
 from/to and completion facts to assess split penalties without a font dependency.
 
+For groups carrying source events, also implement `ParagraphEvents.PlacedEvents()`.
+Return copied original `GroupEvent` values actually reached by the rendered
+prefix, respecting cluster/replacement coverage and empty-anchor affinity.
+Consumed bytes alone are insufficient for silent discretionary output.
+`LogicalPosition.IsText()` distinguishes these associations from structural
+positions; `fragment.ContainsBoundary(position)` checks a retained structural
+edge without treating a suspended container as placed material.
+
+### Compose branches in one receiver
+
+Use `ComposeFragments(width, height, fragments)` to place independently rooted
+fragments in register order. Supply fragments fitted at that receiver's width.
+Their frozen interiors and identities remain unchanged; their outer margins
+collapse through the ordinary core flow rules. The result gives copied fragments
+with translated geometry and paragraph origins, total `Extent`, and `Fits`.
+No session or paragraph backend is needed. `FitFragment.Extent()` retains its
+standalone allocation; use the composition's extent for the complete receiver.
+
+When a later branch's negative leading margin can collapse an earlier trailing
+margin, fit intermediate roots with `FitRequest.DeferVerticalBounds: true`.
+Such candidates have not passed final vertical bounds checks. Compose the
+selected roots and require `Fits` before accepting the arrangement. The flag
+preserves finite geometry, horizontal checks and the paragraph height ceiling.
+The default request checks complete bounds directly.
+
 ### Supply a custom backend
 
 A `Preparer` has two methods:

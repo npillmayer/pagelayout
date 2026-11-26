@@ -177,7 +177,8 @@ Whole-group layout and partial fitting remain separate contracts. Typography's
 `Prepared.Trial`, `Trial.Assemble`, checkpoints and `Continuation.Fit` already
 supply paragraph-level pieces. `content.NewFitter`/`content.Fit` and
 `preparation/typography.Fit` now connect structural fragments and exact paragraph
-continuations. Transactional multi-channel page fitting remains in the shipout plan.
+continuations. `Pagination.PageAttempt` composes transactional multi-channel pages;
+sequence search and public span delivery remain in the shipout plan.
 
 ## 5. Group enumeration and the preparation driver
 

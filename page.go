@@ -22,10 +22,16 @@ type Page struct {
 	frames   []PageFrame
 }
 
+// PageFrame contains the compiled receiver and its ordered branch fragments.
+// An unused receiver has no fragments and a zero occupied extent.
 type PageFrame struct {
-	Frame    template.FrameInfo
-	Fragment *content.FitFragment // nil for an unused receiving frame
+	Frame     template.FrameInfo
+	fragments []*content.FitFragment
+	extent    layout.InlineExtent
 }
+
+// Extent is the furthest allocated frame extent after composing all fragments.
+func (f PageFrame) Extent() layout.InlineExtent { return f.extent }
 
 func (p *Page) Number() uint64 {
 	if p == nil {
@@ -45,27 +51,33 @@ func (p *Page) Info() template.PageInfo {
 	}
 	return p.info
 }
+
+// Fragments returns independent handles in register order. Geometry and paragraph
+// origins are relative to this frame's ContentBox, including sibling placement.
+func (f PageFrame) Fragments() []*content.FitFragment {
+	out := make([]*content.FitFragment, len(f.fragments))
+	for i, p := range f.fragments {
+		copy := *p
+		out[i] = &copy
+	}
+	return out
+}
 func (p *Page) Frames() []PageFrame {
 	if p == nil {
 		return nil
 	}
 	frames := slices.Clone(p.frames)
 	for i := range frames {
-		if frames[i].Fragment != nil {
-			fragment := *frames[i].Fragment
-			frames[i].Fragment = &fragment
-		}
+		frames[i].fragments = frames[i].Fragments()
 	}
 	return frames
 }
 
-// PageAttempt enumerates all supported arrangements for one template and
-// selects one using current-page loss, logical progress, then enumeration order.
-// It currently admits main-only documents. Secondary ownership/placement is
-// diagnosed as unsupported rather than silently consuming or ignoring targets.
-// Failure publishes neither a provisional page nor a successor.
+// PageAttempt enumerates complete arrangements across ordered flow chains,
+// validates placement-dependent activation, and selects one by current-page
+// loss, logical progress and stable enumeration order. Failures publish nothing.
 func (r *Pagination) PageAttempt(ctx context.Context, input State, templateID string) (PageAttemptResult, error) {
-	where := DiagnosticLocation{Template: templateID, Channel: "main"}
+	where := DiagnosticLocation{Template: templateID}
 	fail := func(kind ErrorKind, cause error) (PageAttemptResult, error) {
 		return PageAttemptResult{}, paginationError(kind, where, cause)
 	}
@@ -88,156 +100,29 @@ func (r *Pagination) PageAttempt(ctx context.Context, input State, templateID st
 	if input.SpanComplete() {
 		return finishAttempt(input, true, nil, nil)
 	}
-	for _, b := range r.context.plan.branches {
-		if b.Channel != "main" {
-			return fail(Unsupported, fmt.Errorf("secondary channel %q requires multi-channel page construction", b.Channel))
-		}
-	}
 	if nilFittingBackend(r.backend) {
 		return fail(InvalidRequest, fmt.Errorf("fitting backend required"))
 	}
+	for channel, cursor := range input.data.cursors {
+		if !r.fitters[cursor.head].Owns(input.data.fits[channel].continuation) {
+			return fail(InvalidRequest, fmt.Errorf("logical position without fitting checkpoint"))
+		}
+	}
 	r.busy = true
 	defer func() { r.busy = false }()
-	head, ok := input.data.bank.First("main")
-	if !ok {
-		return fail(InvalidRequest, fmt.Errorf("unfinished span has no main material"))
+	run := newPageEnumeration(ctx, r, input, t)
+	err := run.channels(0)
+	if err == nil {
+		err = run.budget.after(ctx)
 	}
-	where.Box = head
-	where.Position = input.data.cursors["main"].position
-	f := r.fitters[head]
-	if f == nil {
-		var err error
-		f, err = content.NewFitter(r.prepared, r.session, head)
-		if err != nil {
-			return PageAttemptResult{}, pageExecutionError(where, err)
-		}
-		r.fitters[head] = f
-	}
-	initial := input.data.fits["main"]
-	if _, has := input.data.cursors["main"]; has && !f.Owns(initial.continuation) {
-		return fail(InvalidRequest, fmt.Errorf("logical position without fitting checkpoint"))
-	}
-	stop, err := f.BoundaryAt(r.context.plan.spans[input.data.span-1].End)
 	if err != nil {
 		return PageAttemptResult{}, pageExecutionError(where, err)
 	}
-	frames := t.Frames()
-	chain := []int{}
-	placements := make([]PageFrame, len(frames))
-	facts := PageAssessment{MainRemaining: true}
-	for i, frame := range frames {
-		placements[i].Frame = frame
-		facts.Frames = append(facts.Frames, FrameAssessment{Channel: frame.Flow, Width: float64(frame.ContentBox.W), Height: float64(frame.ContentBox.H)})
-		if frame.Flow == "main" {
-			chain = append(chain, i)
-		}
+	result, err := finishAttempt(input, true, run.best, nil)
+	if err == nil && result.Outcome() == NoFit {
+		result.obstructions = run.obstructions()
 	}
-	budget := workBudget{limit: r.context.limits.LocalSteps}
-	backend := &pageFitter{backend: r.backend, budget: &budget, ctx: ctx}
-	var best *Candidate
-	var bestRank LocalRank
-	var enumeration uint64
-	var explore func(int, fitCursor, bool, bool, bool) error
-	// Each recursion selects a whole frame prefix. Empty placements are tried
-	// last; no branch takes a locally longest-prefix shortcut.
-	explore = func(index int, cursor fitCursor, progressed, finished, complete bool) error {
-		if err := budget.before(ctx); err != nil {
-			return err
-		}
-		if index == len(chain) || finished {
-			if !progressed {
-				return nil
-			}
-			position := cursor.end.Logical()
-			next, err := r.advance(input, []headAdvance{{"main", head, complete, position}}, nil, true)
-			if err != nil {
-				return err
-			}
-			if !complete {
-				if next.data.fits == nil {
-					next.data.fits = map[string]fitCursor{}
-				}
-				next.data.fits["main"] = cursor
-			}
-			if err := r.Validate(next); err != nil {
-				return err
-			}
-			score, err := AssessPage(r.context.policy, facts)
-			if err != nil {
-				return err
-			}
-			rank := LocalRank{score.Total, stateProgress(next), enumeration}
-			enumeration++
-			preferred := best == nil
-			if !preferred {
-				comparison, err := CompareLocal(rank, bestRank)
-				if err != nil {
-					return err
-				}
-				preferred = comparison < 0
-			}
-			if preferred {
-				best = &Candidate{placedMaterial: true, origin: input, successor: next, template: templateID, score: score, progress: rank.Progress,
-					page: &Page{input.data.page, templateID, t.Page(), slices.Clone(placements)}}
-				bestRank = rank
-			}
-			return nil
-		}
-		frameIndex := chain[index]
-		frame := frames[frameIndex]
-		location := DiagnosticLocation{Template: templateID, Frame: frame.ID, Channel: "main", Box: head, Position: cursor.end.Logical()}
-		if err := budget.before(ctx); err != nil {
-			return pageExecutionError(location, err)
-		}
-		remaining := budget.limit - budget.used
-		if remaining == 0 {
-			return pageExecutionError(location, ErrLimit)
-		}
-		choices, err := content.Fit(ctx, r.prepared, r.session, f, content.FitRequest{
-			Width: frame.ContentBox.W, Height: frame.ContentBox.H, Continuation: cursor.continuation, Stop: stop, MaxSteps: remaining,
-		}, backend)
-		if err != nil {
-			return pageExecutionError(location, err)
-		}
-		if err := budget.after(ctx); err != nil {
-			return pageExecutionError(location, err)
-		}
-		for _, choice := range choices {
-			if !choice.Progress() {
-				continue
-			}
-			fragment := choice.Fragment()
-			oldCount := len(facts.Fragments)
-			for _, p := range fragment.Paragraphs() {
-				output, ok := p.Output.(content.ParagraphOutput)
-				if !ok {
-					return pageExecutionError(location, fmt.Errorf("%w: paragraph output must supply line counts", content.ErrPreparationProtocol))
-				}
-				facts.Fragments = append(facts.Fragments, ParagraphFragment{p.Group, frameIndex, output.LineCount(), !p.Complete || p.From != (layout.ParagraphPosition{})})
-			}
-			placements[frameIndex].Fragment = fragment
-			facts.Frames[frameIndex].Occupied = float64(fragment.Extent().H)
-			facts.MainFinishes = choice.StopReached() || choice.Complete()
-			facts.MainFinishingFrame = frameIndex
-			err = explore(index+1, fitCursor{choice.Continuation(), choice.End()}, true, facts.MainFinishes, choice.Complete())
-			placements[frameIndex].Fragment = nil
-			facts.Frames[frameIndex].Occupied = 0
-			facts.Fragments = facts.Fragments[:oldCount]
-			facts.MainFinishes = false
-			if err != nil {
-				return err
-			}
-		}
-		return explore(index+1, cursor, progressed, false, false)
-	}
-	err = explore(0, initial, false, false, false)
-	if err != nil {
-		return PageAttemptResult{}, pageExecutionError(where, err)
-	}
-	if err := budget.after(ctx); err != nil {
-		return PageAttemptResult{}, pageExecutionError(where, err)
-	}
-	return finishAttempt(input, true, best, nil)
+	return result, err
 }
 
 func nilFittingBackend(b content.GroupFitter) bool {

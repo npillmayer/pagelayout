@@ -185,6 +185,13 @@ type fitOutput struct {
 
 func (o *fitOutput) Clone() layout.FitPayload { return o }
 func (o *fitOutput) LineCount() uint64        { return uint64(o.info.Lines) }
+func (o *fitOutput) PlacedEvents() []content.GroupEvent {
+	events := make([]content.GroupEvent, len(o.events))
+	for i, e := range o.events {
+		events[i] = e.Event
+	}
+	return events
+}
 
 type fitInvocation struct {
 	groupMeasurer

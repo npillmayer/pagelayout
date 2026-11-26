@@ -1,7 +1,7 @@
 # pagelayout
 
 Load HTML/CSS page templates and content, inspect their flow channels, and
-prepare content, compile ownership/span plans and construct main-channel pages.
+prepare content, compile ownership/span plans and construct pages across channels.
 
 A **page template** describes a page and its receiving **frames**. A frame's
 `flow-from` names the channel it receives. In a separate content document,
@@ -12,7 +12,7 @@ from its own document; a template's styles do not restyle the content.
 
 | Package | Use it to |
 | --- | --- |
-| `pagelayout` | Validate owning links and page spans; construct main-channel pages with exact remainders and inspectable loss. |
+| `pagelayout` | Validate owning links and page spans; construct pages with exact channel remainders and inspectable loss. |
 | [`template`](template/README.md) | Load and validate collections; select templates and inspect page dimensions, frame rectangles, paint and flow chains. |
 | [`content`](content/README.md) | Load styled HTML, inspect source material and take whole branches from persistent channel registers. Prepare material and fit fragments with an explicit backend. |
 | [`preparation/typography`](preparation/typography/README.md) | Supply fonts and shaping services, prepare paragraphs once, measure intrinsic widths, lay out complete subtrees or fit resumable fragments. |
@@ -145,7 +145,7 @@ leave their registers together with their cursors; partial branches retain their
 original handles. State advancement is private: source positions alone cannot
 supply a resumable fitter checkpoint.
 
-## Construct a main-channel page
+## Construct a page
 
 Call `PageAttempt` with an explicit state and a template ID from the bound catalog:
 
@@ -161,15 +161,14 @@ case pagelayout.Constructed:
     fmt.Println(page.Number(), candidate.Score().Total.Info())
     state = candidate.Successor()
     for _, frame := range page.Frames() {
-        if frame.Fragment == nil {
-            continue
+        for _, fragment := range frame.Fragments() {
+            shaped, err := prep.InspectFragment(fragment)
+            if err != nil {
+                return err
+            }
+            // Draw shaped at frame.Frame.ContentBox.X/Y in page-local CSS pixels.
+            _ = shaped
         }
-        shaped, err := prep.InspectFragment(frame.Fragment)
-        if err != nil {
-            return err
-        }
-        // Draw shaped at frame.Frame.ContentBox.X/Y in page-local CSS pixels.
-        _ = shaped
     }
 case pagelayout.NoFit:
     // Try another template from the same unchanged state.
@@ -191,11 +190,24 @@ coordinates; typography paragraph coordinates are local big points. Inspect
 rendering after closing the session, while retaining its borrowed font resources.
 It holds no successor or execution services.
 
-Page construction accepts main-only documents. Secondary branches return
-`ErrUnsupported`. Forced main breaks stop the current span inside its retained
-head. Span transitions, multi-channel construction and template-sequence search
-are unavailable through the public execution API. A page that finishes its span
-is still `Constructed`; `SpanComplete` describes an already-complete input.
+`frame.Fragments()` returns branch fragments in register order. Several complete
+branches and a final partial branch can share one receiver. Their outer margins
+collapse within that frame; `frame.Extent()` reports its total occupied extent.
+Fragments preserve source identities and frozen interiors.
+
+Owning anchors activate targets only when their associated material is placed.
+A target can appear above its owner on the same page, including transitive
+ownership across channels. Registers retain authoring order: an inactive or
+future-span head blocks later items. Ordinary links do not activate anything.
+`NoFit` may carry copied `Obstructions()` describing entry-state queue heads and
+pending items behind them; these facts do not prove that every template fails.
+
+Forced main breaks stop the current span inside its retained head. Related
+targets must drain before the span is complete; progressing drain pages may omit
+a main receiver. Future-span branches remain untouched. Span transitions and
+template-sequence search are unavailable through the public execution API.
+A page that finishes its span is still `Constructed`; `SpanComplete` describes
+an already-complete input.
 
 Work limits and cancellation return errors without a candidate or successor.
 The local budget counts arrangement visits, frame calls, measurements, paragraph
@@ -203,6 +215,9 @@ calls and yielded choices; core traversal is also bounded. Backend failures
 preserve their original causes and identify the template/frame where known.
 Custom fitting backends implement `content.GroupFitter`; their frozen paragraph
 outputs must implement `content.ParagraphOutput` to supply factual line counts.
+For groups with source events, outputs also implement `content.ParagraphEvents`:
+report only events reached by the rendered prefix, using the original group
+event values. Logical byte consumption alone does not activate an owner.
 
 ## Evaluate page loss and compare choices
 

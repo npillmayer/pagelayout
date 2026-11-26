@@ -40,6 +40,11 @@ type ParagraphOutput interface {
 	LineCount() uint64
 }
 
+// ParagraphEvents exposes annotations actually reached by the rendered prefix.
+// Implement it for groups with owning-anchor events. Logical byte advancement
+// alone is insufficient for silent discretionary material. Return copied events.
+type ParagraphEvents interface{ PlacedEvents() []GroupEvent }
+
 type fitIdentity struct {
 	preparation PreparationID
 	root        Box
@@ -196,6 +201,9 @@ type FitRequest struct {
 	Stop          FitBoundary
 	IncludeEmpty  bool
 	MaxSteps      uint64
+	// DeferVerticalBounds is for intermediate same-frame branch composition.
+	// Call ComposeFragments and require Fits before publishing the result.
+	DeferVerticalBounds bool
 }
 
 // Fit enumerates a complete candidate set transactionally. Interrupted/failed
@@ -213,7 +221,7 @@ func Fit(ctx context.Context, p *PreparedSnapshot, s *PreparationSession, f *Fit
 		f.relay.state, f.relay.backend = st, backend
 		defer func() { f.relay.state, f.relay.backend = nil, nil }()
 		var choices []layout.FitAlternative
-		status, err := f.core.Enumerate(ctx, layout.FitRequest{Width: req.Width, Height: req.Height, Continuation: req.Continuation.core, Stop: req.Stop.core, IncludeEmpty: req.IncludeEmpty, MaxSteps: req.MaxSteps}, func(a layout.FitAlternative) bool { choices = append(choices, a); return true })
+		status, err := f.core.Enumerate(ctx, layout.FitRequest{Width: req.Width, Height: req.Height, Continuation: req.Continuation.core, Stop: req.Stop.core, IncludeEmpty: req.IncludeEmpty, MaxSteps: req.MaxSteps, DeferVerticalBounds: req.DeferVerticalBounds}, func(a layout.FitAlternative) bool { choices = append(choices, a); return true })
 		if err != nil {
 			return fitFailure(f.Root(), err)
 		}
@@ -370,6 +378,9 @@ func (f *FitFragment) Root() Box {
 	}
 	return f.root
 }
+
+// Extent returns the standalone fitted allocation, before sibling composition.
+// Use FrameComposition.Extent for the occupied extent of composed material.
 func (f *FitFragment) Extent() layout.InlineExtent {
 	if f == nil {
 		return layout.InlineExtent{}

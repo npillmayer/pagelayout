@@ -154,6 +154,26 @@ If anything, the pagespan optimization could be handled by a pool of workers.
 
 ## Design discussion: pagination and shipout
 
+SHIP-06 implementation update (2026-11-26): `PageAttempt` now selects complete
+multi-channel arrangements with authoring-order FIFO heads, exact checkpoints
+and transitive activation from actually placed owner material. Same-page targets
+may appear above owners or in earlier-visited channels. Text activation consumes
+the typography adapter's rendered event associations; structural activation
+checks retained boundary material. Ordinary references and unplaced owners do
+not activate targets. Future-span heads remain untouched and may obstruct
+draining; copied NoFit queue facts expose that condition without reordering.
+
+Frames expose ordered branch fragments and total composed occupancy. Frozen
+interiors remain contained while core flow rules collapse adjacent root margins;
+final physical bounds are checked after composition. Only derived successors
+pop complete heads, and all channel advances/activations publish together.
+Entry participation, once-per-target carry, missing-main and secondary-only
+draining follow the existing factual scorer. Tests cover exact transitive losses,
+FIFO obstruction, several/partial heads per frame, empty/split owners, margins,
+late failures and real-font none/manual rendering after session closure.
+Search and public span delivery remain SHIP-07/08. Scoring and numerical caps
+remain working hypotheses. Author remarks are unchanged.
+
 SHIP-05 implementation update (2026-11-26): `Pagination.PageAttempt` now builds
 main-only pages from compiled template frame chains. It compares complete local
 arrangements, including shorter prefixes and unused frames, and publishes one
@@ -161,8 +181,8 @@ frozen page with loss, progress and exact successor. Partial branches keep their
 original head and matching fitting checkpoint. Stops inside main and empty
 material are handled without metadata-only pages. The typography-neutral output
 contract supplies line counts; real-font tests retain none/manual rendering and
-atomic interiors after session/execution collection. Secondary placement and
-activation remain SHIP-06; search and public span delivery remain later slices.
+atomic interiors after session/execution collection. SHIP-06 extends this to
+secondary placement and activation; search and public span delivery remain later slices.
 The scoring formulas and numerical caps remain working hypotheses. Author remarks
 are unchanged.
 
@@ -223,7 +243,7 @@ Logical byte/knot progress and rendered cluster coverage remain separate; source
 ranges inside ligatures attach to the whole cluster, independently of bidi visual
 order. Selected output survives changed-width suffixes and release of preparation.
 BOX-SHIP-03 supplies used CSS fragment geometry, and SHIP-04 supplies the content
-bridge. Page/search execution remains subsequent work. Scoring and numerical limits
+bridge. SHIP-05/06 supply page construction; search remains subsequent work. Scoring and numerical limits
 remain working hypotheses. Existing author remarks are unchanged.
 
 BOX-SHIP-02 implementation update (2026-11-25): css-box-layout now enumerates
@@ -234,23 +254,21 @@ logical progression, occupied extents and selected continuations across changed
 receiving widths. Exhaustion, voluntary interruption and errors/limits are
 distinct. BOX-SHIP-03 now supplies fragment geometry/paint, nonzero edges/margins
 and atomics; TYPE-SHIP-01/02 supply paragraph-prefix services, connected by
-SHIP-04. SHIP-05 supplies main-only page construction; multi-channel/search
-runtime remains pending.
+SHIP-04. SHIP-05/06 supply multi-channel page construction; search remains pending.
 
 SHIP-03 implementation update (2026-11-25): initialization now binds immutable
 state to a source/plan, preparation and execution context. Checked loss algebra,
 factual scoring, local/sequence comparators and page/search publication contracts
-are implemented. Scoring and numeric caps remain working hypotheses. SHIP-05
-now integrates checkpoints and main-only pages. Secondary boundary/activation
-execution and search remain later slices; initialization itself creates no pages.
+are implemented. Scoring and numeric caps remain working hypotheses. SHIP-05/06
+integrate checkpoints, pages and secondary activation/draining. Search remains
+a later slice; initialization itself creates no pages.
 
 SHIP-02 implementation update (2026-11-25): `pagelayout.Plan(document)` validates
 ownership and main-only breaks, and returns copied source-qualified branches,
 anchors and spans without advancing queues. Content propagates source events
 through normalized provenance and processed paragraph coordinates. Initial and
 coincident boundaries coalesce; the terminal drain is represented explicitly.
-SHIP-05 now supplies main-only page fitting; placement activation and search
-execution remain later work.
+SHIP-05/06 supply page fitting and placement activation; search remains later work.
 
 BOX-SHIP-01 implementation update (2026-11-25): css-box-layout now provides
 `BuildLayoutTreesWithProvenance`, returning detached source endpoints, retained
@@ -1171,7 +1189,7 @@ attempt, err := run.PageAttempt(ctx, state, templateID)
 report, err := run.PaginationSearch(ctx, state)
 ```
 
-`Plan(document)`, `NewPagination(config)`/initial state and main-only PageAttempt
+`Plan(document)`, `NewPagination(config)`/initial state and multi-channel PageAttempt
 are implemented. PaginationSearch remains an API sketch. `config` supplies the plan,
 catalog, matching PreparedSnapshot/PreparationSession, fitting adapter and
 options. `PaginationSearch` searches one pagespan. A document-level operation
@@ -1272,8 +1290,8 @@ visitation order. An earlier inactive register head still blocks a later target.
 Implementation status: DOM-SHIP-01 now supplies checked break-before metadata,
 parsing and cascade resolution in w3c-dom, preserving all Level 3 keyword values.
 The content loader's narrower admission/normalization and source marker mapping
-are implemented by SHIP-01/02. SHIP-05 supplies main-only finite-height page
-construction; multi-channel pagination/search remain subsequent work.
+are implemented by SHIP-01/02. SHIP-05/06 supply multi-channel finite-height page
+construction and draining; sequence search and delivery remain subsequent work.
 
 **Settled initial profile:** admit `break-before: auto`, and normalize `page`,
 `left`, `right`, `recto` and `verso` to the same forced page boundary. Resolve

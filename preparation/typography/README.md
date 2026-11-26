@@ -259,11 +259,14 @@ Consumed atomic interiors remain unchanged across narrower/wider suffixes.
 Discard alternatives by dropping their handles; frozen bundles remain usable
 after `session.Close()` while their borrowed font resources stay valid.
 
-For complete main-channel pages, pass `Fitter: prep.FittingAdapter()` to
+For complete pages, pass `Fitter: prep.FittingAdapter()` to
 `pagelayout.NewPagination` with the same preparation and session. The adapter
 selects FirstFit and retains the source none/manual policy. It supplies neutral
-paragraph line counts for page scoring. Call `prep.InspectFragment(frame.Fragment)`
-on a returned page frame to recover the same typed `Fragment` described above.
+paragraph line counts for page scoring and rendered `content.ParagraphEvents`
+for owning-anchor activation. Iterate each returned page frame's `Fragments()`
+and call `prep.InspectFragment(fragment)` to recover the same typed `Fragment`
+described above. Several branches can occupy one frame; their paragraph origins
+already include their placement within it.
 Inspection needs no live session or backend and performs no layout or shaping.
 
 ## Manage lifetime and errors

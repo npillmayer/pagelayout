@@ -8,10 +8,11 @@ in css-box-layout; SHIP-02 source planning, SHIP-03 state/loss/outcome contracts
 BOX-SHIP-02 structural finite-height fitting, TYPE-SHIP-01 paragraph-prefix
 fitting for `none`, KHIPU-SHIP-01 manual discretionary continuation and
 TYPE-SHIP-02 manual paragraph-prefix fitting and BOX-SHIP-03 used fragment
-geometry/atomics/paint facts, SHIP-04 content/typography fitting and SHIP-05
-single-channel Page attempts are implemented.** Main-only page construction is
-callable with exact remainders, frozen pages and factual loss. Multi-channel
-coordination, template-sequence search and span delivery remain subsequent work.
+geometry/atomics/paint facts, SHIP-04 content/typography fitting, SHIP-05
+single-channel Page attempts and SHIP-06 multi-channel arrangements are
+implemented.** Page construction includes placement-dependent activation,
+FIFO queues and transitive draining, with exact remainders, frozen pages and
+factual loss. Template-sequence search and span delivery remain subsequent work.
 Scoring and numerical execution limits remain working hypotheses.
 
 The author's initial remarks, scattered remarks and closing answers remain in
@@ -153,7 +154,7 @@ real backend, as noted in the detailed steps.
 | 11 | BOX-SHIP-03 — complete | css-box-layout | BOX-SHIP-02 | Used-value, margin, atomic and fragment-paint integration. |
 | 12 | SHIP-04 — complete | pagelayout/content and preparation/typography | SHIP-03, BOX-SHIP-03, TYPE-SHIP-02 | Real resumable fitting bridge. |
 | 13 | SHIP-05 — complete | pagelayout root | SHIP-02, SHIP-03, SHIP-04 | Single-channel Page attempt and two-template proof. |
-| 14 | SHIP-06 | pagelayout root | SHIP-05 | Multi-channel local arrangements, anchors and draining. |
+| 14 | SHIP-06 — complete | pagelayout root/content, typography adapter; css-box-layout composition support | SHIP-05 | Multi-channel local arrangements, anchors and draining. |
 | 15 | SHIP-07 | pagelayout root | SHIP-03, SHIP-06 | Deterministic beam search and search outcomes. |
 | 16 | SHIP-08 | pagelayout root | SHIP-07 | Span transitions, selected output and shipout handoff. |
 | 17 | SHIP-09 | pagelayout, sibling regression checks | SHIP-08 | Real-font, lifetime, search-quality and end-to-end proofs. |
@@ -774,7 +775,7 @@ and bidi tests pin logical coverage. GC proofs retain rendering with both
 hyphenation policies after execution handles and fitters are collected, even
 while retaining a continuation. An executable `ExampleFit` demonstrates two
 receivers and unchanged banks. No sibling changes were needed. SHIP-05 now
-uses this bridge for main-only pages; scoring and numerical limits remain
+uses this bridge for pages, extended to multiple channels by SHIP-06; scoring and numerical limits remain
 working hypotheses.
 
 **Work:** add the neutral content fitting entry point beside whole-tree Layout.
@@ -837,8 +838,8 @@ progress/enumeration ties, changed widths, missing/unused receivers, forced stop
 late errors, retry, cancellation, limits and session/identity checks. Real Gentium
 proofs cover none/manual, percentage atomics, source conservation and rendering
 after execution/session collection while a successor is retained. No sibling
-changes were necessary. Secondary branches currently produce Unsupported; their
-activation, FIFO placement and draining are SHIP-06. Public span driving/search
+changes were necessary for SHIP-05. SHIP-06 adds secondary activation, FIFO
+placement and draining below. Public span driving/search
 remain SHIP-07/08. Initial main is the existing sole residual-tree bank item;
 no new queue or content representation was introduced.
 
@@ -863,6 +864,52 @@ An interrupted local enumeration is an explicit error/limit, not NoFit or a
 supposedly final candidate.
 
 ### SHIP-06 — Multi-channel arrangements, activation and draining
+
+**Status: implemented (2026-11-26).** `PageAttempt` enumerates complete
+arrangements across main and source-ordered secondary channels, preserving each
+frame chain and register queue. It may fit current-span targets speculatively
+when a later-visited channel could activate them; fixed earlier-channel material
+prunes unreachable owners. Final whole-page activation is a transitive fixed
+point over actual selected owner events. Thus a target can appear above its
+owner, or in an earlier-visited channel, without being placed on an earlier page.
+
+Text owners use `content.ParagraphEvents.PlacedEvents`, supplied by the typography
+adapter from its frozen cluster/replacement/affinity associations. Events must
+match the prepared group's detached inputs. Logical byte consumption alone is
+not rendered placement. Structural owners use `FitFragment.ContainsBoundary`;
+opening a suspended container is not enough. Activation is deduplicated by target
+and retained across pages. Ordinary references do not activate targets.
+
+`PageFrame.Fragments()` exposes ordered fragments from several independent
+branch roots, including a final partial root. `PageFrame.Extent()` gives composed
+occupancy. `content.ComposeFragments` replays frozen root border boxes through
+core `FlowLayout` for signed sibling-margin collapse and translates copied
+geometry/paragraph origins. Roots remain containment boundaries for their already
+fitted interiors. The sibling `layout.FitRequest.DeferVerticalBounds` option
+allows intermediate negative/oversized root margins; final composition must
+pass all physical bounds. Horizontal checks, finite geometry and paragraph
+height ceilings remain enforced. Default fitting behavior is unchanged.
+
+Only fully consumed heads leave derived banks; one exact checkpoint remains
+beside each partial original head. Inactive heads are never skipped, and
+future-span heads are never fitted. NoFit's copied `Obstructions()` preserve
+entry-state awaiting-owner, future-span and missing-receiver facts, including
+pending items blocked behind a head. They do not claim global infeasibility.
+At a main boundary only related secondary material can progress. Entry frame
+participation remains fixed; newly pending targets incur one carry each, absent
+secondary receivers add no duplicate penalty, and missing-main is charged only
+while main remains. All channels publish one successor together. A late error,
+cancellation or cap discards every provisional activation and page.
+
+`page_channels_test.go` exercises the adopted transitive fixture with exact
+losses, reverse channel dependencies, authored `[A,B]` order with B owned first,
+multiple/partial heads in one frame, changed-width continuation, split/ordinary
+and empty owners, secondary-only pages, cross-span blocking, signed margins and
+late failure/retry. Real Gentium tests activate through ligature coverage and
+manual continuation and retain frozen rendering after session closure/GC.
+Content/core tests pin copied composition and deferred-bounds validation.
+Scoring and numerical execution limits remain **working hypotheses**. Search
+and public span driving/delivery remain SHIP-07/08.
 
 **Work:** extend local enumeration to whole-page combinations across channels.
 Preserve each channel's frame-chain and queue order. Main/secondary progress,
@@ -1001,7 +1048,7 @@ visual proof looks correct.
 | Module | Required work | Boundary and regression obligation |
 | --- | --- | --- |
 | `w3c-dom` | DOM-SHIP-01: checked page-break values/defaults and matching declaration/effective resolution. | No pagespan or typography policy; preserve existing styling and diagnostics. |
-| `css-box-layout` | BOX-SHIP-01 through BOX-SHIP-03: boundary provenance and pure resumable structural fitting with fragment geometry/paint. | No channels, scheduler, fonts or typography imports; persistent registers stay as they are. |
+| `css-box-layout` | BOX-SHIP-01 through BOX-SHIP-03: boundary provenance and pure resumable structural fitting with fragment geometry/paint. SHIP-06 adds opt-in intermediate vertical bounds deferral for sibling-root composition. | No channels, scheduler, fonts or typography imports; persistent registers stay as they are. Final composed bounds remain the caller's responsibility. |
 | `khipu` | KHIPU-SHIP-01: manual discretionary prefix/carry continuation. | Neutral paragraph material and immutable certificates; no CSS/DOM/page coupling. |
 | `typography` | TYPE-SHIP-01/02: legal prefix enumeration, chosen frozen fragments, source positions and checkpoint/atomic integration for the admitted policies. | Reuse abstract font/service contracts; no concrete OpenType, pagelayout or css-box-layout dependency. |
 | `tytui` | No new production feature required. | Run existing consumer regressions when shared APIs change. Prefer additive APIs; if a shared interface must change, include the smallest explicit consumer migration in that sibling slice. |
@@ -1071,8 +1118,8 @@ Useful completion checkpoints are:
    including manual continuation within the declared profile, failure reporting
    and lifetime proofs. Record any still-provisional scoring calibration openly.
 
-The next implementation task is **SHIP-06**: multi-channel page arrangements,
-anchor activation and transitive draining. SHIP-00, DOM-SHIP-01, SHIP-01,
+The next implementation task is **SHIP-07**: deterministic pagespan beam search.
+SHIP-00, DOM-SHIP-01, SHIP-01,
 BOX-SHIP-01, SHIP-02, SHIP-03, BOX-SHIP-02, TYPE-SHIP-01, KHIPU-SHIP-01,
-TYPE-SHIP-02, BOX-SHIP-03, SHIP-04 and SHIP-05 are complete. Multi-channel
-coordination, search, span delivery and broader end-to-end proofs remain planned.
+TYPE-SHIP-02, BOX-SHIP-03, SHIP-04, SHIP-05 and SHIP-06 are complete. Search,
+span delivery and broader end-to-end proofs remain planned.

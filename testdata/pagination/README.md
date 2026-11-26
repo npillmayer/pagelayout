@@ -5,9 +5,9 @@ Use these inputs and independently authored expectations to exercise the adopted
 They are independently authored expectations, not generated paginator output.
 The source table is exercised by SHIP-01/02 tests against content loading and
 `pagelayout.Plan`; the scoring table is exercised by SHIP-03. State/outcome protocol cases are
-checked at their contract boundary. SHIP-05 now exercises single-channel page
-construction and frozen rendering; multi-channel/search/delivery cases remain
-later runtime gates.
+checked at their contract boundary. SHIP-05/06 exercise single- and multi-channel
+page construction, activation, draining and frozen rendering. Search and delivery
+cases remain later runtime gates.
 
 Keep template and content documents separate. The template collection can already
 be checked with:
@@ -30,6 +30,35 @@ passing catalog load does not prove content routing, fitting or pagination.
 | [scoring-expected.json](scoring-expected.json) | Supply the stated page facts directly to the evaluator. | Participating frames, components, exact integer loss and arithmetic failures. Scoring cases are working hypotheses. |
 | [search-expected.json](search-expected.json) | Supply the finite graph as a fake Page attempt. | Selected sequence, loss, retained frontier, pruning, completion/failure and interrupted-incumbent behavior. |
 | [protocol-expected.json](protocol-expected.json) | Construct the stated identity, session, failure or delivery scenario. | Atomic publication, error category/cause, state stability and output lifetime. |
+
+## Multi-channel page evidence
+
+`page_channels_test.go` runs `transitive.html` with `receivers.html` through
+`PageAttempt`, using one 10px line per group. Its selected pages match the
+`transitive-drain-and-transition` fitting case:
+
+| Template / starting point | Placed material | Loss units |
+| --- | --- | ---: |
+| `note-first`, span 1 | Main through its boundary and the note; figure pending. | 2,000,000 |
+| `figures-only`, draining span 1 | Figure; no missing-main charge. | 1,840,278 |
+| `note-first`, after private span transition | Next main and its note; future material was untouched earlier. | 1,000,000 |
+
+Additional tests retain FIFO `[A,B]` when B is owned first, keep B pending behind
+inactive A, and place both in one frame once A is reached. They cover several
+heads followed by a partial head and narrower continuation; reverse channel
+dependencies and targets above owners; split/ordinary/empty owners; secondary-only
+progress; fixed entry participation and per-target carry; signed root margins;
+late backend failure with unchanged state/output and identical retry.
+`cross-span-fifo.html` leaves a current target behind a future-span head and
+reports copied queue obstructions without skipping or fitting that head.
+
+`page_realfont_test.go` verifies transitive activation from Gentium ligature
+coverage and manual hyphenation, including a narrow-to-wide main chain. Frozen
+rendering survives session close and collection. `content/compose_test.go` and
+the sibling core's `fit_composition_test.go` separately check immutable sibling
+placement and the explicit intermediate-bounds option. These page tests do not
+implement sequence search or public span delivery. Numerical loss expectations
+remain working hypotheses.
 
 ## Single-channel page evidence
 
