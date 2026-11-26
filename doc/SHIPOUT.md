@@ -154,6 +154,16 @@ If anything, the pagespan optimization could be handled by a pool of workers.
 
 ## Design discussion: pagination and shipout
 
+TYPE-SHIP-01 implementation update (2026-11-26): typography now supplies all
+fitting whole-line prefixes for `none` through `Trial.FitPrefixes`, with explicit
+selection of a matching frozen fragment, checkpoint and accepted atomic geometry.
+Logical byte/knot progress and rendered cluster coverage remain separate; source
+ranges inside ligatures attach to the whole cluster, independently of bidi visual
+order. Selected output survives changed-width suffixes and release of preparation.
+Manual continuation, used CSS fragment geometry, the content bridge and page/search
+execution remain subsequent slices. Scoring and numerical limits remain working
+hypotheses. Existing author remarks are unchanged.
+
 BOX-SHIP-02 implementation update (2026-11-25): css-box-layout now enumerates
 finite-height structural alternatives over nested auto-width, zero-edge blocks.
 Neutral paragraph callbacks provide shorter prefixes with matching frozen output

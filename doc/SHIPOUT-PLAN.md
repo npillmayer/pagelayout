@@ -4,11 +4,12 @@ Recorded on 2026-11-25 against the current implementation and the decisions in
 [SHIPOUT.md](SHIPOUT.md). This is a plan, not a report of implemented pagination.
 **SHIP-00 is complete as a contract-and-fixture slice; DOM-SHIP-01 is implemented
 in w3c-dom; SHIP-01 is implemented in content; BOX-SHIP-01 is implemented
-in css-box-layout; SHIP-02 source planning, SHIP-03 state/loss/outcome contracts
-and BOX-SHIP-02 structural finite-height fitting are implemented.** All remaining
-slices are planned; pagination execution is not implemented. Plan inspection and
-the synthetic structural fitter are callable. Real paragraph-prefix fitting,
-used fragment geometry and page/search execution remain subsequent work.
+in css-box-layout; SHIP-02 source planning, SHIP-03 state/loss/outcome contracts,
+BOX-SHIP-02 structural finite-height fitting and TYPE-SHIP-01 paragraph-prefix
+fitting for `none` are implemented.** All remaining slices are planned; pagination
+execution is not implemented. Plan inspection, the structural fitter and real
+paragraph-prefix selection are callable. Manual continuation, used fragment
+geometry, the content fitting bridge and page/search execution remain subsequent work.
 Scoring and numerical execution limits remain working hypotheses.
 
 The author's initial remarks, scattered remarks and closing answers remain in
@@ -73,7 +74,7 @@ general output backend is not required.
 | [Preparation](../content/prepare.go) | Eager preparation barrier, immutable snapshot, separately owned serialized session. | Fitting operations that reuse the pair and retain exact continuations. |
 | [Whole-tree layout](../content/layout.go) and [typography adapter](../preparation/typography/layout.go) | Used values, atomic interiors, source/paint copying and frozen output ownership. | Finite-height partial results, multiple alternatives/fragments of one group, and resumable collection of output. |
 | [CSS layout core](../../css-box-layout/layout/flow.go) and [structural fitting](../../css-box-layout/layout/fit.go) | Structural flow, margins and whole-tree geometry; finite-height zero-edge block fitting with neutral callbacks and open-container continuation. | Used fragment geometry, edge omission, margin collapse and atomic integration in the finite-height fitter. |
-| [Paragraph trials](../../typography/glyphing/paragraph/trial.go), [checkpoints](../../typography/glyphing/paragraph/trial_checkpoint.go) and [fragment fitting](../../typography/glyphing/paragraph/fragment_fit.go) | Accepted prefixes, changed-width suffix breaking and authoritative line geometry. | Enumeration/selection of arbitrary legal fitting prefixes and a complete fragment/checkpoint/output handoff. |
+| [Paragraph trials](../../typography/glyphing/paragraph/trial.go), [checkpoints](../../typography/glyphing/paragraph/trial_checkpoint.go) and [prefix fitting](../../typography/glyphing/paragraph/prefix_fit.go) | All fitting whole-line prefixes for `none`, selected fragment/checkpoint/atomic associations, logical/cluster coverage and changed-width suffixes. | Manual discretionary continuation and the content fitting bridge. |
 | [Paragraph flow convenience API](../../typography/glyphing/paragraph/flow.go) | Useful reference for whole-line continuation. | It fixes atomic inputs and currently restricts hyphenation; it is not the complete page-fitting backend. |
 | [Khipu checkpoints](../../khipu/checkpoint.go) | Immutable accepted-prefix certificates and suffix atomic rebinding. | `Checkpoint` currently rejects policies other than `NoHyphenation`; manual discretionary continuation must be completed. |
 
@@ -141,7 +142,7 @@ real backend, as noted in the detailed steps.
 | 5 | SHIP-02 — complete | pagelayout/content and root | SHIP-01, BOX-SHIP-01 | Validated ownership/span plan and mapped positions. |
 | 6 | SHIP-03 — complete | pagelayout root | SHIP-00, SHIP-02 | Immutable state, loss and outcome contracts. |
 | 7 | BOX-SHIP-02 — complete | css-box-layout | SHIP-00, BOX-SHIP-01 | Structural finite-height fitting with neutral paragraph callbacks. |
-| 8 | TYPE-SHIP-01 | typography | SHIP-00 | Enumerated paragraph prefixes and frozen fragments for `none`. |
+| 8 | TYPE-SHIP-01 — complete | typography | SHIP-00 | Enumerated paragraph prefixes and frozen fragments for `none`. |
 | 9 | KHIPU-SHIP-01 | khipu | SHIP-00 | Manual discretionary checkpoint/carry support. |
 | 10 | TYPE-SHIP-02 | typography | TYPE-SHIP-01, KHIPU-SHIP-01 | Manual paragraph continuation through the same API. |
 | 11 | BOX-SHIP-03 | css-box-layout | BOX-SHIP-02 | Used-value, margin, atomic and fragment-paint integration. |
@@ -521,6 +522,46 @@ or failing an alternative leaves the source and prior alternatives usable.
 
 ### TYPE-SHIP-01 — Paragraph prefix alternatives for `none`
 
+**Status: implemented (2026-11-26).** Typography's
+`Trial.FitPrefixes(height)` assembles the captured trial once and describes all
+legal whole-line prefixes of its unaccepted suffix, using authoritative line
+bottoms in fractional big points. `PrefixFit.Prefixes()` returns detached choices
+in farther-progress-first order, including an explicit zero-line NoProgress
+choice. Empty/already-completed input has one zero-line Complete choice.
+Zero-height lines advance; horizontal overflow is reported, never clipped.
+
+`PrefixFit.Select(localLineCount)` returns an immutable selected fragment with
+its exact `TrialCheckpoint`, accepted atomic boxes and matching local placements.
+The set's private trial supplies the association; descriptor edits and unrelated
+fragments cannot create checkpoint authority. Selection needs no service calls.
+Resumed trials preserve the inherited accepted-line count and never offer those
+lines again. Changed widths and unconsumed atomic dimensions are supported;
+consumed atomic geometry and line-height remain protected by existing checkpoint
+validation. Rendering identities/interiors remain adapter-owned for SHIP-04.
+
+`LogicalPosition` carries preparation-qualified byte/knot coordinates for
+comparison. `SourceCoverage` separately reports glyph clusters, retained spaces
+and atomic anchors in logical source order. A nonempty source range overlapping
+a ligature belongs to the fragment containing that whole cluster. Trimmed spaces
+and fill have no rendered coverage. Original HTML-to-processed mapping and empty
+marker affinity remain with the content bridge; no visual bidi order or synthetic
+markers are used as logical progress.
+
+Tests cover every line cut, exact-height/zero-height/empty cases, repeated and
+changed-width continuation without base reshaping, bidi/source coverage, suffix
+atomic rebinding, foreign checkpoints, invalid selections and failed/retried
+assembly. Weak-pointer tests prove selected output releases trials, preparation,
+discovery and shape callbacks; extracting the fragment also releases checkpoints
+and material. A real OpenType ligature/rendering proof and executable client
+example exercise retained output after changed-width completion. Typography
+remains synchronous and imports neither CSS core nor pagelayout; dependency
+audits enforce this boundary. No khipu or CSS-core production changes were required.
+
+Only `NoHyphenation` is supported. KHIPU-SHIP-01 supplies manual carry,
+TYPE-SHIP-02 extends the same fitting surface to it, BOX-SHIP-03 adds CSS fragment
+geometry and SHIP-04 connects the actual content/preparation adapter. Scoring
+and limits remain working hypotheses; page/search execution is still pending.
+
 **Work:** extend the existing Prepared.Trial/checkpoint/fragment facilities to
 enumerate supported whole-line prefixes that fit a finite height and freeze a
 chosen prefix with its exact continuation. Reuse authoritative line bottoms and
@@ -865,7 +906,8 @@ Useful completion checkpoints are:
    including manual continuation within the declared profile, failure reporting
    and lifetime proofs. Record any still-provisional scoring calibration openly.
 
-The next implementation task is **TYPE-SHIP-01**: paragraph prefix alternatives
-for `none`. SHIP-00, DOM-SHIP-01, SHIP-01, BOX-SHIP-01, SHIP-02, SHIP-03 and
-BOX-SHIP-02 are complete; real paragraph/geometry integration, pagination/runtime
-and real-font proof slices remain planned.
+The next implementation task is **KHIPU-SHIP-01**: manual discretionary
+continuation. SHIP-00, DOM-SHIP-01, SHIP-01, BOX-SHIP-01, SHIP-02, SHIP-03,
+BOX-SHIP-02 and TYPE-SHIP-01 are complete. Manual paragraph continuation,
+used fragment geometry, the content fitting bridge, pagination/runtime and
+end-to-end real-font proof slices remain planned.

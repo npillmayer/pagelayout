@@ -225,3 +225,21 @@ These tests do not consume `fitting-expected.json` wholesale. Its nonzero-edge,
 margin, atomic and manual-carry cases remain the BOX-SHIP-03 and paragraph bridge
 gates; complete page arrangements and span transitions remain page-runtime gates.
 The structural tests do not establish page-level scoring, search or rendering.
+
+## Paragraph prefix evidence
+
+TYPE-SHIP-01's tests in
+[typography/glyphing/paragraph/prefix_fit_test.go](../../../typography/glyphing/paragraph/prefix_fit_test.go)
+exercise every supported whole-line prefix under `none`, including shorter
+choices, exact/zero heights, NoProgress, repeated changed-width resumes and
+consumed-versus-suffix atomic bindings. Logical positions and rendered cluster
+coverage are tested separately from source HTML mapping. Weak-pointer tests
+check execution-state release; the
+[real-font proof](../../../typography/integration/prefix_render_test.go) covers
+an owning range inside a ligature and retained rendering after narrower-width
+completion. The [client example](../../../typography/glyphing/paragraph/prefix_example_test.go)
+demonstrates selecting a shorter prefix.
+
+These are paragraph-boundary proofs, not whole-page fixture results. Manual
+carry, CSS fragment edges/geometry and content/event integration remain later
+gates; the working scoring and limit expectations are unchanged.
