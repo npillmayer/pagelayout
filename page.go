@@ -90,6 +90,21 @@ func (r *Pagination) PageAttempt(ctx context.Context, input State, templateID st
 	if r.busy {
 		return fail(InvalidRequest, content.ErrSessionBusy)
 	}
+	r.busy = true
+	defer func() { r.busy = false }()
+	return r.pageAttempt(ctx, input, templateID)
+}
+
+// pageAttempt runs under the public operation's execution guard, including when
+// called from a search. Eligibility filters cannot reenter either public API.
+func (r *Pagination) pageAttempt(ctx context.Context, input State, templateID string) (PageAttemptResult, error) {
+	where := DiagnosticLocation{Template: templateID}
+	fail := func(kind ErrorKind, cause error) (PageAttemptResult, error) {
+		return PageAttemptResult{}, paginationError(kind, where, cause)
+	}
+	if err := r.Validate(input); err != nil {
+		return PageAttemptResult{}, err
+	}
 	t, ok := r.catalog.Lookup(templateID)
 	if !ok {
 		return fail(InvalidRequest, fmt.Errorf("unknown template %q", templateID))
@@ -108,8 +123,6 @@ func (r *Pagination) PageAttempt(ctx context.Context, input State, templateID st
 			return fail(InvalidRequest, fmt.Errorf("logical position without fitting checkpoint"))
 		}
 	}
-	r.busy = true
-	defer func() { r.busy = false }()
 	run := newPageEnumeration(ctx, r, input, t)
 	err := run.channels(0)
 	if err == nil {

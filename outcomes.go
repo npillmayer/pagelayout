@@ -228,7 +228,11 @@ func (s *Sequence) Pages() []*Candidate {
 	if s == nil {
 		return nil
 	}
-	return slices.Clone(s.pages)
+	pages := make([]*Candidate, len(s.pages))
+	for i, p := range s.pages {
+		pages[i] = freezeCandidate(p)
+	}
+	return pages
 }
 func (s *Sequence) FinalState() State {
 	if s == nil {
@@ -247,14 +251,33 @@ type SearchReport struct {
 	outcome             SearchOutcome
 	selected, incumbent *Sequence
 	heuristic           bool
+	stats               SearchStats
 }
 
+// SearchStats counts work in this invocation, including an interrupted round's
+// attempts. Rounds counts only fully evaluated and pruned depth rounds.
+// Complete candidates never occupy beam slots. SafePruned and WidthPruned count
+// unfinished paths, not unique logical states; no state merging is performed.
+type SearchStats struct {
+	Rounds, Attempts, NoFit, Completions, SafePruned, WidthPruned uint64
+}
+
+func (r SearchReport) Stats() SearchStats { return r.stats }
+
 func (r SearchReport) Outcome() SearchOutcome { return r.outcome }
-func (r SearchReport) Selected() *Sequence    { return r.selected }
+func (r SearchReport) Selected() *Sequence    { return copySequence(r.selected) }
 
 // Incumbent is always explicitly unselected; it must not be committed/shipped.
-func (r SearchReport) Incumbent() *Sequence     { return r.incumbent }
+func (r SearchReport) Incumbent() *Sequence     { return copySequence(r.incumbent) }
 func (r SearchReport) HeuristicTruncated() bool { return r.heuristic }
+
+func copySequence(s *Sequence) *Sequence {
+	if s == nil {
+		return nil
+	}
+	copy := *s
+	return &copy
+}
 func finishSearch(outcome SearchOutcome, complete *Sequence, heuristic bool, err error) (SearchReport, error) {
 	if err != nil {
 		err = executionError(err)

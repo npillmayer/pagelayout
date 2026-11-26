@@ -9,5 +9,7 @@
 // returning frozen output, checked loss and exact successor together. Selected
 // owning material activates targets; FIFO queues and transitive draining are
 // preserved. Planning itself neither consumes banks nor activates targets or
-// creates pages. Template-sequence search and span delivery remain separate work.
+// creates pages. PaginationSearch selects one complete pagespan by deterministic
+// beam search and reports truncation/interruption explicitly. Span transitions
+// and document delivery remain separate work.
 package pagelayout

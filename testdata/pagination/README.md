@@ -6,8 +6,9 @@ They are independently authored expectations, not generated paginator output.
 The source table is exercised by SHIP-01/02 tests against content loading and
 `pagelayout.Plan`; the scoring table is exercised by SHIP-03. State/outcome protocol cases are
 checked at their contract boundary. SHIP-05/06 exercise single- and multi-channel
-page construction, activation, draining and frozen rendering. Search and delivery
-cases remain later runtime gates.
+page construction, activation, draining and frozen rendering. SHIP-07 executes
+the search graph cases and compares real page fixtures with exhaustive search.
+Public span transitions and delivery remain later runtime gates.
 
 Keep template and content documents separate. The template collection can already
 be checked with:
@@ -210,6 +211,23 @@ or blocked result. Previously settled carry timing and loss algebra do not
 become provisional merely because coefficient calibration is provisional.
 
 ## Finite search graphs
+
+`search_graph_test.go` executes all twelve cases through the same private
+scheduler used by `PaginationSearch`. It checks retained round frontiers,
+incumbents, exact losses, attempt/pruning counts, all outcome categories and the
+requested explicit widths. An independent depth-first traversal checks finite
+graphs without beam or bound pruning. Additional cases cover nonalphabetical
+catalog order, checked cost overflow, post-callback cancellation and attempt caps.
+
+`search_test.go` compares actual PageAttempt traversal with exhaustive search for
+changed-width paragraphs, `transitive.html` and `cross-span-fifo.html`. The
+transitive fixture selects `note-first`, `figures-only` at 3,840,278 units and
+leaves later-span material untouched. Cross-span FIFO blocking is infeasible
+under the current policies. Eligibility/parity, width truncation vs proof,
+late failures, copied selected/incumbent handles, identity, limits and retry are
+also checked. `page_realfont_test.go` retains selected Gentium none/manual
+rendering after session close and GC. These tests select one pagespan; they do
+not implement document delivery or claim optimization over alternate local cuts.
 
 Each graph declares template order, initial state, completed states, positive
 minimum page cost and one edge per feasible state/template pair. Missing edges

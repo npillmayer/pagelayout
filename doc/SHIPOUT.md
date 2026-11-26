@@ -154,6 +154,28 @@ If anything, the pagespan optimization could be handled by a pool of workers.
 
 ## Design discussion: pagination and shipout
 
+SHIP-07 implementation update (2026-11-26): `PaginationSearch` now selects one
+complete current pagespan with the settled default-32 unfinished beam. Complete
+depth rounds extend all retained paths through catalog-ordered eligible templates;
+successors rank by summed loss and lexicographic template ordinals. Completed
+incumbents stay outside the beam, and later completions may replace them. Safe
+pruning uses the positive minimum page cost with strict greater-than; equality
+remains eligible. Width truncation and safe pruning have separate counters.
+No merging, progress beam tie, guessed remaining cost or automatic widening occurs.
+
+The working eligibility baseline is exposed as optional
+`PaginationConfig.Eligible func(State, *template.Template) (bool, error)`.
+It receives immutable state and an independent template handle, filters without
+reordering, and must be deterministic. Errors abort search; callback reentry is
+rejected. Explicit PageAttempt remains unfiltered. Already-complete input selects
+zero pages/loss. Success selects an immutable Sequence with its exact drained
+final state; errors may retain a completed incumbent, explicitly unselected.
+Stats distinguish completed rounds, attempts, NoFit edges, completions and both
+pruning kinds. Finite graph and exhaustive page-fixture tests cover the policy,
+and real-font proofs retain selected rendering after session closure. Public span
+transitions/delivery remain SHIP-08. Eligibility, scoring and numerical limits
+retain their working-hypothesis status. Author remarks are unchanged.
+
 SHIP-06 implementation update (2026-11-26): `PageAttempt` now selects complete
 multi-channel arrangements with authoring-order FIFO heads, exact checkpoints
 and transitive activation from actually placed owner material. Same-page targets
@@ -171,7 +193,7 @@ Entry participation, once-per-target carry, missing-main and secondary-only
 draining follow the existing factual scorer. Tests cover exact transitive losses,
 FIFO obstruction, several/partial heads per frame, empty/split owners, margins,
 late failures and real-font none/manual rendering after session closure.
-Search and public span delivery remain SHIP-07/08. Scoring and numerical caps
+SHIP-07 supplies search; public span delivery remains SHIP-08. Scoring and numerical caps
 remain working hypotheses. Author remarks are unchanged.
 
 SHIP-05 implementation update (2026-11-26): `Pagination.PageAttempt` now builds
@@ -182,7 +204,7 @@ original head and matching fitting checkpoint. Stops inside main and empty
 material are handled without metadata-only pages. The typography-neutral output
 contract supplies line counts; real-font tests retain none/manual rendering and
 atomic interiors after session/execution collection. SHIP-06 extends this to
-secondary placement and activation; search and public span delivery remain later slices.
+secondary placement and activation; SHIP-07 supplies search and public span delivery remains later work.
 The scoring formulas and numerical caps remain working hypotheses. Author remarks
 are unchanged.
 
@@ -243,7 +265,7 @@ Logical byte/knot progress and rendered cluster coverage remain separate; source
 ranges inside ligatures attach to the whole cluster, independently of bidi visual
 order. Selected output survives changed-width suffixes and release of preparation.
 BOX-SHIP-03 supplies used CSS fragment geometry, and SHIP-04 supplies the content
-bridge. SHIP-05/06 supply page construction; search remains subsequent work. Scoring and numerical limits
+bridge. SHIP-05/06 supply page construction and SHIP-07 supplies search. Scoring and numerical limits
 remain working hypotheses. Existing author remarks are unchanged.
 
 BOX-SHIP-02 implementation update (2026-11-25): css-box-layout now enumerates
@@ -254,21 +276,21 @@ logical progression, occupied extents and selected continuations across changed
 receiving widths. Exhaustion, voluntary interruption and errors/limits are
 distinct. BOX-SHIP-03 now supplies fragment geometry/paint, nonzero edges/margins
 and atomics; TYPE-SHIP-01/02 supply paragraph-prefix services, connected by
-SHIP-04. SHIP-05/06 supply multi-channel page construction; search remains pending.
+SHIP-04. SHIP-05/06 supply multi-channel page construction; SHIP-07 supplies search.
 
 SHIP-03 implementation update (2026-11-25): initialization now binds immutable
 state to a source/plan, preparation and execution context. Checked loss algebra,
 factual scoring, local/sequence comparators and page/search publication contracts
 are implemented. Scoring and numeric caps remain working hypotheses. SHIP-05/06
-integrate checkpoints, pages and secondary activation/draining. Search remains
-a later slice; initialization itself creates no pages.
+integrate checkpoints, pages and secondary activation/draining; SHIP-07 supplies
+search. Initialization itself creates no pages.
 
 SHIP-02 implementation update (2026-11-25): `pagelayout.Plan(document)` validates
 ownership and main-only breaks, and returns copied source-qualified branches,
 anchors and spans without advancing queues. Content propagates source events
 through normalized provenance and processed paragraph coordinates. Initial and
 coincident boundaries coalesce; the terminal drain is represented explicitly.
-SHIP-05/06 supply page fitting and placement activation; search remains later work.
+SHIP-05/06 supply page fitting and placement activation; SHIP-07 supplies search.
 
 BOX-SHIP-01 implementation update (2026-11-25): css-box-layout now provides
 `BuildLayoutTreesWithProvenance`, returning detached source endpoints, retained
@@ -1084,7 +1106,9 @@ headings and pending channels. Template order supplies the agreed tie preference
 it must remain observable even if evaluation is scheduled differently. A
 working eligibility hypothesis considers every catalog template in definition
 order, with an optional deterministic predicate over pagination state that
-filters without reordering. The predicate/policy API remains open.
+filters without reordering. SHIP-07 implements this baseline as
+`PaginationConfig.Eligible func(State, *template.Template) (bool, error)`;
+its error aborts search. Explicit PageAttempt remains unfiltered.
 Mandatory per-page channel participation is deferred. An absent receiver can
 increase loss without excluding an otherwise progressing page, but the selected
 sequence must eventually drain all material related to its span.
@@ -1189,8 +1213,8 @@ attempt, err := run.PageAttempt(ctx, state, templateID)
 report, err := run.PaginationSearch(ctx, state)
 ```
 
-`Plan(document)`, `NewPagination(config)`/initial state and multi-channel PageAttempt
-are implemented. PaginationSearch remains an API sketch. `config` supplies the plan,
+`Plan(document)`, `NewPagination(config)`/initial state, multi-channel PageAttempt
+and one-span PaginationSearch are implemented. `config` supplies the plan,
 catalog, matching PreparedSnapshot/PreparationSession, fitting adapter and
 options. `PaginationSearch` searches one pagespan. A document-level operation
 may repeatedly select complete spans and advance their boundaries.
@@ -1291,7 +1315,8 @@ Implementation status: DOM-SHIP-01 now supplies checked break-before metadata,
 parsing and cascade resolution in w3c-dom, preserving all Level 3 keyword values.
 The content loader's narrower admission/normalization and source marker mapping
 are implemented by SHIP-01/02. SHIP-05/06 supply multi-channel finite-height page
-construction and draining; sequence search and delivery remain subsequent work.
+construction and draining. SHIP-07 supplies sequence search; public span
+transitions/delivery remain subsequent work.
 
 **Settled initial profile:** admit `break-before: auto`, and normalize `page`,
 `left`, `right`, `recto` and `verso` to the same forced page boundary. Resolve
@@ -1442,8 +1467,8 @@ document status. Do not send speculative pages or interrupted incumbents to outp
 | Markers/anchors | Affinity, suppression, strict ownership, propagation and activation settled. | Source/normalization/preparation mapping in DOM-SHIP-01, BOX-SHIP-01 and SHIP-01/02. |
 | Fitting | Initial profile, edge/margin rules and enumeration contract settled. | Structural/paragraph APIs and implementations in BOX/TYPE/KHIPU-SHIP slices. |
 | Loss | Algebra, uint64 units, quantization and error handling settled. | Scoring participation, occupancy, penalties/weights remain working hypotheses; validate the recorded expectations in SHIP-03/06/09. |
-| Search | Tie/beam policy and interrupted-incumbent behavior settled. | Config/result declarations and checks; numerical caps remain working hypotheses. |
-| Eligibility | Existing all-templates-in-order/optional-deterministic-filter working baseline retained. | Predicate API and eligibility fixtures in SHIP-07. |
+| Search | Tie/beam policy and interrupted-incumbent behavior settled; SHIP-07 implements execution, config, reports and checks. | Numerical-cap calibration and broader search-quality proofs remain open. |
+| Eligibility | All-templates-in-order/optional-deterministic-filter working baseline retained; SHIP-07 implements Eligible and its fixtures. | Calibration of eligibility policies remains open; no mandatory channel participation. |
 | Output | Atomic span selection, separate delivery and lifetime contracts settled. | Concrete frozen payload/consumer declarations and proofs in SHIP-08/09. |
 | Deferred | Floats, concurrent workers, state merging, broader fragmentation and automatic hyphenation remain deferred. | No additional abstraction is implied by SHIP-00. |
 

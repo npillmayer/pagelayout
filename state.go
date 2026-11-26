@@ -19,7 +19,8 @@ func (l WorkLimits) valid() bool    { return l.LocalSteps > 0 && l.SpanAttempts 
 
 // PaginationConfig binds immutable inputs to a borrowed serialized session.
 // Nil Policy/Limits select defaults; BeamWidth zero selects the settled 32.
-// Fitter is required for PageAttempt; nil permits state/plan inspection only.
+// Fitter is required for page construction/search; nil permits inspection and
+// searching an already complete span. Eligible is nil to consider all templates.
 type PaginationConfig struct {
 	Plan      *SpanPlan
 	Catalog   *template.Catalog
@@ -29,6 +30,7 @@ type PaginationConfig struct {
 	Limits    *WorkLimits
 	BeamWidth int
 	Fitter    content.GroupFitter
+	Eligible  TemplateEligibility
 }
 type stateContext struct {
 	plan        *SpanPlan
@@ -51,6 +53,7 @@ type Pagination struct {
 	backend  content.GroupFitter
 	fitters  map[content.Box]*content.Fitter
 	busy     bool
+	eligible TemplateEligibility
 }
 
 func NewPagination(config PaginationConfig) (*Pagination, error) {
@@ -96,7 +99,7 @@ func NewPagination(config PaginationConfig) (*Pagination, error) {
 		}
 		c.branches[b.Material.Root] = b
 	}
-	return &Pagination{context: c, catalog: *config.Catalog, prepared: &prepared, session: config.Session, backend: config.Fitter, fitters: map[content.Box]*content.Fitter{}}, nil
+	return &Pagination{context: c, catalog: *config.Catalog, prepared: &prepared, session: config.Session, backend: config.Fitter, fitters: map[content.Box]*content.Fitter{}, eligible: config.Eligible}, nil
 }
 func (r *Pagination) Policy() LossPolicy {
 	if r == nil || r.context == nil {

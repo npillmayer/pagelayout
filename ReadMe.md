@@ -1,7 +1,8 @@
 # pagelayout
 
 Load HTML/CSS page templates and content, inspect their flow channels, and
-prepare content, compile ownership/span plans and construct pages across channels.
+prepare content, compile ownership/span plans, construct pages across channels
+and select a template sequence for one pagespan.
 
 A **page template** describes a page and its receiving **frames**. A frame's
 `flow-from` names the channel it receives. In a separate content document,
@@ -12,7 +13,7 @@ from its own document; a template's styles do not restyle the content.
 
 | Package | Use it to |
 | --- | --- |
-| `pagelayout` | Validate owning links and page spans; construct pages with exact channel remainders and inspectable loss. |
+| `pagelayout` | Validate owning links and page spans; construct pages and select a pagespan sequence with exact channel remainders and inspectable loss. |
 | [`template`](template/README.md) | Load and validate collections; select templates and inspect page dimensions, frame rectangles, paint and flow chains. |
 | [`content`](content/README.md) | Load styled HTML, inspect source material and take whole branches from persistent channel registers. Prepare material and fit fragments with an explicit backend. |
 | [`preparation/typography`](preparation/typography/README.md) | Supply fonts and shaping services, prepare paragraphs once, measure intrinsic widths, lay out complete subtrees or fit resumable fragments. |
@@ -204,8 +205,8 @@ pending items behind them; these facts do not prove that every template fails.
 
 Forced main breaks stop the current span inside its retained head. Related
 targets must drain before the span is complete; progressing drain pages may omit
-a main receiver. Future-span branches remain untouched. Span transitions and
-template-sequence search are unavailable through the public execution API.
+a main receiver. Future-span branches remain untouched. Public span transitions
+and document delivery are not yet available.
 A page that finishes its span is still `Constructed`; `SpanComplete` describes
 an already-complete input.
 
@@ -218,6 +219,72 @@ outputs must implement `content.ParagraphOutput` to supply factual line counts.
 For groups with source events, outputs also implement `content.ParagraphEvents`:
 report only events reached by the rendered prefix, using the original group
 event values. Logical byte consumption alone does not activate an owner.
+
+## Select a pagespan sequence
+
+Search from an explicit state using the run's fixed policy and beam width:
+
+```go
+report, err := run.PaginationSearch(ctx, state)
+if err != nil {
+    // report.Incumbent() may contain a completed, explicitly unselected span.
+    // Do not deliver it automatically after interruption or failure.
+    return err
+}
+switch report.Outcome() {
+case pagelayout.SearchComplete:
+    selected := report.Selected()
+    for _, candidate := range selected.Pages() {
+        page := candidate.Page() // frozen rendering data
+        _ = page
+    }
+    state = selected.FinalState() // still at this span's drained boundary
+    fmt.Println(selected.Loss().Info(), report.HeuristicTruncated())
+case pagelayout.SearchInfeasible:
+    // No completion exists under the configured eligibility/local page policies.
+case pagelayout.SearchHeuristicExhausted:
+    // Beam truncation discarded paths; feasibility is undetermined.
+}
+```
+
+The search considers templates in catalog order. After each complete depth round,
+it keeps at most `BeamWidth` unfinished paths (32 by default), ordered by summed
+loss and lexicographic template ordinals. Complete paths occupy no beam slot.
+Search continues after the first completion. The positive minimum page cost
+allows safe pruning only when the bound exceeds the best completion's loss.
+Equal bounds remain eligible to improve the template-sequence tie. No states
+are merged and no retry or automatic widening occurs.
+
+To restrict templates, set `PaginationConfig.Eligible` to a deterministic callback:
+
+```go
+Eligible: func(state pagelayout.State, pageTemplate *template.Template) (bool, error) {
+    if state.Info().NextPage == 1 {
+        return pageTemplate.ID() == "opening", nil
+    }
+    return pageTemplate.ID() != "opening", nil
+},
+```
+
+The callback receives immutable state and an independent template handle. It
+filters without reordering; nil admits every template. Errors abort search.
+Serialize execution and keep the session open; the callback must not reenter
+pagination or operate on that session. An explicit `PageAttempt` does not invoke
+the filter. Already-complete input returns a zero-loss, zero-page selection
+without invoking the filter or fitting backend.
+
+`report.Stats()` reports completed rounds, attempted pages (including failed
+calls), NoFit edges, completed candidates, safely pruned paths and paths removed
+by the width cap. `HeuristicTruncated()` records only width truncation. Without
+truncation, successful search minimizes loss under the configured local page
+and eligibility policies; it does not reconsider alternative local cuts or
+optimize across later spans. `WorkLimits` bounds local enumeration, attempts per
+search and depth rounds. Cancellation, limits and operational failures return
+errors with no selected sequence; a completed incumbent remains inspectable.
+
+Selected pages and copied sequence inspection survive session closure while
+borrowed rendering resources stay valid. The search does not advance to the next
+span or send output to a consumer.
 
 ## Evaluate page loss and compare choices
 

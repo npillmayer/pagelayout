@@ -252,6 +252,14 @@ func TestMultiChannelRealFontEventsAndFrozenRendering(t *testing.T) {
 			if manual && len(frozen.Frames()[2].Fragments()) == 0 {
 				t.Fatal("manual prefix was not split")
 			}
+			searched, err := run.PaginationSearch(ctx, initial)
+			if err != nil || searched.Outcome() != page.SearchComplete || searched.HeuristicTruncated() || len(searched.Selected().Pages()) != 1 {
+				t.Fatal("real-font span search", searched, err)
+			}
+			selectedPage := searched.Selected().Pages()[0].Page()
+			if !reflect.DeepEqual(proofs, pageProofs(t, selectedPage)) {
+				t.Fatal("search changed the local frozen result")
+			}
 			if err := session.Close(); err != nil {
 				t.Fatal(err)
 			}
@@ -260,6 +268,9 @@ func TestMultiChannelRealFontEventsAndFrozenRendering(t *testing.T) {
 			}
 			if !reflect.DeepEqual(proofs, pageProofs(t, frozen)) || len(initial.Info().Activated) != 0 {
 				t.Fatal("retained page/source changed")
+			}
+			if !reflect.DeepEqual(proofs, pageProofs(t, selectedPage)) {
+				t.Fatal("selected search output changed after session close")
 			}
 		})
 	}

@@ -9,10 +9,12 @@ BOX-SHIP-02 structural finite-height fitting, TYPE-SHIP-01 paragraph-prefix
 fitting for `none`, KHIPU-SHIP-01 manual discretionary continuation and
 TYPE-SHIP-02 manual paragraph-prefix fitting and BOX-SHIP-03 used fragment
 geometry/atomics/paint facts, SHIP-04 content/typography fitting, SHIP-05
-single-channel Page attempts and SHIP-06 multi-channel arrangements are
+single-channel Page attempts, SHIP-06 multi-channel arrangements and SHIP-07
+deterministic pagespan beam search are
 implemented.** Page construction includes placement-dependent activation,
 FIFO queues and transitive draining, with exact remainders, frozen pages and
-factual loss. Template-sequence search and span delivery remain subsequent work.
+factual loss. Search selects one complete span with explicit truncation and
+interruption reporting. Public span transitions and delivery remain subsequent work.
 Scoring and numerical execution limits remain working hypotheses.
 
 The author's initial remarks, scattered remarks and closing answers remain in
@@ -155,7 +157,7 @@ real backend, as noted in the detailed steps.
 | 12 | SHIP-04 — complete | pagelayout/content and preparation/typography | SHIP-03, BOX-SHIP-03, TYPE-SHIP-02 | Real resumable fitting bridge. |
 | 13 | SHIP-05 — complete | pagelayout root | SHIP-02, SHIP-03, SHIP-04 | Single-channel Page attempt and two-template proof. |
 | 14 | SHIP-06 — complete | pagelayout root/content, typography adapter; css-box-layout composition support | SHIP-05 | Multi-channel local arrangements, anchors and draining. |
-| 15 | SHIP-07 | pagelayout root | SHIP-03, SHIP-06 | Deterministic beam search and search outcomes. |
+| 15 | SHIP-07 — complete | pagelayout root | SHIP-03, SHIP-06 | Deterministic beam search, eligibility and search outcomes. |
 | 16 | SHIP-08 | pagelayout root | SHIP-07 | Span transitions, selected output and shipout handoff. |
 | 17 | SHIP-09 | pagelayout, sibling regression checks | SHIP-08 | Real-font, lifetime, search-quality and end-to-end proofs. |
 
@@ -422,9 +424,9 @@ completed, explicitly unselected interrupted incumbents. All scoring fixtures ar
 executable; state, arithmetic, identity, cursor, comparator and publication tests
 pin this slice's protocol boundary.
 
-Private synthetic advances test the original state contract. SHIP-04/05 now
-supply actual opaque checkpoints and single-channel page construction; the
-search loop remains pending. Initial state preserves source registers without
+Private synthetic advances test the original state contract. SHIP-04/05/06 now
+supply actual opaque checkpoints and multi-channel page construction; SHIP-07
+supplies pagespan search. Initial state preserves source registers without
 inferring fit or manufacturing metadata-only pages. Candidates pair completed
 page data, loss and exact successors; their separate frozen Page handles retain
 rendering without execution. General delivery remains a later slice.
@@ -566,7 +568,8 @@ audits enforce this boundary. No khipu or CSS-core production changes were requi
 TYPE-SHIP-01 established the `NoHyphenation` profile. KHIPU-SHIP-01 and
 TYPE-SHIP-02 now extend the same fitting surface to manual carry. BOX-SHIP-03
 supplies CSS fragment geometry and SHIP-04 connects the content/preparation
-adapter. Scoring and limits remain working hypotheses; page/search execution is still pending.
+adapter. SHIP-05/06/07 supply page construction and pagespan search; scoring and
+limits remain working hypotheses.
 
 **Work:** extend the existing Prepared.Trial/checkpoint/fragment facilities to
 enumerate supported whole-line prefixes that fit a finite height and freeze a
@@ -839,8 +842,8 @@ late errors, retry, cancellation, limits and session/identity checks. Real Genti
 proofs cover none/manual, percentage atomics, source conservation and rendering
 after execution/session collection while a successor is retained. No sibling
 changes were necessary for SHIP-05. SHIP-06 adds secondary activation, FIFO
-placement and draining below. Public span driving/search
-remain SHIP-07/08. Initial main is the existing sole residual-tree bank item;
+placement and draining below. SHIP-07 supplies search; public span driving
+remains SHIP-08. Initial main is the existing sole residual-tree bank item;
 no new queue or content representation was introduced.
 
 **Work:** implement one-template page construction over main and its ordered
@@ -908,8 +911,8 @@ and empty owners, secondary-only pages, cross-span blocking, signed margins and
 late failure/retry. Real Gentium tests activate through ligature coverage and
 manual continuation and retain frozen rendering after session closure/GC.
 Content/core tests pin copied composition and deferred-bounds validation.
-Scoring and numerical execution limits remain **working hypotheses**. Search
-and public span driving/delivery remain SHIP-07/08.
+Scoring and numerical execution limits remain **working hypotheses**. SHIP-07
+supplies search; public span driving/delivery remain SHIP-08.
 
 **Work:** extend local enumeration to whole-page combinations across channels.
 Preserve each channel's frame-chain and queue order. Main/secondary progress,
@@ -947,6 +950,52 @@ fixtures retain authored order and correct carry costs. Future-span material is
 untouched. A late failure in any channel leaves all channel inputs unchanged.
 
 ### SHIP-07 — Deterministic pagespan beam search
+
+**Status: implemented (2026-11-26).** `Pagination.PaginationSearch(ctx, state)`
+selects one complete current pagespan using SHIP-06's one-candidate-per-template
+Page attempt. The default beam retains 32 unfinished paths. Every depth round
+extends all retained paths through eligible templates in catalog order before
+globally ranking successors by accumulated loss and lexicographic catalog
+ordinals. Completed candidates are kept separately; the search continues after
+the first completion. It neither merges equal states nor adds progress/future-cost
+heuristics. Immutable page predecessors share output without retaining cumulative
+rank vectors from every ancestor.
+
+`PaginationConfig.Eligible` is an optional deterministic
+`func(State, *template.Template) (bool, error)`. Nil admits all templates; false
+filters a state/template edge without changing its ordinal. The callback receives
+immutable state and an independent catalog handle. Errors abort the invocation.
+A whole-search execution guard rejects reentry from eligibility/backend callbacks.
+Explicit PageAttempt calls remain unfiltered. Already-complete input returns
+zero pages and zero loss without calling eligibility or the fitting backend.
+
+After each complete round, the positive policy page-cost lower bound safely
+removes only unfinished paths whose bound is strictly greater than the incumbent
+loss. Equality survives. Checked arithmetic failures abort search. Width
+truncation is separate and reported even if a completion is found.
+`SearchReport.Stats()` copies completed-round, attempted-page, NoFit, completion,
+safe-pruning and width-pruning counts. Attempts include failed calls; eligibility
+rejections are not attempts. A partial interrupted round is not a completed round.
+
+NoFit drops one edge; cancellation, local/depth/attempt limits and operational
+errors abort with no selection. A previously completed incumbent may be retained
+explicitly unselected. Exhaustion without width truncation proves infeasibility
+under the fixed eligibility/local policies; after truncation it is heuristic
+exhaustion. Successful reports select an immutable Sequence with loss, frozen
+pages and exact final state at the current span boundary. Inspection returns
+independent handles. No automatic retry, widening, span transition or output
+delivery is introduced. Scoring and numerical limits remain **working hypotheses**.
+
+`search_graph_test.go` executes all twelve SHIP-00 graph cases, their retained
+frontiers/counters and requested widths, with an independent exhaustive DFS.
+Additional tests cover catalog-vs-name order, invalid/overflowing costs,
+post-callback cancellation and exact attempt caps. `search_test.go` compares
+actual finite page fixtures against exhaustive PageAttempt traversal, including
+changed widths, transitive draining and cross-span FIFO obstruction. It verifies
+eligibility/parity, reentry, explicit attempts, all public outcome categories,
+completed-incumbent isolation, state identity, retry and output lifetime.
+Real Gentium none/manual tests retain selected rendering after session close/GC.
+No sibling changes were needed. Public transitions/delivery remain SHIP-08.
 
 **Work:** implement the settled search policy independently of fitting details.
 Start with a fake deterministic Page attempt and known graphs, then integrate
@@ -1118,8 +1167,8 @@ Useful completion checkpoints are:
    including manual continuation within the declared profile, failure reporting
    and lifetime proofs. Record any still-provisional scoring calibration openly.
 
-The next implementation task is **SHIP-07**: deterministic pagespan beam search.
+The next implementation task is **SHIP-08**: span transitions and shipout handoff.
 SHIP-00, DOM-SHIP-01, SHIP-01,
 BOX-SHIP-01, SHIP-02, SHIP-03, BOX-SHIP-02, TYPE-SHIP-01, KHIPU-SHIP-01,
-TYPE-SHIP-02, BOX-SHIP-03, SHIP-04, SHIP-05 and SHIP-06 are complete. Search,
-span delivery and broader end-to-end proofs remain planned.
+TYPE-SHIP-02, BOX-SHIP-03, SHIP-04, SHIP-05, SHIP-06 and SHIP-07 are complete.
+Public span transitions, delivery and broader end-to-end proofs remain planned.
