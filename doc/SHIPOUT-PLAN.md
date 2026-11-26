@@ -7,11 +7,12 @@ in w3c-dom; SHIP-01 is implemented in content; BOX-SHIP-01 is implemented
 in css-box-layout; SHIP-02 source planning, SHIP-03 state/loss/outcome contracts,
 BOX-SHIP-02 structural finite-height fitting, TYPE-SHIP-01 paragraph-prefix
 fitting for `none`, KHIPU-SHIP-01 manual discretionary continuation and
-TYPE-SHIP-02 manual paragraph-prefix fitting are implemented.** All remaining slices are planned; pagination
-execution is not implemented. Plan inspection, the structural fitter and real
-paragraph-prefix selection for `none` and `manual` are callable. Used fragment
-geometry, the content fitting bridge and page/search execution remain subsequent
-work.
+TYPE-SHIP-02 manual paragraph-prefix fitting and BOX-SHIP-03 used fragment
+geometry/atomics/paint facts are implemented.** All remaining slices are planned;
+pagination execution is not implemented. Plan inspection, the structural fitter and real
+paragraph-prefix selection for `none` and `manual`, and used fragment geometry
+are callable. The content fitting bridge and page/search execution remain
+subsequent work.
 Scoring and numerical execution limits remain working hypotheses.
 
 The author's initial remarks, scattered remarks and closing answers remain in
@@ -147,7 +148,7 @@ real backend, as noted in the detailed steps.
 | 8 | TYPE-SHIP-01 — complete | typography | SHIP-00 | Enumerated paragraph prefixes and frozen fragments for `none`. |
 | 9 | KHIPU-SHIP-01 — complete | khipu | SHIP-00 | Manual discretionary checkpoint/carry support. |
 | 10 | TYPE-SHIP-02 — complete | typography | TYPE-SHIP-01, KHIPU-SHIP-01 | Manual paragraph continuation through the same API. |
-| 11 | BOX-SHIP-03 | css-box-layout | BOX-SHIP-02 | Used-value, margin, atomic and fragment-paint integration. |
+| 11 | BOX-SHIP-03 — complete | css-box-layout | BOX-SHIP-02 | Used-value, margin, atomic and fragment-paint integration. |
 | 12 | SHIP-04 | pagelayout/content and preparation/typography | SHIP-03, BOX-SHIP-03, TYPE-SHIP-02 | Real resumable fitting bridge. |
 | 13 | SHIP-05 | pagelayout root | SHIP-02, SHIP-03, SHIP-04 | Single-channel Page attempt and two-template proof. |
 | 14 | SHIP-06 | pagelayout root | SHIP-05 | Multi-channel local arrangements, anchors and draining. |
@@ -472,12 +473,12 @@ an explicit local work cap. Only `FitExhausted` certifies complete enumeration;
 `FitStopped` is interruption, while cancellation, limits and invalid/unsupported
 input or callback failures are errors with box identity and preserved causes.
 
-The current profile is static auto-width blocks with zero edges, nested block
-sequences and ordinary inline/text groups. Pending opening/closing obligations
-are preserved with open ancestors and next-child indices, including an unopened
-container reached by an explicit stop. Actual nonzero/unresolved CSS edges,
-specified block widths and inline atomics are diagnosed as unsupported until
-BOX-SHIP-03. Results contain structural/paragraph facts, not a painted box tree.
+BOX-SHIP-02 initially supported static auto-width blocks with zero edges, nested
+block sequences and ordinary inline/text groups. BOX-SHIP-03 now adds actual
+used widths/edges, margin collapse and indivisible atomics. Pending opening/
+closing obligations remain preserved with open ancestors and next-child indices,
+including an unopened container reached by an explicit stop. Results expose
+fragment geometry and retained edge values separately from unchanged source styles.
 
 Paragraph services provide all legal prefixes and exact opaque
 checkpoint/output associations. Core freezes cloneable payloads on receipt,
@@ -494,7 +495,7 @@ foreign cursors and unsupported inline cuts, exact-height/oversized non-fit,
 copied inspection, callback scratch reuse, rejection, late errors and concurrent
 independent runs. The executable example retains a selected prefix while fitting
 its suffix at a narrower width. No typography, register, channel or page policy
-enters this API. TYPE-SHIP-01 supplies real paragraph choices; BOX-SHIP-03 adds
+enters this API. TYPE-SHIP-01 supplies real paragraph choices; BOX-SHIP-03 supplies
 used fragment geometry; SHIP-04 connects the content/preparation bridge.
 
 **Work:** add a structural fitter over an immutable normalized tree, receiving
@@ -561,8 +562,8 @@ audits enforce this boundary. No khipu or CSS-core production changes were requi
 
 TYPE-SHIP-01 established the `NoHyphenation` profile. KHIPU-SHIP-01 and
 TYPE-SHIP-02 now extend the same fitting surface to manual carry. BOX-SHIP-03
-adds CSS fragment geometry and SHIP-04 connects the content/preparation adapter. Scoring
-and limits remain working hypotheses; page/search execution is still pending.
+supplies CSS fragment geometry and SHIP-04 connects the content/preparation
+adapter. Scoring and limits remain working hypotheses; page/search execution is still pending.
 
 **Work:** extend the existing Prepared.Trial/checkpoint/fragment facilities to
 enumerate supported whole-line prefixes that fit a finite height and freeze a
@@ -682,6 +683,34 @@ Exercise the source-position/anchor mapping near replacement material and prove
 that accepted atomics retain their matching interiors.
 
 ### BOX-SHIP-03 — Used geometry, atomics and fragment paint
+
+**Status: implemented (2026-11-26).** `StructuralFitter` snapshots normalized
+structure and styles, resolves each receiving width through core used values,
+and replays frozen selected paragraphs on pruned fragment topology through
+`FlowLayout`. Only crossed containers omit top/bottom margins, padding and
+borders; contained children retain their edges. Final edges must fit together
+with final content. Signed/empty/nested margin collapse uses existing core
+rules within a receiver, with no collapse across receivers. Copied `Geometry`,
+`UsedValues` and `ContainerFragment` facts support painting without changing
+source ComputedStyle. Physical overflow is non-fit; invalid geometry is an error.
+
+`ParagraphFitRequest` now carries the resolved owner width, a conservative height
+ceiling, borrowed used values and source-ordered `ParagraphAtomic` values.
+Interiors are realized before outer fitting. Output placements must consume a
+source-order prefix of remaining atomics, while physical order may differ.
+Consumed items retain their exact interior output/geometry across continuation;
+only suffix items may be re-realized. `AtomicFragment` exposes immutable handles
+with copied geometry/used values and cloned paragraph payloads. Auto atomics use
+`NewStructuralFitterWithOptions` and an optional intrinsic measurer. Definite
+percentage/em widths use existing core resolution; unknown-auto percentage
+bases still fail. Atomic interiors must produce complete paragraph alternatives.
+
+Neutral sibling tests pin the SHIP-00 first/middle/last edge examples, closing
+capacity, contained children, local percentage/font contexts, signed/empty
+margins, changed-width atomic reuse, nested/auto/replaced/zero-sized atomics,
+oversized retry, protocol errors, interruption and copied output lifetime.
+No typography imports or page policy were added. **SHIP-04** is the next bridge;
+scoring and numerical limits remain working hypotheses.
 
 **Work:** connect structural fitting to existing used-value, intrinsic and
 flow-layout machinery. Resolve each actual receiving width; percentages,
@@ -965,8 +994,8 @@ Useful completion checkpoints are:
    including manual continuation within the declared profile, failure reporting
    and lifetime proofs. Record any still-provisional scoring calibration openly.
 
-The next implementation task is **BOX-SHIP-03**: used geometry, atomics and
-fragment paint. SHIP-00, DOM-SHIP-01, SHIP-01, BOX-SHIP-01, SHIP-02, SHIP-03,
-BOX-SHIP-02, TYPE-SHIP-01, KHIPU-SHIP-01 and TYPE-SHIP-02 are complete. Used
-fragment geometry, the content fitting bridge, pagination/runtime and end-to-end
-real-font page proofs remain planned.
+The next implementation task is **SHIP-04**: connect content and prepared
+paragraph services to the resumable structural fitter. SHIP-00, DOM-SHIP-01,
+SHIP-01, BOX-SHIP-01, SHIP-02, SHIP-03, BOX-SHIP-02, TYPE-SHIP-01,
+KHIPU-SHIP-01, TYPE-SHIP-02 and BOX-SHIP-03 are complete. The content fitting
+bridge, pagination/runtime and end-to-end real-font page proofs remain planned.

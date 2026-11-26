@@ -154,6 +154,19 @@ If anything, the pagespan optimization could be handled by a pool of workers.
 
 ## Design discussion: pagination and shipout
 
+BOX-SHIP-03 implementation update (2026-11-26): css-box-layout now fits used
+fragment geometry through its existing width/intrinsic/flow rules, including
+signed/empty margin collapse within a receiver. Only containers crossed by a
+split omit the corresponding top/bottom edges; final bottom edges fit with the
+last content. Source styles remain unchanged. Copied geometry and retained edge
+facts support fragment paint. Atomic interiors are completed before outer
+paragraph fitting; consumed interiors stay frozen across width changes and only
+suffix atomics are re-realized. Neutral tests cover exact edge/margin geometry,
+nested/auto/replaced atomics, oversized retry, invalid output and retained
+snapshots. The next slice is SHIP-04, the content/preparation fitting bridge.
+Scoring and numerical limits remain working hypotheses; author remarks are
+unchanged.
+
 TYPE-SHIP-02 implementation update (2026-11-26): typography now accepts manual
 paragraph checkpoints and finite-height prefix selection through the existing
 trial API. Exact selected replacement tails, original source splits and consumed
@@ -164,9 +177,9 @@ replacement-local cluster offsets as original positions. Silent output retains
 logical carry but has no rendered coverage. Failed services publish no trial and
 permit retry. Lifetime and real-font tests retain rendering after working handles
 are collected. Automatic continuation remains unsupported; StartFlow keeps its
-separate `none` profile. BOX-SHIP-03 is next. HTML/event mapping and atomic
-interiors remain adapter-owned; page fitting/search and working scoring/limits
-are unchanged. Author remarks are preserved.
+separate `none` profile. BOX-SHIP-03 now supplies CSS atomic interiors;
+SHIP-04 will connect those snapshots to paragraph geometry and HTML/event mapping.
+Page fitting/search and working scoring/limits are unchanged. Author remarks are preserved.
 
 KHIPU-SHIP-01 implementation update (2026-11-26): khipu now certifies manual
 (`ExplicitHyphenation`) prefixes and first-fit resumes with the exact selected
@@ -185,9 +198,9 @@ selection of a matching frozen fragment, checkpoint and accepted atomic geometry
 Logical byte/knot progress and rendered cluster coverage remain separate; source
 ranges inside ligatures attach to the whole cluster, independently of bidi visual
 order. Selected output survives changed-width suffixes and release of preparation.
-Used CSS fragment geometry, the content bridge and page/search execution remain
-subsequent slices. Scoring and numerical limits remain working
-hypotheses. Existing author remarks are unchanged.
+BOX-SHIP-03 supplies used CSS fragment geometry. The content bridge and
+page/search execution remain subsequent slices. Scoring and numerical limits
+remain working hypotheses. Existing author remarks are unchanged.
 
 BOX-SHIP-02 implementation update (2026-11-25): css-box-layout now enumerates
 finite-height structural alternatives over nested auto-width, zero-edge blocks.
@@ -195,9 +208,9 @@ Neutral paragraph callbacks provide shorter prefixes with matching frozen output
 and exact opaque checkpoints. Results preserve open-container obligations,
 logical progression, occupied extents and selected continuations across changed
 receiving widths. Exhaustion, voluntary interruption and errors/limits are
-distinct. Used fragment geometry/paint, nonzero edges/margins and atomics remain
-BOX-SHIP-03; actual paragraph-prefix services and the content bridge remain
-TYPE-SHIP-01/02 and SHIP-04. The page/search runtime is still pending.
+distinct. BOX-SHIP-03 now supplies fragment geometry/paint, nonzero edges/margins
+and atomics; TYPE-SHIP-01/02 supply paragraph-prefix services. The content bridge
+remains SHIP-04. The page/search runtime is still pending.
 
 SHIP-03 implementation update (2026-11-25): initialization now binds immutable
 state to a source/plan, preparation and execution context. Checked loss algebra,
