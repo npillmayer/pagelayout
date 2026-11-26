@@ -190,12 +190,81 @@ coordinates and atomic placements use big points relative to the owner's content
 origin; 1 CSS pixel equals 0.75 big points. Account for these units and origins
 when drawing. Do not stack already positioned lines or atomic interiors again.
 
+## Fit frames and resume
+
+Create a reusable `content.Fitter` after preparation, then call `Fit` with an
+explicit `paragraph.FirstFit` breaker. Both `hyphens:none` and supported
+`hyphens:manual` use the same API. Width and height are CSS pixels.
+
+```go
+fitter, err := content.NewFitter(prepared, session, root)
+if err != nil {
+    return err
+}
+choices, err := prep.Fit(ctx, prepared, session, fitter, prep.FitRequest{
+    FitRequest: content.FitRequest{Width: 240, Height: 300},
+    Breaker: paragraph.FirstFit,
+})
+if err != nil {
+    return err
+}
+if len(choices) == 0 {
+    return nil // ordinary non-fit; retry other receiving dimensions
+}
+selected := choices[0]
+fragment := selected.Fragment()
+next, err := prep.Fit(ctx, prepared, session, fitter, prep.FitRequest{
+    FitRequest: content.FitRequest{
+        Width: 180, Height: 300, Continuation: selected.Continuation(),
+    },
+    Breaker: paragraph.FirstFit,
+})
+_, _, _ = fragment, next, err
+```
+
+See [the executable two-receiver example](fit_example_test.go). The candidate
+set contains all supported whole-line/block prefixes in deterministic core order.
+`Progress`, `Complete`, `StopReached`, and `End` describe each alternative;
+`Continuation` is its exact resumable remainder. Keep the same fitter and
+preparation/session pair. `content.FitRequest.Stop` accepts a qualified structural
+boundary, and `MaxSteps` supplies a local work cap. Interrupted or failed fits
+return nil; an empty successful set means no fit. No bank advances automatically.
+
+Retain `selected.Fragment()` for rendering without checkpoints or execution
+handles. Its `Groups()` returns occurrence IDs; `Group(id)` gives a
+`FragmentGroup` with copied source/paint input, frozen `Paragraph`, logical prefix
+`Info`, original-source `Coverage`, and source `Events`. Two pieces of one source
+group have different IDs. Use `Input.Group` to relate them to the original group.
+Atomic interiors have separate group occurrences and matching retained geometry.
+
+Group `X`/`Y` are receiver-relative CSS pixels; frozen paragraph coordinates are
+local big points. Box `Geometry()` uses parent-content `RelativeTo` coordinates.
+Use `UsedValues()` and `Containers()` for the actual retained borders, padding
+and paint. Feed each frozen paragraph to typography's `render.BuildFragmentProof`
+with its input text/paint; drawing atomic interiors and applying receiver transforms
+remain application responsibilities.
+
+Coverage retains whole shaping clusters and manual replacement source partitions,
+including when one cluster overlaps several original nodes. `FragmentSource.Range`
+addresses decoded source text, while `Start`/`End` address processed group bytes.
+Generated replacement characters do not imply per-character source mappings.
+Event associations follow logical coverage and empty-anchor affinity, never bidi
+visual order. A group's continuation prevents replay of its reported events.
+The page coordinator handles cross-group deduplication, structural block events,
+flow activation and forced breaks; no event material is inserted into text.
+
+Fitting rounds receiving widths inward to the typography unit and tests height
+without upward quantization. Source geometry and conversion limits are checked.
+Consumed atomic interiors remain unchanged across narrower/wider suffixes.
+Discard alternatives by dropping their handles; frozen bundles remain usable
+after `session.Close()` while their borrowed font resources stay valid.
+
 ## Manage lifetime and errors
 
 Keep each `PreparedSnapshot` with its matching `PreparationSession`, and use
 boxes from the covered source document. The session must remain open for
-measurement and layout. Serialize all operations sharing a session or borrowed
-font/shaper/hyphenator services, including preparation and `Close`; separate
+measurement, layout and fitting. Serialize all operations sharing a session or
+borrowed font/shaper/hyphenator services, including preparation and `Close`; separate
 sessions do not make shared services safe for concurrent use.
 
 Close the session when no more measurements or layouts are needed. `Close` is

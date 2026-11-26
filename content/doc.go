@@ -27,7 +27,10 @@
 // trees private. Layout reserves the same pair for CSS used sizing and complete
 // subtree flow, with separate callback/result state per invocation. It publishes
 // copied CSS geometry only after success; the optional bridge owns frozen
-// paragraph output. Page fitting, fragmentation and bank commits remain later work.
+// paragraph output. NewFitter/Fit reserve the same session for finite-height
+// structural alternatives and exact continuations; each alternative pairs a
+// frozen render fragment with its remainder. Failed/interrupted calls publish
+// no partial candidate set. Page selection and bank commits remain separate.
 //
 // Executable examples demonstrate the sketch input, a channel/branch/group
 // report, persistent banks, additional stylesheets and structured failures.

@@ -3,7 +3,8 @@
 // selection and discovery belong to the caller; no default backend is installed.
 // Sessions own executable preparations, while source/paint metadata stays copied
 // and immutable. Intrinsic measurement and independent whole-tree layout reuse
-// these handles. Page selection, fragmentation and bank commits remain separate.
+// these handles. Fit adds finite-height fragments and exact continuation from
+// the same preparation. Page selection and bank commits remain separate.
 package typography
 
 import (

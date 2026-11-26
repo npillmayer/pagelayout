@@ -7,7 +7,8 @@ pipeline with explicit fake-font/stream integration tests. PREP-03 reuses that
 preparation for intrinsic measurement. PREP-04 now publishes independent whole-tree
 layout results. PREP-05 proves real-font reuse, bank persistence and release of
 working state. BOX-PREP-02 completes the realized-atomic terminology migration.
-The restricted preparation slice is complete; page trials remain later work.
+The restricted preparation slice is complete. BOX-SHIP-02/03 and SHIP-04 now
+supply finite-height fitting and continuation; page construction remains later work.
 
 This note develops the preparation phase introduced in [DESIGN.md](DESIGN.md).
 Preparing reusable content before page trials is established direction. The
@@ -110,8 +111,9 @@ and placement work. Its trial stages show dependencies: laying out an atomic
 interior itself invokes paragraph layout for the groups inside that atomic box.
 Used-value resolution and intrinsic sizing are grouped together because they
 interact recursively. The coordinator advances private cursors while traversing
-frames and commits only a selected complete page. CSS-level fragment fitting remains proposed; typography now has paragraph
-continuation/fitting APIs, which do not by themselves implement page composition.
+frames and commits only a selected complete page. CSS-level fragment fitting and
+the content/typography bridge are implemented by BOX-SHIP-02/03 and SHIP-04;
+page composition remains subsequent work in [SHIPOUT-PLAN.md](SHIPOUT-PLAN.md).
 
 Preparation also precedes intrinsic measurement: measurement should consume the
 same shaped material that subsequent layout uses.
@@ -173,8 +175,9 @@ to put an opaque paragraph payload in core `InlineResult` or geometry tables.
 
 Whole-group layout and partial fitting remain separate contracts. Typography's
 `Prepared.Trial`, `Trial.Assemble`, checkpoints and `Continuation.Fit` already
-supply paragraph-level pieces. CSS-level `FitInline`, block fragmentation and
-transactional multi-channel page fitting still need a later plan.
+supply paragraph-level pieces. `content.NewFitter`/`content.Fit` and
+`preparation/typography.Fit` now connect structural fragments and exact paragraph
+continuations. Transactional multi-channel page fitting remains in the shipout plan.
 
 ## 5. Group enumeration and the preparation driver
 
@@ -344,9 +347,10 @@ memoized discoveries may persist. Base text is not reshaped for
 the second width, while explicitly deferred alternatives remain permitted.
 
 PREP-03–05 execute this experiment, including a nested inner atomic, real-font
-outline proofs and GC lifetime checks. The harder fragmentation contract remains
-separate. Empty template frames use the geometry-only resolver and have no
-horizontal content to prepare.
+outline proofs and GC lifetime checks. SHIP-04 separately implements finite-height
+fragments and exact changed-width continuation through the same preparation.
+Empty template frames use the geometry-only resolver and have no horizontal
+content to prepare.
 
 PREP-00 pins the initial choices in section 12. Implementation must preserve:
 
@@ -354,8 +358,8 @@ PREP-00 pins the initial choices in section 12. Implementation must preserve:
 - The representation and ownership of retained paragraph trial results.
 - Driver scope, tree/group identities and failure publication behavior.
 - Deferred inline contributions and the supported initial text/box profile.
-- Record `FitInline` for partial results and continuation as a later decision,
-  not a prerequisite for the whole-group experiment.
+- Keep partial fitting separate from this whole-group experiment; the later
+  `content.Fit` and typography bridge implement it under SHIP-04.
 
 Sections 11–13 establish the first-slice choices and sequence implementation.
 Wider policies and page-level fitting remain separate decisions. Completing
@@ -468,7 +472,7 @@ can be finalized in the assigned PR without reopening ownership or policy.
 | Initial text/box profile | Normal whitespace and CSS normal line height; zero ordinary-inline edges; nested auto/fixed-width atomics in the trial experiment | Loading/preparation retain percentages; unsupported intrinsic dependencies fail explicitly in the trial, not by rewriting material |
 | Breaker and alignment | Start the experiment with explicit FirstFit, zero side skips, CSS line boxes and bottom-margin-edge atomic alignment | Additional breaker policies can follow without changing bank payloads |
 | Hyphenation | Experiment uses source `hyphens:none`; bridge admits uniform none and uniform manual with an injected explicit-marker hyphenator. Mixed/auto groups fail whole-document preflight | Manual intrinsic measurement can still reject multiple eligible splits/variants; retain that upstream failure and do not silently downgrade policy |
-| Partial fitting | Defer CSS-level fitting and whole-page transactions to a later plan | Reuse existing paragraph Trial/Checkpoint/Continuation APIs where their restrictions fit; general block fragmentation is unsolved |
+| Partial fitting | SHIP-04 connects core structural fitting to retained paragraphs | Whole-page transactions remain separate; use exact qualified continuations and frozen fragment bundles |
 | Concurrency/lifetime | Caller serializes session and shared-service operations, including Close; session owns executable handles and has idempotent Close; frozen output retains stable resources independently | No concurrent-trial promise, internal global lock, implicit reprepare or permanent cache |
 
 The hyphenation boundary is substantive. Content loading preserves none/manual/
@@ -980,9 +984,10 @@ BOX-PREP-02: independent terminology migration, implemented
 No new khipu or w3c-dom feature is a prerequisite for the restricted experiment.
 For wider hyphenation admission beyond PREP-00's restricted profile, schedule KHIPU-PREP-01 for
 per-span policy and intrinsic-measurement support, with typography facade tests,
-before claiming that wider preparation profile. Percentage-atomic layout and
-CSS-level continuation are separate BOX/PAGE work; do not narrow the loader's
-accepted unsized material to hide these integration limits.
+before claiming that wider preparation profile. BOX-SHIP-03 supplies percentage
+atomic layout with definite bases and SHIP-04 connects CSS-level continuation.
+Page construction remains separate shipout work; do not narrow the loader's
+accepted unsized material to hide remaining integration limits.
 
 ## 14. Preparation acceptance matrix
 
@@ -1017,5 +1022,6 @@ dot -Tsvg doc/diagrams/preparation-pipeline.dot -o doc/diagrams/preparation-pipe
 dot -Tsvg doc/diagrams/preparation-interactions.dot -o doc/diagrams/preparation-interactions.svg
 ```
 
-The diagrams distinguish implemented loading, preparation and whole-tree layout
-from proposed finite-height fitting and page-level transactions.
+The diagrams distinguish reusable loading/preparation from per-receiver geometry.
+Finite-height fitting is now implemented through SHIP-04; page-level transactions
+remain planned in SHIPOUT-PLAN.md.

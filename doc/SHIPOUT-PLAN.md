@@ -8,11 +8,11 @@ in css-box-layout; SHIP-02 source planning, SHIP-03 state/loss/outcome contracts
 BOX-SHIP-02 structural finite-height fitting, TYPE-SHIP-01 paragraph-prefix
 fitting for `none`, KHIPU-SHIP-01 manual discretionary continuation and
 TYPE-SHIP-02 manual paragraph-prefix fitting and BOX-SHIP-03 used fragment
-geometry/atomics/paint facts are implemented.** All remaining slices are planned;
+geometry/atomics/paint facts and SHIP-04 content/typography fitting are implemented.** All remaining slices are planned;
 pagination execution is not implemented. Plan inspection, the structural fitter and real
 paragraph-prefix selection for `none` and `manual`, and used fragment geometry
-are callable. The content fitting bridge and page/search execution remain
-subsequent work.
+are callable through the content/preparation fitting bridge. Page/search execution
+remains subsequent work.
 Scoring and numerical execution limits remain working hypotheses.
 
 The author's initial remarks, scattered remarks and closing answers remain in
@@ -149,7 +149,7 @@ real backend, as noted in the detailed steps.
 | 9 | KHIPU-SHIP-01 — complete | khipu | SHIP-00 | Manual discretionary checkpoint/carry support. |
 | 10 | TYPE-SHIP-02 — complete | typography | TYPE-SHIP-01, KHIPU-SHIP-01 | Manual paragraph continuation through the same API. |
 | 11 | BOX-SHIP-03 — complete | css-box-layout | BOX-SHIP-02 | Used-value, margin, atomic and fragment-paint integration. |
-| 12 | SHIP-04 | pagelayout/content and preparation/typography | SHIP-03, BOX-SHIP-03, TYPE-SHIP-02 | Real resumable fitting bridge. |
+| 12 | SHIP-04 — complete | pagelayout/content and preparation/typography | SHIP-03, BOX-SHIP-03, TYPE-SHIP-02 | Real resumable fitting bridge. |
 | 13 | SHIP-05 | pagelayout root | SHIP-02, SHIP-03, SHIP-04 | Single-channel Page attempt and two-template proof. |
 | 14 | SHIP-06 | pagelayout root | SHIP-05 | Multi-channel local arrangements, anchors and draining. |
 | 15 | SHIP-07 | pagelayout root | SHIP-03, SHIP-06 | Deterministic beam search and search outcomes. |
@@ -159,7 +159,8 @@ real backend, as noted in the detailed steps.
 BOX-SHIP-02 and TYPE-SHIP-01 use the contracts pinned in SHIP-00 and test doubles;
 they must not import one another. The SHIP-07 search algorithm can likewise be
 developed against a fake Page attempt after SHIP-03, but is not complete until
-integrated with SHIP-06. SHIP-04/05 may first demonstrate `none` without atomics;
+integrated with SHIP-06. SHIP-04 supports `none`, `manual` and atomics; SHIP-05 may start with a smaller
+page-construction fixture;
 their final acceptance includes the later sibling dependencies in the table.
 
 ## 5. Detailed slices
@@ -420,7 +421,7 @@ pin this slice's protocol boundary.
 
 There is no page constructor/search loop or resumable fitter yet. Private
 synthetic advances test the state contract; actual opaque structural/paragraph
-checkpoint payloads arrive in SHIP-04. Immediate boundary-event processing belongs
+checkpoint payloads are supplied by SHIP-04; binding them into page state remains SHIP-05. Immediate boundary-event processing belongs
 to page orchestration; initial state preserves source registers without trying to
 infer fit or manufacture metadata-only pages. Candidate contracts currently carry
 completed-attempt metadata; geometry/frozen fragments are added by SHIP-04/05.
@@ -709,7 +710,7 @@ Neutral sibling tests pin the SHIP-00 first/middle/last edge examples, closing
 capacity, contained children, local percentage/font contexts, signed/empty
 margins, changed-width atomic reuse, nested/auto/replaced/zero-sized atomics,
 oversized retry, protocol errors, interruption and copied output lifetime.
-No typography imports or page policy were added. **SHIP-04** is the next bridge;
+No typography imports or page policy were added. SHIP-04 now connects the bridge;
 scoring and numerical limits remain working hypotheses.
 
 **Work:** connect structural fitting to existing used-value, intrinsic and
@@ -737,6 +738,42 @@ without corrupting the original continuation. Invalid geometry/unsupported
 fragmentation is an error, never silently clipped or classified as ordinary fit.
 
 ### SHIP-04 — Content and typography fitting bridge
+
+**Status: implemented (2026-11-26).** `content.NewFitter` checks complete covered
+subtree preparation and snapshots a core fitting program. `content.Fit` reserves
+the exact live preparation/session for the whole invocation, qualifies borrowed
+group/atomic requests and structural stops, and returns a candidate set only on
+exhaustion. Foreign cursors, closed/reentrant sessions, cancellation, work caps
+and late failures return no partial bundle. The reusable fitter retains no
+execution services between calls. Original banks and source trees stay unchanged.
+Whole-tree Layout and MeasureIntrinsic retain their existing APIs.
+
+`preparation/typography.Fit` supplies FirstFit paragraph trials from retained
+preparation for `none` and `manual`. Structural and paragraph checkpoints keep
+matching consumed atomic interiors; suffix geometry can change with width.
+Receivers use checked CSS-pixel/big-point conversion, with width rounded inward
+to the DU grid and height tested without upward quantization. Each published
+paragraph occurrence has a distinct `content.FragmentID`, retaining its source
+group identity. Frozen `Fragment` bundles expose copied used geometry, retained
+container edge/paint facts, source paint/text mappings and immutable paragraph
+fragments. Extracting a bundle drops continuation authority; neither bundles
+nor continuations retain a fitter, session, collector or preparation handle.
+
+Rendered coverage maps whole clusters and original manual replacement partitions
+to decoded source bytes. Owning-anchor associations use logical coverage and
+following/preceding/empty-group affinity; per-group continuation prevents replay.
+Cross-group deduplication and structural block/forced-break event execution remain
+page-layer responsibilities. `Fitter.BoundaryAt` accepts structural source-plan
+stops; text coordinates cannot manufacture a stop or checkpoint.
+
+Tests cover changed-width continuation, repeated occurrences, nested/auto and
+percentage atomics, zero-height groups, foreign/closed sessions, reentrancy,
+late errors/retry, strict units and source/marker affinity. Real-font ligature
+and bidi tests pin logical coverage. GC proofs retain rendering with both
+hyphenation policies after execution handles and fitters are collected, even
+while retaining a continuation. An executable `ExampleFit` demonstrates two
+receivers and unchanged banks. No sibling changes were needed. **SHIP-05** is
+next; scoring and numerical limits remain working hypotheses.
 
 **Work:** add the neutral content fitting entry point beside whole-tree Layout.
 It owns private-tree access, complete preparation coverage checks, source/tree
@@ -994,8 +1031,8 @@ Useful completion checkpoints are:
    including manual continuation within the declared profile, failure reporting
    and lifetime proofs. Record any still-provisional scoring calibration openly.
 
-The next implementation task is **SHIP-04**: connect content and prepared
-paragraph services to the resumable structural fitter. SHIP-00, DOM-SHIP-01,
-SHIP-01, BOX-SHIP-01, SHIP-02, SHIP-03, BOX-SHIP-02, TYPE-SHIP-01,
-KHIPU-SHIP-01, TYPE-SHIP-02 and BOX-SHIP-03 are complete. The content fitting
-bridge, pagination/runtime and end-to-end real-font page proofs remain planned.
+The next implementation task is **SHIP-05**: single-channel Page attempt and a
+two-template proof using the resumable bridge. SHIP-00, DOM-SHIP-01, SHIP-01,
+BOX-SHIP-01, SHIP-02, SHIP-03, BOX-SHIP-02, TYPE-SHIP-01, KHIPU-SHIP-01,
+TYPE-SHIP-02, BOX-SHIP-03 and SHIP-04 are complete. Page construction, multi-channel
+coordination, search and end-to-end page proofs remain planned.

@@ -144,6 +144,7 @@ const (
 	StageExecution   PreparationStage = "execution"
 	StageMeasurement PreparationStage = "measurement"
 	StageLayout      PreparationStage = "layout"
+	StageFitting     PreparationStage = "fitting"
 	StageRelease     PreparationStage = "release"
 )
 

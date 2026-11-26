@@ -233,6 +233,58 @@ and frozen results remain usable after closure, provided their font resources
 remain valid. Execution failures leave a successful preparation usable for
 another request. Preparation failure returns neither snapshot nor session.
 
+### Fit a finite receiver and resume
+
+Create one `content.NewFitter(prepared, session, root)` for a covered normal-flow
+block. Reuse it with `content.Fit(ctx, prepared, session, fitter, request, backend)`.
+`FitRequest` supplies CSS-pixel `Width`/`Height`, an optional exact `Continuation`,
+optional `Stop`, `IncludeEmpty`, and a local `MaxSteps` cap (zero means no cap).
+The backend implements `GroupFitter`, including intrinsic measurement from
+retained handles. For the typography backend, use
+[`preparation/typography.Fit`](../preparation/typography/README.md#fit-frames-and-resume).
+
+```go
+fitter, err := content.NewFitter(prepared, session, root)
+if err != nil {
+    return err
+}
+choices, err := content.Fit(ctx, prepared, session, fitter,
+    content.FitRequest{Width: 240, Height: 320}, groupFitter)
+if err != nil {
+    return err
+}
+if len(choices) == 0 {
+    return nil // no progressing material fits this receiver
+}
+selected := choices[0] // apply the application's selection policy
+frozen := selected.Fragment()
+next := content.FitRequest{
+    Width: 180, Height: 320, Continuation: selected.Continuation(),
+}
+_, _ = frozen, next
+```
+
+Alternatives preserve core enumeration order and pair `Progress`, `Complete`,
+`StopReached`, a comparable logical `End`, and the exact remainder. Use
+`fitter.Boundary(box, edge)` or `fitter.BoundaryAt(structuralPosition)` for stops.
+A text position cannot manufacture a structural cut or continuation. Distinct
+fitters have distinct cursors, even for the same source and preparation.
+
+`FitFragment` contains copied `Geometry`, `UsedValues`, container paint/edge
+facts, and cloned paragraph payloads. Each paragraph has a distinct `FragmentID`
+and qualified group/owner identity, including consumed atomic interiors. Paragraph
+origins are absolute within the receiver; box geometry uses `RelativeTo` content
+origins. First/last fragment edges come from the used values, not source widths.
+Accepted atomic interiors stay fixed while suffix atomics may change width.
+
+The complete operation reserves the session. Invalid identity, cancellation,
+work limits, backend errors and voluntary interruption return nil, never a partial
+candidate set. `ErrFitInterrupted` distinguishes voluntary interruption from
+exhaustive non-fit. Failed attempts leave old cursors, banks and frozen fragments
+usable. Extract a `FitFragment` to retain render data without a continuation;
+resumption requires the matching live session. No fit selects pages or consumes
+a register bank.
+
 ### Supply a custom backend
 
 A `Preparer` has two methods:

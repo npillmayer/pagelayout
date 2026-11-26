@@ -154,6 +154,18 @@ If anything, the pagespan optimization could be handled by a pool of workers.
 
 ## Design discussion: pagination and shipout
 
+SHIP-04 implementation update (2026-11-26): content now provides a reusable,
+source/preparation-qualified fitter and transactional finite-height fitting.
+The typography bridge uses retained `none`/`manual` preparations, exact paragraph
+checkpoints and matching atomic interiors. Distinct fragment occurrence IDs keep
+multiple pieces of one source group separate. Frozen bundles retain copied CSS
+geometry, source paint, decoded/processed/cluster mappings and owning-anchor
+affinities, without execution handles. Real-font and GC tests prove retained
+rendering across changed-width continuation and session closure. Structural
+source-plan stops are supported; page-state advances and event activation remain
+the page layer's responsibility. SHIP-05, the single-channel Page attempt, is
+next. Scoring/limits remain working hypotheses; author remarks are unchanged.
+
 BOX-SHIP-03 implementation update (2026-11-26): css-box-layout now fits used
 fragment geometry through its existing width/intrinsic/flow rules, including
 signed/empty margin collapse within a receiver. Only containers crossed by a
@@ -163,7 +175,7 @@ facts support fragment paint. Atomic interiors are completed before outer
 paragraph fitting; consumed interiors stay frozen across width changes and only
 suffix atomics are re-realized. Neutral tests cover exact edge/margin geometry,
 nested/auto/replaced atomics, oversized retry, invalid output and retained
-snapshots. The next slice is SHIP-04, the content/preparation fitting bridge.
+snapshots. SHIP-04 now supplies the content/preparation fitting bridge.
 Scoring and numerical limits remain working hypotheses; author remarks are
 unchanged.
 
@@ -178,7 +190,7 @@ logical carry but has no rendered coverage. Failed services publish no trial and
 permit retry. Lifetime and real-font tests retain rendering after working handles
 are collected. Automatic continuation remains unsupported; StartFlow keeps its
 separate `none` profile. BOX-SHIP-03 now supplies CSS atomic interiors;
-SHIP-04 will connect those snapshots to paragraph geometry and HTML/event mapping.
+SHIP-04 connects those snapshots to paragraph geometry and HTML/event mapping.
 Page fitting/search and working scoring/limits are unchanged. Author remarks are preserved.
 
 KHIPU-SHIP-01 implementation update (2026-11-26): khipu now certifies manual
@@ -198,8 +210,8 @@ selection of a matching frozen fragment, checkpoint and accepted atomic geometry
 Logical byte/knot progress and rendered cluster coverage remain separate; source
 ranges inside ligatures attach to the whole cluster, independently of bidi visual
 order. Selected output survives changed-width suffixes and release of preparation.
-BOX-SHIP-03 supplies used CSS fragment geometry. The content bridge and
-page/search execution remain subsequent slices. Scoring and numerical limits
+BOX-SHIP-03 supplies used CSS fragment geometry, and SHIP-04 supplies the content
+bridge. Page/search execution remains subsequent work. Scoring and numerical limits
 remain working hypotheses. Existing author remarks are unchanged.
 
 BOX-SHIP-02 implementation update (2026-11-25): css-box-layout now enumerates
@@ -209,8 +221,8 @@ and exact opaque checkpoints. Results preserve open-container obligations,
 logical progression, occupied extents and selected continuations across changed
 receiving widths. Exhaustion, voluntary interruption and errors/limits are
 distinct. BOX-SHIP-03 now supplies fragment geometry/paint, nonzero edges/margins
-and atomics; TYPE-SHIP-01/02 supply paragraph-prefix services. The content bridge
-remains SHIP-04. The page/search runtime is still pending.
+and atomics; TYPE-SHIP-01/02 supply paragraph-prefix services, connected by
+SHIP-04. The page/search runtime is still pending.
 
 SHIP-03 implementation update (2026-11-25): initialization now binds immutable
 state to a source/plan, preparation and execution context. Checked loss algebra,
@@ -1277,7 +1289,7 @@ content fragment, not be silently discarded or emitted as an artificial cut.
 Paragraph fitting initially uses explicit FirstFit, normal line height and the
 existing bridge's bottom-margin-edge atomic alignment. Retain admitted `none`
 and `manual` hyphenation policies; KHIPU-SHIP-01 and TYPE-SHIP-02 implement the
-paragraph checkpoint/prefix contracts. SHIP-04 still connects the content bridge.
+paragraph checkpoint/prefix contracts. SHIP-04 connects the implemented content bridge.
 Existing unsupported preparation cases remain explicit. Oversized lines
 or atomics are non-fit for that configuration; unsupported fragmentation is an
 error. Do not clip, shrink or change source policy to manufacture a fit. Real
