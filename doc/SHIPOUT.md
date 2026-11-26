@@ -1435,17 +1435,10 @@ I agree to your proposal. The handling of padding, borders and margins is diffic
 to imagine at this point, but I would go with the following first idea:
 
 Splitting cuts horizontally through nested boxes. For the top halve of the split, we
-keep all padding, borders and margins except the padding-, border-, margin-top.
-For the bottom halve, the reverse is true: we omit the `-bottom` items.
+keep all padding, borders and margins except the padding-, border-, margin-bottom.
+For the bottom halve, the reverse is true: we omit the `-top` items.
 For the case of a middle segment (which might occur with 3 frames of the same region
 on a single page), we omit `-top` and `-bottom`. 
 I don't know if this is workable, and it might produce strange outcome for borders,
 but it may work as a first draft.
 
-### Open question 4: What is the mathematical meaning of a loss value?
-
-I agree to your proposals.
-
-### Open question 5: How do the loss components become a useful page score?
-
-I agree to your proposals.
