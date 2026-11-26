@@ -12,7 +12,7 @@ import (
 )
 
 // LayoutRequest sets the containing width in CSS pixels and explicit breaker.
-// Select FirstFit explicitly; other breakers are outside this initial profile.
+// Select FirstFit explicitly; other breakers are outside the supported profile.
 // Zero width is valid. The profile uses CSS normal line height, zero
 // side skips and bottom-margin-edge alignment of completed atomic boxes.
 type LayoutRequest struct {
@@ -28,19 +28,22 @@ type GroupResult struct {
 	Paragraph paragraph.Result
 }
 
-// Result is a completed independent trial, without preparation/session handles.
+// Result is a completed independent subtree layout, without preparation/session handles.
 // It owns CSS geometry and all paragraphs together. Accessors copy envelopes.
 type Result struct {
 	css    *content.LayoutResult
 	groups map[content.Box]GroupResult
 }
 
+// Root returns the source root whose complete layout this result describes.
 func (r *Result) Root() content.Box {
 	if r == nil {
 		return content.Box{}
 	}
 	return r.css.Root()
 }
+
+// Geometry returns a copied CSS-pixel map with parent-content RelativeTo coordinates.
 func (r *Result) Geometry() map[content.Box]layout.LayoutGeometry {
 	if r == nil {
 		return nil
@@ -55,6 +58,9 @@ func (r *Result) Groups() []content.GroupInfo {
 	}
 	return r.css.Groups()
 }
+
+// Group returns a copied source/paint description and shared immutable paragraph
+// output for one source group. A missing or foreign group returns false.
 func (r *Result) Group(b content.Box) (GroupResult, bool) {
 	if r == nil {
 		return GroupResult{}, false

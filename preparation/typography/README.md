@@ -1,8 +1,8 @@
 # typography preparation
 
-Prepare loaded content with selected fonts, measure intrinsic widths, and lay
-out whole subtrees at different widths. Use an import alias to distinguish this
-package from the font and paragraph packages:
+Prepare loaded content with selected fonts, measure intrinsic widths, lay out
+whole subtrees, or fit resumable fragments into finite-height frames. Use an
+import alias to distinguish this package from font and paragraph packages:
 
 ```go
 import prep "github.com/npillmayer/pagelayout/preparation/typography"
@@ -213,17 +213,22 @@ if len(choices) == 0 {
 }
 selected := choices[0]
 fragment := selected.Fragment()
-next, err := prep.Fit(ctx, prepared, session, fitter, prep.FitRequest{
-    FitRequest: content.FitRequest{
-        Width: 180, Height: 300, Continuation: selected.Continuation(),
-    },
-    Breaker: paragraph.FirstFit,
-})
-_, _, _ = fragment, next, err
+if !selected.Complete() {
+    choices, err = prep.Fit(ctx, prepared, session, fitter, prep.FitRequest{
+        FitRequest: content.FitRequest{
+            Width: 180, Height: 300, Continuation: selected.Continuation(),
+        },
+        Breaker: paragraph.FirstFit,
+    })
+    if err != nil {
+        return err
+    }
+}
+_ = fragment // retain or render the selected prefix
 ```
 
 See [the executable two-receiver example](fit_example_test.go). The candidate
-set contains all supported whole-line/block prefixes in deterministic core order.
+set contains supported whole-line/block prefixes in deterministic order.
 `Progress`, `Complete`, `StopReached`, and `End` describe each alternative;
 `Continuation` is its exact resumable remainder. Keep the same fitter and
 preparation/session pair. `content.FitRequest.Stop` accepts a qualified structural
@@ -250,21 +255,19 @@ addresses decoded source text, while `Start`/`End` address processed group bytes
 Generated replacement characters do not imply per-character source mappings.
 Event associations follow logical coverage and empty-anchor affinity, never bidi
 visual order. A group's continuation prevents replay of its reported events.
-The page coordinator handles cross-group deduplication, structural block events,
-flow activation and forced breaks; no event material is inserted into text.
+Use root pagination to apply those events to channel activation and forced
+breaks; event records do not add text to the paragraph.
 
-Fitting rounds receiving widths inward to the typography unit and tests height
-without upward quantization. Source geometry and conversion limits are checked.
+Receiver dimensions and unit-conversion limits are checked during fitting.
 Consumed atomic interiors remain unchanged across narrower/wider suffixes.
 Discard alternatives by dropping their handles; frozen bundles remain usable
 after `session.Close()` while their borrowed font resources stay valid.
 
 For complete pages, pass `Fitter: prep.FittingAdapter()` to
 `pagelayout.NewPagination` with the same preparation and session. The adapter
-selects FirstFit and retains the source none/manual policy. It supplies neutral
-paragraph line counts for page scoring and rendered `content.ParagraphEvents`
-for owning-anchor activation. Iterate each returned page frame's `Fragments()`
-and call `prep.InspectFragment(fragment)` to recover the same typed `Fragment`
+selects FirstFit and retains the source none/manual policy. Page scoring and
+owning-anchor activation use the resulting paragraph facts. Iterate each returned
+page frame's `Fragments()` and call `prep.InspectFragment(fragment)` to recover the same typed `Fragment`
 described above. Several branches can occupy one frame; their paragraph origins
 already include their placement within it.
 Inspection needs no live session or backend and performs no layout or shaping.
@@ -277,14 +280,14 @@ measurement, layout and fitting. Serialize all operations sharing a session or
 borrowed font/shaper/hyphenator services, including preparation and `Close`; separate
 sessions do not make shared services safe for concurrent use.
 
-Close the session when no more measurements or layouts are needed. `Close` is
+Close the session when no more measurement, layout or fitting is needed. `Close` is
 idempotent and releases owned execution state without closing borrowed services.
 Frozen output and copied metadata remain usable afterward. Keep selected font
 resources valid for as long as retained output needs their metrics or outlines.
 Immutable metadata can be inspected concurrently.
 
-Preparation failure returns no partial snapshot/session. Later measurement or
-layout failures preserve the preparation for another request. Use `errors.As`
+Preparation failure returns no partial snapshot/session. Later measurement, layout or
+fitting failures preserve the preparation for another request. Use `errors.As`
 with `*content.PreparationError` to inspect stage, qualified group/owner and
 source/range information when available. `errors.Is` and `errors.As` also reach
 underlying font, policy, shaping and cleanup errors.

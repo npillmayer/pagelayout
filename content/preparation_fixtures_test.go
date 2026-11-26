@@ -13,8 +13,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-// PREP-00 pins inputs and future acceptance results. PREP-01 now checks actual
-// extraction against that unchanged manifest. Separate preparation/typography
+// The manifest pins source inputs and extracted groups. Separate preparation/typography
 // tests check engine calls, policy admission and measurement without simulation here.
 type preparationFixture struct {
 	File         string

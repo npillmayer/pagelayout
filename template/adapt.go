@@ -50,9 +50,9 @@ type boxPaint struct {
 	borders    [4]borderPaint // Top, right, bottom, left; widths are in constraints.
 }
 
-// validateTemplateCollection is the private TPL-03 boundary. Input must have
-// passed TPL-01/02. Reject source profile failures first to avoid interpreting a
-// partially supported cascade. All independent effective failures are collected.
+// validateTemplateCollection takes a structurally valid, styled collection.
+// Reject source profile failures before interpreting a partially supported cascade.
+// Collect all independent effective failures.
 func validateTemplateCollection(c *styledCollection) (*validatedCollection, error) {
 	if err := validateProfileSources(c); err != nil {
 		return nil, err

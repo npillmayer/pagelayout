@@ -42,7 +42,7 @@ type templateCollection struct {
 
 type templateSource struct {
 	id      string
-	element *html.Node // Storage template, excluded from future active ancestry.
+	element *html.Node // Storage template, excluded from instantiated active ancestry.
 	page    *html.Node
 	frames  []frameSource
 }

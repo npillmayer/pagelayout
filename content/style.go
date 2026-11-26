@@ -16,7 +16,7 @@ type sourceSheet struct {
 	inspection cssom.StylesheetInspection
 }
 
-// Losing and nonmatching declarations remain available for CONT-02's complete
+// Losing and nonmatching declarations remain available for the complete
 // authored profile audit. Syntax inspection does not establish layout eligibility.
 type sourceStyles struct {
 	sheets []sourceSheet
@@ -139,7 +139,7 @@ func cssDiagnostic(ref sourceRef, d cssom.Diagnostic, inline bool) diagnostic {
 }
 
 // Check source requirements before styling. This is not the full content profile:
-// box participation, CSS paint resources/effects and typography follow in CONT-02.
+// projection validates box participation, paint effects and typography.
 func inspectSourceRequirements(n *sourceNode) []diagnostic {
 	if n.node.Type != html.ElementNode {
 		return nil

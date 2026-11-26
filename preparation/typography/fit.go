@@ -26,7 +26,7 @@ type FitRequest struct {
 func FittingAdapter() content.GroupFitter { return fitInvocation{breaker: paragraph.FirstFit} }
 
 // InspectFragment recovers typed rendering data from a neutral frozen fragment,
-// for example a frame returned by pagelayout.PageAttempt. It needs no live session.
+// for example a frame returned by pagelayout.Pagination.PageAttempt. It needs no live session.
 func InspectFragment(f *content.FitFragment) (*Fragment, error) {
 	if f == nil {
 		return nil, content.ErrPreparationProtocol
@@ -65,42 +65,56 @@ type Fragment struct {
 	order  []content.FragmentID
 }
 
+// Root returns the source branch root represented by this frozen fragment.
 func (f *Fragment) Root() content.Box {
 	if f == nil {
 		return content.Box{}
 	}
 	return f.css.Root()
 }
+
+// Extent returns the standalone fragment allocation in CSS pixels.
 func (f *Fragment) Extent() layout.InlineExtent {
 	if f == nil {
 		return layout.InlineExtent{}
 	}
 	return f.css.Extent()
 }
+
+// Geometry returns copied CSS-pixel boxes using parent-content RelativeTo coordinates.
 func (f *Fragment) Geometry() map[content.Box]layout.LayoutGeometry {
 	if f == nil {
 		return nil
 	}
 	return f.css.Geometry()
 }
+
+// UsedValues returns copied widths and edges resolved for this fragment.
 func (f *Fragment) UsedValues() map[content.Box]layout.UsedValues {
 	if f == nil {
 		return nil
 	}
 	return f.css.UsedValues()
 }
+
+// Containers returns copied container paint and first/last fragment edges.
 func (f *Fragment) Containers() []content.FitContainer {
 	if f == nil {
 		return nil
 	}
 	return f.css.Containers()
 }
+
+// Groups returns paragraph occurrence IDs in placement order, including atomic interiors.
 func (f *Fragment) Groups() []content.FragmentID {
 	if f == nil {
 		return nil
 	}
 	return slices.Clone(f.order)
 }
+
+// Group returns one occurrence with copied source/paint/coverage/event slices and a
+// shared immutable paragraph fragment. A missing ID returns false.
 func (f *Fragment) Group(id content.FragmentID) (FragmentGroup, bool) {
 	if f == nil {
 		return FragmentGroup{}, false
@@ -122,12 +136,23 @@ type FitAlternative struct {
 	fragment *Fragment
 }
 
-func (a FitAlternative) Fragment() *Fragment                   { return a.fragment }
+// Fragment returns frozen output independent of resumption and execution lifetimes.
+func (a FitAlternative) Fragment() *Fragment { return a.fragment }
+
+// Continuation returns the exact checkpoint for resuming with the same content.Fitter.
 func (a FitAlternative) Continuation() content.FitContinuation { return a.css.Continuation() }
-func (a FitAlternative) End() content.FitPosition              { return a.css.End() }
-func (a FitAlternative) Progress() bool                        { return a.css.Progress() }
-func (a FitAlternative) Complete() bool                        { return a.css.Complete() }
-func (a FitAlternative) StopReached() bool                     { return a.css.StopReached() }
+
+// End returns a source-qualified endpoint for inspection, not a resumable cursor.
+func (a FitAlternative) End() content.FitPosition { return a.css.End() }
+
+// Progress reports logical material advancement, including zero-height material.
+func (a FitAlternative) Progress() bool { return a.css.Progress() }
+
+// Complete reports exhaustion of the fitted source root.
+func (a FitAlternative) Complete() bool { return a.css.Complete() }
+
+// StopReached reports reaching the requested structural stop.
+func (a FitAlternative) StopReached() bool { return a.css.StopReached() }
 
 // Fit uses existing preparations to enumerate complete whole-line/block choices.
 // Failed or interrupted calls return nil, never a partial bundle. Later trials,

@@ -10,7 +10,7 @@ import (
 
 func TestSketchCollectionShorthands(t *testing.T) {
 	// This fixture is the collection example from doc/SKETCH.md, including its
-	// original shorthand declarations. It must pass strict DOM-01 inspection.
+	// original shorthand declarations. It must pass strict CSS inspection.
 	s := styleCollectionOK(t, readCollectionFixture(t, "sketch.html"))
 	if len(s.templates) != 2 {
 		t.Fatal("lost sketch definitions")

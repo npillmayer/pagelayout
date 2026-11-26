@@ -74,6 +74,7 @@ func newLoadError(items []diagnostic) *LoadError {
 	return &LoadError{items: ds}
 }
 
+// Error formats the ordered loading diagnostics.
 func (e *LoadError) Error() string {
 	messages := make([]string, len(e.items))
 	for i, d := range e.items {

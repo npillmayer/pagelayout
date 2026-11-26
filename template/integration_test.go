@@ -273,7 +273,7 @@ func TestIntegrationSketchDocumentation(t *testing.T) {
 	if strings.Contains(code, "flow-into") {
 		t.Fatal("template collection contains content routing rules")
 	}
-	// Cont-Doc is illustrative input for the future content pipeline, not a
+	// The content document is input for the content loader, not a
 	// collection to pass to the template loader.
 	catalog, err := template.LoadFS(os.DirFS("testdata/content"), "article.html")
 	ds := fileDiagnostics(t, catalog, err)

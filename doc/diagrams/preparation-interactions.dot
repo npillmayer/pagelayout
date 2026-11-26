@@ -1,29 +1,20 @@
-digraph PreparationInteractions {
-  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.5, ranksep=0.5,
-         fontname="Helvetica", fontsize=13,
-         label="Implemented preparation ownership and layout reuse", labelloc=t];
+digraph Layout {
+  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.4, ranksep=0.5,
+         fontname="Helvetica", fontsize=14];
   node [shape=box, style="rounded,filled", fillcolor="#f1f5f9", color="#64748b",
         fontname="Helvetica", fontsize=12, margin="0.18,0.12"];
   edge [color="#475569", fontname="Helvetica", fontsize=10];
-  doc [label="content.Document\nImmutable normalized boxes + source/group index\nRegisterBank[content.Box] retains source only"];
-  prepare [label="content.Prepare\nExtract detached GroupInput; preflight all groups\nPrepare once per group; atomic publication", fillcolor="#dbeafe"];
-  backend [label="preparation/typography.Backend\nExplicit mapper + fresh stream services\nItemize and paragraph.Prepare", fillcolor="#dbeafe"];
-  snapshot [label="PreparedSnapshot\nCopied source/paint/policy and group metadata\nNo executable handles", fillcolor="#dbeafe"];
-  session [label="PreparationSession\nPrivate executable group handles\nSerialized operations and Close", fillcolor="#dbeafe"];
-  invoke [label="MeasureIntrinsic / Layout\nValidate snapshot/session pair and qualified root\nReserve session; fresh invocation state"];
-  core [label="CSS core\nIntrinsic bounds; used values; atomic interiors\nRealizedAtomicsView; ordinary flow geometry"];
-  bridge [label="Typography bridge callbacks\nReuse paragraph.Prepared\nMeasureIntrinsic or Trial + Assemble"];
-  result [label="Independent completed Result\nCopied CSS geometry + frozen paragraphs + source/paint\nUsable after session Close", fillcolor="#dbeafe"];
-  fit [label="Proposed later work\nFinite-height box fitting and continuation\nPage selection + multi-channel commit", fillcolor="#fff7ed", color="#b45309"];
-  doc -> prepare -> backend;
-  prepare -> snapshot [label="on whole-document success"];
-  backend -> session [label="owned handles"];
-  snapshot -> invoke;
-  session -> invoke [label="serialized reuse"];
-  invoke -> core -> bridge;
-  bridge -> core [label="width bounds / extent + placements", style=dashed];
-  core -> result [label="whole-tree success"];
-  bridge -> result [label="retained paragraph results"];
-  result -> fit [style=dashed];
-  { rank=same; snapshot; session; }
+  graph [label="Geometry and typography cooperate under one session reservation", labelloc=t];
+  call [label="MeasureIntrinsic / Layout / Fit\nQualified source + preparation + receiver"];
+  reserve [label="content\nCheck coverage and reserve serialized session", fillcolor="#dbeafe"];
+  core [label="CSS core\nFresh used values, margins, atomic interiors, edges"];
+  bridge [label="Typography bridge\nBorrow retained paragraph handle\nMeasure, lay out or enumerate prefixes"];
+  paragraph [label="typography / khipu\nExact checkpoint, manual carry, frozen glyph output"];
+  result [label="Atomic result publication\nCopied geometry + immutable paragraphs + source coverage", fillcolor="#dcfce7"];
+  call -> reserve -> core;
+  core -> bridge [label="group + realized atomics"];
+  bridge -> paragraph;
+  paragraph -> bridge [label="prefixes and exact continuations", style=dashed];
+  bridge -> core [label="bounds, placements, coverage", style=dashed];
+  core -> result [label="successful checked composition"];
 }

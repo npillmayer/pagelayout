@@ -12,6 +12,8 @@ import (
 	"github.com/npillmayer/pagelayout/content"
 )
 
+// ErrInvalidPlan identifies invalid source ownership or page-break placement.
+// Use errors.As with PlanError to inspect source diagnostics.
 var ErrInvalidPlan = errors.New("invalid pagination plan")
 
 // PlanDiagnostic identifies source-contract failures without parsing prose.
@@ -22,11 +24,15 @@ type PlanDiagnostic struct {
 	Related []content.SourceRef
 	Message string
 }
+
+// PlanError reports source ownership/break validation failures. Diagnostics are
+// ordered and copied on inspection; errors.Is matches ErrInvalidPlan and original causes.
 type PlanError struct {
 	diagnostics []PlanDiagnostic
 	cause       error
 }
 
+// Error formats the ordered plan diagnostics and original cause.
 func (e *PlanError) Error() string {
 	var messages []string
 	for _, d := range e.diagnostics {
@@ -37,12 +43,16 @@ func (e *PlanError) Error() string {
 	}
 	return "pagination plan: " + strings.Join(messages, "; ")
 }
+
+// Unwrap exposes ErrInvalidPlan and the original cause, when present.
 func (e *PlanError) Unwrap() []error {
 	if e.cause != nil {
 		return []error{ErrInvalidPlan, e.cause}
 	}
 	return []error{ErrInvalidPlan}
 }
+
+// Diagnostics returns independent source-aware failures and related-location slices.
 func (e *PlanError) Diagnostics() []PlanDiagnostic {
 	out := slices.Clone(e.diagnostics)
 	for i := range out {
@@ -53,6 +63,9 @@ func (e *PlanError) Diagnostics() []PlanDiagnostic {
 
 // BranchID is a stable ordinal within this plan, not a global source identity.
 type BranchID uint64
+
+// PlanBranch associates a source-order branch with its channel, owner and pagespan.
+// Main spans the document and has Span zero; secondary spans are one-based.
 type PlanBranch struct {
 	ID       BranchID
 	Channel  string
@@ -73,11 +86,17 @@ type Anchor struct {
 	Affinity            content.EventAffinity
 	Coverage            []content.EventCoverage
 }
+
+// SpanBoundary records a coalesced main-flow stop and its contributing source nodes.
+// Initial and Terminal mark document endpoints, which do not create blank pages.
 type SpanBoundary struct {
 	Position          content.LogicalPosition
 	Sources           []content.SourceRef
 	Initial, Terminal bool
 }
+
+// PageSpan is one main interval together with all transitively owned secondary targets.
+// IDs are one-based; Targets preserve source branch order, not anchor order.
 type PageSpan struct {
 	ID         int
 	Start, End content.LogicalPosition
@@ -94,6 +113,7 @@ type SpanPlan struct {
 	spans      []PageSpan
 }
 
+// Document returns an independent handle to the plan's unchanged source snapshot.
 func (p *SpanPlan) Document() *content.Document {
 	if p == nil {
 		return nil
@@ -101,15 +121,21 @@ func (p *SpanPlan) Document() *content.Document {
 	d := p.document
 	return &d
 }
+
+// Matches reports exact source identity, not structural equality with another load.
 func (p *SpanPlan) Matches(d *content.Document) bool {
 	return p != nil && d != nil && p.document.SourceID().Valid() && p.document.SourceID() == d.SourceID()
 }
+
+// Branches returns branch descriptions in source order.
 func (p *SpanPlan) Branches() []PlanBranch {
 	if p == nil {
 		return nil
 	}
 	return slices.Clone(p.branches)
 }
+
+// Anchors returns copied owning-link descriptions and logical coverage slices.
 func (p *SpanPlan) Anchors() []Anchor {
 	if p == nil {
 		return nil
@@ -120,6 +146,8 @@ func (p *SpanPlan) Anchors() []Anchor {
 	}
 	return out
 }
+
+// Boundaries returns copied coalesced stops, including document endpoints.
 func (p *SpanPlan) Boundaries() []SpanBoundary {
 	if p == nil {
 		return nil
@@ -130,6 +158,8 @@ func (p *SpanPlan) Boundaries() []SpanBoundary {
 	}
 	return out
 }
+
+// Spans returns copied optimization intervals and their transitive target lists.
 func (p *SpanPlan) Spans() []PageSpan {
 	if p == nil {
 		return nil

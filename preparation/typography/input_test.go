@@ -72,8 +72,8 @@ func TestOwnerStrutAndPaintBypass(t *testing.T) {
 			if objectOnly {
 				req.Atomics = []paragraph.AtomicBox{{ID: 1, Alignment: paragraph.AlignBottomMarginEdge}}
 			}
-			// Test-only assembly checks the retained owner strut; no public trial
-			// integration is introduced by TYPE-PREP-01.
+			// Direct paragraph assembly isolates the retained owner strut from
+			// subtree layout and fitting.
 			result, err = x.paragraph.Layout(req)
 			return err
 		})

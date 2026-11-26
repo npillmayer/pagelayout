@@ -14,6 +14,8 @@ import (
 // WorkLimits are provisional configurable work-unit caps, never deadlines.
 type WorkLimits struct{ LocalSteps, SpanAttempts, DepthRounds uint64 }
 
+// DefaultWorkLimits returns working caps of 100,000 local steps, 1,000,000 page
+// attempts per span and 10,000 depth rounds per span. These are work units, not timeouts.
 func DefaultWorkLimits() WorkLimits { return WorkLimits{100_000, 1_000_000, 10_000} }
 func (l WorkLimits) valid() bool    { return l.LocalSteps > 0 && l.SpanAttempts > 0 && l.DepthRounds > 0 }
 
@@ -56,6 +58,9 @@ type Pagination struct {
 	eligible TemplateEligibility
 }
 
+// NewPagination binds a matching source plan, catalog and preparation/session to
+// fixed policy, limits and eligibility. It copies configuration values, borrows
+// the session/backend, and performs no font or fitting work. Invalid inputs return nil.
 func NewPagination(config PaginationConfig) (*Pagination, error) {
 	invalid := func(cause error) (*Pagination, error) {
 		return nil, paginationError(InvalidRequest, DiagnosticLocation{}, cause)
@@ -101,18 +106,24 @@ func NewPagination(config PaginationConfig) (*Pagination, error) {
 	}
 	return &Pagination{context: c, catalog: *config.Catalog, prepared: &prepared, session: config.Session, backend: config.Fitter, fitters: map[content.Box]*content.Fitter{}, eligible: config.Eligible}, nil
 }
+
+// Policy returns the run's scoring coefficients by value.
 func (r *Pagination) Policy() LossPolicy {
 	if r == nil || r.context == nil {
 		return LossPolicy{}
 	}
 	return r.context.policy
 }
+
+// Limits returns the run's fixed execution caps by value.
 func (r *Pagination) Limits() WorkLimits {
 	if r == nil || r.context == nil {
 		return WorkLimits{}
 	}
 	return r.context.limits
 }
+
+// BeamWidth returns the maximum unfinished paths retained after a search round.
 func (r *Pagination) BeamWidth() int {
 	if r == nil || r.context == nil {
 		return 0
@@ -144,6 +155,9 @@ type fitCursor struct {
 // State is an immutable context-qualified value. Its zero value is invalid.
 // It retains no session, backend, mutable fitter scratch or source node pointer.
 type State struct{ data *stateData }
+
+// HeadInfo describes a channel's unchanged queue head and optional logical cursor.
+// Position is inspection data; the state retains resumption authority separately.
 type HeadInfo struct {
 	Channel         string
 	Branch          BranchID
@@ -151,6 +165,9 @@ type HeadInfo struct {
 	HasContinuation bool
 	Position        content.LogicalPosition
 }
+
+// StateInfo is a copied inspection snapshot. Heads follow channel order; Activated
+// and Pending contain source-order branch IDs. Span and NextPage are one-based.
 type StateInfo struct {
 	Source             content.SourceID
 	Preparation        content.PreparationID
@@ -160,13 +177,20 @@ type StateInfo struct {
 	Activated, Pending []BranchID
 }
 
+// Valid reports whether the state has a context identity. Use Pagination.Validate
+// to check ownership, bank invariants and availability of the execution session.
 func (s State) Valid() bool { return s.data != nil && s.data.context != nil }
+
+// Bank returns the persistent bank version. Deriving another bank does not change
+// the state or its exact continuations.
 func (s State) Bank() registers.RegisterBank[content.Box] {
 	if !s.Valid() {
 		return registers.RegisterBank[content.Box]{}
 	}
 	return s.data.bank
 }
+
+// Info returns copied heads, activations and pending-target lists for inspection.
 func (s State) Info() StateInfo {
 	if !s.Valid() {
 		return StateInfo{}
@@ -194,6 +218,8 @@ func (s State) Info() StateInfo {
 	}
 	return out
 }
+
+// InitialState returns the source bank at span 1 and page 1 with no activated targets.
 func (r *Pagination) InitialState() State {
 	if r == nil || r.context == nil {
 		return State{}
@@ -390,6 +416,9 @@ type ChannelProgress struct {
 	Completed uint64
 	Position  content.LogicalPosition
 }
+
+// LocalRank compares arrangements from one template and starting state. Progress
+// is ordered main first, then source-channel order; Enumeration breaks remaining ties.
 type LocalRank struct {
 	Loss        Loss
 	Progress    []ChannelProgress
@@ -450,11 +479,14 @@ func CompareLocal(a, b LocalRank) (int, error) {
 	return 0, nil
 }
 
+// SequenceRank contains accumulated loss and zero-based catalog ordinals in page order.
 type SequenceRank struct {
 	Loss      Loss
 	Templates []uint64
 }
 
+// CompareSequences prefers lower loss, then lexicographically earlier template
+// ordinals. It returns negative when a is preferred and never compares progress.
 func CompareSequences(a, b SequenceRank) int {
 	if c := a.Loss.Compare(b.Loss); c != 0 {
 		return c

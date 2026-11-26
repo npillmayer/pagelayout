@@ -24,8 +24,8 @@ const (
 // not normalized-box offsets or prepared-text coordinates. Value holds the ID,
 // raw href, or "page". Active means material participates after suppression;
 // excluded target IDs/anchor annotations remain available for later diagnostics.
-// Plan validation, target resolution, boundary affinity and propagation are later
-// operations. No ownership is inferred from ordinary links.
+// Plan validation and target resolution belong to pagelayout. EventPositions
+// supplies normalized boundary affinity and prepared group coverage. No ownership is inferred from ordinary links.
 type SourceEvent struct {
 	Kind       SourceEventKind
 	Source     SourceRef

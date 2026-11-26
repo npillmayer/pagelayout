@@ -1,42 +1,50 @@
-// Package content is the content-loading pipeline for template-based page layout.
+// Package content loads styled HTML, prepares immutable flow material and fits
+// fragments through explicit backend contracts.
 //
-// Load styles HTML in its original source context, checks the content profile,
-// partitions named flow branches and residual material, and normalizes each tree
-// through css-box-layout. It publishes an immutable Document only after every
-// branch succeeds. Inspection returns copies; Box handles retain private trees,
-// source text and styles, and qualify identity by snapshot and tree.
+// # Loading and inspection
 //
-// The initial register bank contains whole branch-root Boxes in source order.
-// Deriving another bank leaves the Document unchanged. Residual() aliases the default main tree; valid main directives stay in source
-// order there. SourceEvents exposes detached IDs, anchors and forced breaks. Groups include empty paragraphs
-// and nested inline-block interiors, with source owner context preserved.
+// [Load] styles the complete source in its original ancestry, validates the
+// supported profile, partitions nonnested block branches by flow-into, and
+// normalizes each tree. Residual material belongs to main; a valid explicit
+// flow-into:main is redundant. Nested routes remain errors. Publication is atomic.
+// Readers remain caller-owned; no resources or fonts are fetched and no scripts
+// are executed. [LoadError] preserves ordered source/CSS diagnostics and causes.
 //
-// Loading fetches no resources, executes no scripts and consults no fonts. Boxes
-// remain unsized; preparation, used geometry and continuation belong to later
-// phases. Readers remain caller-owned. LoadError exposes ordered, source-aware
-// diagnostics and preserves original causes.
+// [Document.Bank] holds whole branch-root [Box] values in source order. Derived
+// banks do not mutate the document. Box identity includes snapshot and tree;
+// inspection returns copied source, style and structural descriptions. Boxes keep
+// source values unsized until receiving constraints are supplied.
 //
-// Prepare extracts detached GroupInput records and invokes an explicit Preparer
-// after whole-document preflight. Success publishes immutable PreparedSnapshot
-// metadata plus a separate PreparationSession owning backend handles. Banks and
-// source boxes stay unchanged. Session.WithGroup validates qualified identities;
-// callers serialize execution and Close. Cleanup releases owned handles in
-// reverse order and preserves causes through PreparationError. The optional
-// preparation/typography package supplies the typography backend. MeasureIntrinsic
-// reuses existing handles through a neutral measurement callback while keeping
-// trees private. Layout reserves the same pair for CSS used sizing and complete
-// subtree flow, with separate callback/result state per invocation. It publishes
-// copied CSS geometry only after success; the optional bridge owns frozen
-// paragraph output. NewFitter/Fit reserve the same session for finite-height
-// structural alternatives and exact continuations; each alternative pairs a
-// frozen render fragment with its remainder. Failed/interrupted calls publish
-// no partial candidate set. Page selection and bank commits remain separate.
+// [Document.SourceEvents] retains IDs, owning annotations and forced breaks.
+// [Document.EventPositions] maps them through normalization and processed text
+// without fonts. Logical positions support inspection/comparison, not resumption.
+// The root pagelayout package owns ownership validation, activation and span planning.
 //
-// Executable examples demonstrate the sketch input, a channel/branch/group
-// report, persistent banks, additional stylesheets and structured failures.
-// The content README documents the handoff to the later preparation bridge;
-// source-child inspection must not be mistaken for normalized group extraction.
-// EventPositions maps annotations using builder provenance and extraction ranges;
-// Prepare carries copied GroupInput.Events without inserting text. The root
-// pagelayout.Plan owns ownership validation and span construction.
+// # Preparation and execution
+//
+// [Prepare] extracts [GroupInput], preflights the entire document, then prepares
+// every group, including empty groups and inline-block interiors. It publishes
+// immutable [PreparedSnapshot] metadata and a separate [PreparationSession]
+// owning executable handles. Source boxes and banks are unchanged. Failure
+// releases acquired handles in reverse order and publishes neither result.
+//
+// Use the matching source/snapshot/session for [MeasureIntrinsic], [Layout] and
+// [Fit]. These operations reserve the session, borrow backend handles only for
+// synchronous callbacks, and publish complete results atomically. The optional
+// preparation/typography package supplies font-backed implementations and typed
+// frozen paragraph inspection. Custom backends implement the neutral interfaces.
+//
+// # Fragments and lifetime
+//
+// [NewFitter] creates a reusable structural fitter. [Fit] takes finite CSS-pixel
+// constraints and returns alternatives pairing frozen output with exact opaque
+// continuations. Reuse the same fitter for changed-width continuation. Failed or
+// interrupted enumeration returns no partial candidate set. [ComposeFragments]
+// places branch fragments in one receiver with normal margin collapse.
+//
+// Serialize all execution and [PreparationSession.Close], including shared
+// borrowed services. Close releases owned handles, never borrowed font resources.
+// Copied metadata and frozen output survive closure while their rendering resources
+// remain valid. Page selection, channel advancement and output delivery belong to
+// the root pagelayout package.
 package content

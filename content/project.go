@@ -77,8 +77,8 @@ func loadProjection(r io.Reader, opts LoadOptions) (*sourceProjection, error) {
 	return projectSource(s)
 }
 
-// projectSource is the private CONT-02 boundary. Routing checks, partitioning,
-// normalization and publication intentionally remain later phases.
+// projectSource creates detached typed input with source styles and identities.
+// Routing, partitioning and normalization consume this projection separately.
 func projectSource(s *styledSource) (*sourceProjection, error) {
 	if err := validateProfileSources(s); err != nil {
 		return nil, err

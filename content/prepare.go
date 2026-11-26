@@ -136,6 +136,7 @@ var (
 // PreparationStage locates a failure in the neutral lifecycle or a backend.
 type PreparationStage string
 
+// Stages distinguish input validation, backend execution and lifecycle failures.
 const (
 	StageExtraction  PreparationStage = "extraction"
 	StagePreflight   PreparationStage = "preflight"
@@ -161,6 +162,7 @@ type PreparationError struct {
 	Err          error
 }
 
+// Error formats the preparation stage and original cause.
 func (e *PreparationError) Error() string {
 	where := e.Source.Name
 	if e.Source.Path != "" {
@@ -171,6 +173,8 @@ func (e *PreparationError) Error() string {
 	}
 	return fmt.Sprintf("%scontent %s: %v", where, e.Stage, e.Err)
 }
+
+// Unwrap returns the original cause, including any joined cleanup failures.
 func (e *PreparationError) Unwrap() error { return e.Err }
 
 // Prepare extracts and validates all input, runs backend preflight once, then

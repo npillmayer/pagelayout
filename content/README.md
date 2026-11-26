@@ -3,8 +3,9 @@
 `content` loads styled HTML into immutable, unsized box material. Use
 `flow-into` to route block branches into named channels, inspect their source
 styles and groups, and derive register banks without changing the document.
-The package also provides preparation, measurement and layout operations for
-caller-supplied backends.
+Use an explicit backend for preparation, intrinsic measurement, whole-tree
+layout or finite-height fitting. For automatic page selection and delivery, use
+the [root package](../README.md).
 
 ```go
 import "github.com/npillmayer/pagelayout/content"
@@ -28,9 +29,9 @@ import (
 
 func main() {
 	const source = `<body style="font-size:16px;hyphens:none">
-      <p>Introductory content.</p>
+      <p>Introductory content <a href="#note" data-flow-anchor>1</a>.</p>
       <section style="flow-into:main"><p>First article.</p></section>
-      <aside style="flow-into:notes">A note.</aside>
+      <aside id="note" style="flow-into:notes">A note.</aside>
       <section style="flow-into:main"><p>Second article.</p></section>
     </body>`
 	doc, err := content.Load(strings.NewReader(source), content.LoadOptions{
@@ -76,8 +77,8 @@ and template styles have no effect on these source styles.
 
 ## Work with channels and residual content
 
-`Channels()` returns `main` first, then secondary names in first-occurrence order. `Branches(name)` returns
-that channel's branches in source order. Names are case-sensitive; branches
+`Channels()` returns `main` first, then secondary names in first-occurrence order.
+`Branches(name)` returns that channel's branches in source order. Names are case-sensitive; branches
 with the same secondary name remain separate items. Main has `BranchInfo.Order` 1;
 secondary branches follow in global source order.
 
@@ -97,8 +98,8 @@ numeric IDs. It retains its source material independently of the public
 
 `Residual()` aliases the single default `main` tree. Valid `flow-into:main`
 directives are redundant: their content stays in source order in that tree.
-Routing validation still rejects nested directives, even when both name `main`. An empty body is valid and has a residual root and an
-empty group. A completely `display:none` body has a residual tree identity but
+Routing validation rejects nested directives even when both name `main`. An
+empty body is valid and has a residual root and an empty group. A completely `display:none` body has a residual tree identity but
 no root or groups; check `Root.Valid()` before using it. Its channel inventory
 still contains `main`, but its bank and main branch list are empty.
 
@@ -192,7 +193,7 @@ refer to the parsed HTML tree; CSS locations refer to stylesheet text.
 Additional CSS uses its own source label. `errors.Is` and `errors.As` preserve
 access to original reader, parser and other underlying causes.
 
-## Handoff to preparation
+## Prepare material
 
 Pass the loaded document and an explicit `Preparer` to `Prepare`:
 
@@ -233,15 +234,12 @@ and frozen results remain usable after closure, provided their font resources
 remain valid. Execution failures leave a successful preparation usable for
 another request. Preparation failure returns neither snapshot nor session.
 
-### Fit a finite receiver and resume
+## Fit a finite receiver and resume
 
-Create one `content.NewFitter(prepared, session, root)` for a covered normal-flow
-block. Reuse it with `content.Fit(ctx, prepared, session, fitter, request, backend)`.
-`FitRequest` supplies CSS-pixel `Width`/`Height`, an optional exact `Continuation`,
-optional `Stop`, `IncludeEmpty`, and a local `MaxSteps` cap (zero means no cap).
-The backend implements `GroupFitter`, including intrinsic measurement from
-retained handles. For the typography backend, use
+Create one `NewFitter(prepared, session, root)` for a covered normal-flow block.
+The fitting backend implements `GroupFitter`; for font-backed paragraphs, use
 [`preparation/typography.Fit`](../preparation/typography/README.md#fit-frames-and-resume).
+With a custom backend:
 
 ```go
 fitter, err := content.NewFitter(prepared, session, root)
@@ -254,147 +252,108 @@ if err != nil {
     return err
 }
 if len(choices) == 0 {
-    return nil // no progressing material fits this receiver
+    return nil // no material fits; choose another receiver
 }
-selected := choices[0] // apply the application's selection policy
-frozen := selected.Fragment()
-next := content.FitRequest{
-    Width: 180, Height: 320, Continuation: selected.Continuation(),
+selected := choices[0] // apply your selection policy
+fragment := selected.Fragment()
+if !selected.Complete() {
+    choices, err = content.Fit(ctx, prepared, session, fitter, content.FitRequest{
+        Width: 180, Height: 320, Continuation: selected.Continuation(),
+    }, groupFitter)
+    if err != nil {
+        return err
+    }
 }
-_, _ = frozen, next
+_ = fragment // retain or render the selected prefix independently of its remainder
 ```
 
-Alternatives preserve core enumeration order and pair `Progress`, `Complete`,
-`StopReached`, a comparable logical `End`, and the exact remainder. Use
-`fitter.Boundary(box, edge)` or `fitter.BoundaryAt(structuralPosition)` for stops.
-A text position cannot manufacture a structural cut or continuation. Distinct
-fitters have distinct cursors, even for the same source and preparation.
-`End().Logical()` maps the fitted endpoint to a source-qualified position. Its
-inspection includes the backend's within-offset step for discretionary progress;
-use `Compare`, not raw offsets, to order it. It cannot replace a continuation.
+Width and height are finite, nonnegative CSS pixels. `MaxSteps` sets a local work
+cap; zero means no cap. `IncludeEmpty` also requests the unchanged-cursor choice.
+Use `Progress`, `Complete` and `StopReached` to distinguish progress, exhaustion
+and arrival at an optional `Stop`. Obtain a structural stop with
+`fitter.Boundary(box, edge)` or `BoundaryAt(position)`.
 
-`FitFragment` contains copied `Geometry`, `UsedValues`, container paint/edge
-facts, and cloned paragraph payloads. Each paragraph has a distinct `FragmentID`
-and qualified group/owner identity, including consumed atomic interiors. Paragraph
-origins are absolute within the receiver; box geometry uses `RelativeTo` content
-origins. First/last fragment edges come from the used values, not source widths.
-Accepted atomic interiors stay fixed while suffix atomics may change width.
+Resume with the exact `Continuation`, the same fitter and its matching live
+preparation/session. `End()` and `End().Logical()` are inspection coordinates,
+not replacement continuations. Use `Compare` rather than sorting raw offsets.
+A different fitter has different cursor identity even for the same source.
 
-The complete operation reserves the session. Invalid identity, cancellation,
-work limits, backend errors and voluntary interruption return nil, never a partial
-candidate set. `ErrFitInterrupted` distinguishes voluntary interruption from
-exhaustive non-fit. Failed attempts leave old cursors, banks and frozen fragments
-usable. Extract a `FitFragment` to retain render data without a continuation;
-resumption requires the matching live session. No fit selects pages or consumes
-a register bank.
+Failed or interrupted calls return nil, never a partial choice set. An empty
+successful set means no fit. `ErrFitInterrupted` identifies voluntary interruption.
+Old fragments and checkpoints remain usable after failure. Fitting neither
+advances a bank nor selects pages.
 
-`prepared.EmptyRange(root, from, to)` conservatively certifies that an interval
-within a covered block root contains no text, atomics, paint, spacing or nonzero
-definite width. Obtain source-qualified endpoints from `TreeBounds` or positioned
-events. False includes invalid, foreign and unproved ranges. Inspection works
-after session close and executes no backend. True is not a continuation: callers
-must still traverse the structural fitter and process owning annotations before
-advancing the material. The root paginator uses this to avoid empty-span pages.
+`FitFragment` exposes copied `Geometry`, `UsedValues`, `Containers` and `Paragraphs`.
+Each paragraph occurrence has its own FragmentID and source group/owner. Paragraph
+origins use receiver-relative CSS pixels; box geometry uses the content origin
+identified by `RelativeTo`. Use the retained container edges and paint when drawing
+split boxes. Consumed inline-block interiors stay fixed across width changes.
 
-For use with the page constructor, frozen paragraph payloads also implement
-`ParagraphOutput.LineCount() uint64`. Report lines in that occurrence, including
-zero for empty material. The page constructor combines this fact with exact
-from/to and completion facts to assess split penalties without a font dependency.
+## Compose branches in one receiver
 
-For groups carrying source events, also implement `ParagraphEvents.PlacedEvents()`.
-Return copied original `GroupEvent` values actually reached by the rendered
-prefix, respecting cluster/replacement coverage and empty-anchor affinity.
-Consumed bytes alone are insufficient for silent discretionary output.
-`LogicalPosition.IsText()` distinguishes these associations from structural
-positions; `fragment.ContainsBoundary(position)` checks a retained structural
-edge without treating a suspended container as placed material.
+Call `ComposeFragments(width, height, fragments)` with fragments fitted at the
+receiver's width and ordered as they should appear. It returns positioned fragments,
+combined `Extent` and `Fits`, without needing a session or paragraph backend.
+Inputs remain unchanged. Use the composition's extent for occupied receiver space;
+individual fragments retain their standalone allocations.
 
-### Compose branches in one receiver
-
-Use `ComposeFragments(width, height, fragments)` to place independently rooted
-fragments in register order. Supply fragments fitted at that receiver's width.
-Their frozen interiors and identities remain unchanged; their outer margins
-collapse through the ordinary core flow rules. The result gives copied fragments
-with translated geometry and paragraph origins, total `Extent`, and `Fits`.
-No session or paragraph backend is needed. `FitFragment.Extent()` retains its
-standalone allocation; use the composition's extent for the complete receiver.
-
-When a later branch's negative leading margin can collapse an earlier trailing
-margin, fit intermediate roots with `FitRequest.DeferVerticalBounds: true`.
-Such candidates have not passed final vertical bounds checks. Compose the
-selected roots and require `Fits` before accepting the arrangement. The flag
-preserves finite geometry, horizontal checks and the paragraph height ceiling.
-The default request checks complete bounds directly.
-
-### Supply a custom backend
-
-A `Preparer` has two methods:
-
-| Method | Caller contract |
-| --- | --- |
-| `Preflight([]GroupInput) error` | Validate all policies and required services before performing font, shaping or layout work. |
-| `PrepareGroup(GroupInput) (GroupPreparation, error)` | Return matching `Group`/`Owner` handles and an exclusively owned `GroupHandle` for each input. |
-
-Each call receives independent input slices. `GroupHandle.Release()` releases
-owned execution resources. On a preparation failure, acquired handles are
-released in reverse order. `*content.PreparationError` carries stage, qualified
-group/owner, source and range when known; wrapped causes include cleanup errors.
-
-Use `session.WithGroup(prepared, group, owner, callback)` to borrow a backend
-handle for one callback. Do not retain or release that handle or reenter the
-session from the callback. Immutable output may be retained. See the
-[recording-backend example](prepare_example_test.go) for a complete custom
-`Preparer` and its lifecycle.
+For intermediate branches whose trailing margins may collapse with a following
+negative leading margin, fit with `DeferVerticalBounds: true`. Such choices have
+not passed final vertical bounds checks: compose them and require `Fits` before
+accepting the arrangement. Use the default bounds checks for standalone fragments.
 
 ## Inspect pagination source facts
 
-`doc.SourceEvents()` returns copied records for authored IDs, `data-flow-anchor`
-presence with raw `href`, and effective forced `break-before` values. `page`,
-`left`, `right`, `recto` and `verso` all produce `SourcePageBreak` with value
-`page`; `auto` produces no break event. Additional CSS follows normal cascade
-rules. Avoidance, column/region breaks and legacy `page-break-before` are rejected.
+Use `pagelayout.Plan(doc)` for validated ownership and span membership. For source
+inspection, `SourceEvents()` reports authored IDs, owning-link annotations and
+normalized forced breaks; `EventPositions()` adds qualified positions, affinity
+and group coverage. Both return independent records without layout or font calls.
+Ordinary links do not create owning events, and excluded annotations are inactive.
 
-Use each event’s `Source` and `Parent` with `NodeSource` to inspect its original
-position. Excluded ID/anchor annotations have `Active == false`; ordinary links
-do not create anchor events. These records do not resolve targets, validate an
-ownership graph, or identify prepared-text offsets. No boxes or text are inserted.
+`break-before: page`, left, right, recto and verso normalize to page. Auto creates
+no break event. Avoidance, column/region breaks and `page-break-before` are
+unsupported. Plan validates whether an active break is at a supported location.
 
-## Inspect logical event positions
+Source decoded-byte ranges, processed group-byte ranges and structural positions
+are different coordinates. Use `LogicalPosition.Compare` only within one source
+tree; `SourceID()` identifies the exact loaded snapshot. `TreeBounds` gives tree
+endpoints; suppressed roots have invalid endpoints. Empty owning links can attach
+to a block boundary without paragraph coverage. Source positions never authorize
+resumption or establish that an anchor was placed.
 
-`doc.EventPositions()` maps active annotations to original source blocks,
-normalized positions and processed group coverage without fonts or layout.
-Each `PositionedEvent` preserves its original event, affinity and copied coverage.
-`UnsupportedBreak` flags a location for the root planner to reject; ordinary
-content loading remains independent of ownership rules. Use `pagelayout.Plan`
-when you need ownership validation and span membership.
+`prepared.EmptyRange(root, from, to)` can certify a range without text, atomics,
+paint, spacing or nonzero definite width. False also covers invalid or unproved
+ranges. True is not a continuation: a custom coordinator must still advance via
+the fitter and account for owning annotations. Use root pagination to handle
+empty spans automatically.
 
-`LogicalPosition.Compare` accepts positions only within the same source tree.
-`Info()` exposes copied structural/processed coordinates and qualified box/group
-handles. A comparison is not a permission to exchange layout continuations.
-`TreeBounds` provides the endpoints of a retained tree; suppressed roots have
-invalid endpoints. `SourceID()` is a comparable, opaque snapshot identity.
+## Supply a custom backend
 
-`content.Prepare` carries anchor coverage in `GroupInput.Events`. Each record
-keeps source ranges separate from processed UTF-8 ranges; several records can
-belong to one anchor, which must activate only once. Empty events have zero-width
-ranges and add no text or boxes. PreparedSnapshot.Input and backend inputs own
-independent event slices, retained after session closure. Structural events
-outside groups remain in the source plan. Glyph/cluster coverage is supplied by
-the paragraph backend when fitting actual fragments, not by this source map.
+Implement `Preparer` to provide reusable group execution handles:
 
-`session.Check(prepared)` checks preparation identity and whether the session is
-open and idle, without invoking a backend. Serialize it with execution and Close.
-Errors preserve `ErrInvalidPreparation`, `ErrClosedSession` or `ErrSessionBusy`.
+| Method | Client contract |
+| --- | --- |
+| `Preflight([]GroupInput) error` | Validate all policies and required services without font, shaping or layout work. |
+| `PrepareGroup(GroupInput) (GroupPreparation, error)` | Return the matching group/owner and an exclusively owned GroupHandle. |
+| `GroupHandle.Release() error` | Release owned execution resources without closing borrowed services or invalidating frozen output. |
 
-Empty-anchor affinity considers retained blocks even when they contain no text.
-When affinity lands on a block boundary, the event can have no paragraph coverage;
-use its structural position in the plan. An anchor outside an inline atomic
-attaches to the atomic occurrence, never an interior paragraph. Likewise, visible
-coverage outside an atomic counts the occurrence once rather than also counting
-its interior text.
+Calls receive independent input slices. Preparation failure releases acquired
+handles in reverse order and returns neither snapshot nor session. The
+[recording-backend example](prepare_example_test.go) shows a complete implementation.
+For measurement, layout and fitting, implement `GroupMeasurer`, `GroupLayouter`
+and `GroupFitter` as needed; see their godoc for callback inputs and outputs.
 
-Use `LogicalPosition.Compare`, not `PositionInfo.Order` or a lone group offset,
-for progress ordering. Comparison canonicalizes processed byte boundaries onto
-normalized leaves, placing an atomic's end after its interior and equating shared
-processed boundaries across adjacent source ranges. Inspection still retains the
-original source box and group-byte coordinate separately.
+`session.WithGroup` borrows a handle for one callback. Do not retain or release
+it or reenter the session. `session.Check(prepared)` checks identity and open/idle
+state without calling the backend. Serialize these calls with execution and Close.
+
+For use with root pagination, frozen paragraph payloads implement
+`ParagraphOutput.LineCount()` and, for groups with annotations,
+`ParagraphEvents.PlacedEvents()`. Return copied original events actually covered
+by rendered material, including cluster/replacement and empty-anchor affinity.
+Consumed byte offsets alone do not establish visible placement. The supplied
+[typography adapter](../preparation/typography/README.md) handles these contracts.
+
+Use `errors.As` with `*PreparationError` for stage, group/owner and source/range
+details. `errors.Is` also reaches original causes and lifecycle sentinels such as
+`ErrInvalidPreparation`, `ErrClosedSession` and `ErrSessionBusy`.

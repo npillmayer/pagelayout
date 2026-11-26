@@ -1,23 +1,27 @@
-digraph Packages {
-  graph [rankdir=LR, bgcolor="white", pad=0.25, nodesep=0.35, ranksep=0.7,
-         fontname="Helvetica", fontsize=12];
+digraph Layout {
+  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.4, ranksep=0.5,
+         fontname="Helvetica", fontsize=14];
   node [shape=box, style="rounded,filled", fillcolor="#f1f5f9", color="#64748b",
         fontname="Helvetica", fontsize=12, margin="0.18,0.12"];
   edge [color="#475569", fontname="Helvetica", fontsize=10];
-
-  page [label="pagelayout\nImplemented: catalog, content.Box banks\nPreparation/session + whole-tree layout\nProposed: page fitting, selection and commit",
-        fillcolor="#dbeafe", color="#2563eb"];
-  dom [label="w3c-dom\nSeparate source styling contexts\nCSSOM and property lookup"];
-  boxes [label="css-box-layout\nImplemented: boxing, group enumeration, registers\nFixed geometry and ordinary flow layout\nProposed: resumable box-fragment fitting"];
-  type [label="typography / paragraph\nPrepare, Trial, assembly and checkpoints\nBounded paragraph continuation"];
-  khipu [label="khipu\nReusable material + atomic bindings\nBreak trials, checkpoints and freezing"];
-  reference [label="tytui / documentlayout\nExtraction / preparation adapter reference\nBounded flow; not a register engine",
-             fillcolor="#fff7ed", color="#b45309"];
-
-  page -> dom [label="source styling"];
-  page -> boxes [label="geometry and\nbox sizing"];
-  page -> type [label="prepared paragraphs\nand trial fragments"];
-  type -> khipu [label="uses"];
-  page -> reference [label="reference; no package dependency", style=dashed];
-  { rank=same; dom; boxes; type; reference; }
+  graph [label="Production responsibilities and service boundaries", labelloc=t];
+  caller [label="Caller\nFonts, shaping, eligibility, renderer"];
+  root [label="pagelayout\nOwnership, page construction, search, delivery", fillcolor="#dbeafe"];
+  content [label="content\nSource, boxes, neutral preparation/fitting"];
+  template [label="template\nCSS collection + compiled receivers"];
+  bridge [label="preparation/typography\nExplicit backend + frozen paragraphs", fillcolor="#dcfce7"];
+  boxes [label="css-box-layout\nNormalization, registers, geometry, fragments"];
+  dom [label="w3c-dom\nCSS inspection, source styling, checked values"];
+  typography [label="typography / khipu\nReusable paragraphs + exact continuations"];
+  caller -> root;
+  caller -> bridge [label="injected services"];
+  root -> content;
+  root -> template;
+  bridge -> content [label="implements neutral protocols"];
+  bridge -> typography;
+  content -> boxes;
+  content -> dom;
+  template -> boxes;
+  template -> dom;
+  { rank=same; content; template; bridge; }
 }

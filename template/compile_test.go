@@ -20,7 +20,7 @@ func TestCompilePreservesGeometryCauses(t *testing.T) {
 		{codeGeometryResolve, layout.ErrInvalidFixedGeometry, func(f *frameInput) { f.constraints.Width.Value = float32(math.NaN()) }},
 	} {
 		// Exercise the compiler's upstream failure mapping without changing the
-		// stricter TPL-03 authoring profile or injecting a public geometry engine.
+		// stricter template authoring profile or injecting a public geometry engine.
 		v := validatedHTML(t, profileHTML("", "", ""))
 		tc.edit(&v.templates[0].frames[0])
 		c, err := compileTemplates(v)

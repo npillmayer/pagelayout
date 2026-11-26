@@ -1,39 +1,44 @@
-// Package template owns HTML/CSS page-template loading for pagelayout.
+// Package template loads HTML/CSS page-template collections into immutable catalogs.
 //
-// Page definitions are stored in an HTML collection as direct body children
-// named <template data-type="page" id="...">. Each contains one page DIV whose
-// direct DIV children are empty receiving frames. Source order determines
-// definition and frame order; classes are authoring conventions, not role markers.
+// # Collections
 //
-// TPL-01 privately parses and validates collection structure. HTML parser
-// recovery applies: it validates the resulting tree, not HTML syntax conformance.
-// TPL-02 inspects CSS and styles an isolated html/body/page/frame document per
-// definition using w3c-dom. Original source identities and pre-cascade declarations
-// are retained. Unsupported rule forms and syntax failures reject the collection.
-// TPL-03 checks the initial CSS profile and adapts effective page/frame values
-// into detached paint, flow bindings and css-box-layout constraints in CSS pixels.
-// Load compiles every definition into an immutable Catalog (TPL-04), resolving
-// fixed frame geometry and checking positive receiving sizes, page bounds and
-// border-box overlaps. A failure returns no partial catalog. Errors expose
-// structured diagnostics through LoadError and retain original wrapped causes.
+// Store definitions as direct body children of the form
+// <template data-type="page" id="name">. Each holds one page DIV whose direct,
+// empty DIV children are receiving frames. The page has an absolute positive
+// size; frames use position:fixed and flow-from. Source order determines template
+// order and each channel's receiver chain. The storage template is absent from
+// the instantiated page's selector ancestry; html/body attributes are preserved.
 //
-// LoadFS reads an explicit filesystem. LoadFile uses an injectable IO to search
-// UserConfigDir()/templates before the current directory; absolute paths are
-// opened directly. Both close their files and preserve the selected source name.
-// System-wide repository configuration remains a future extension.
-// LoadOptions.Stylesheets supplies additional author CSS after collection sheets;
-// LoadFSWithOptions and LoadFileWithOptions expose the same options for files.
-// Normal cascade rules apply. Additional CSS is inspected and profile-checked
-// with its own source labels before geometry compilation; no resources are fetched.
+// [Load] reads caller-owned HTML, validates the repaired tree and all retained CSS
+// declarations, then compiles every definition atomically. Losing and nonmatching
+// declarations are checked too. Each definition has an isolated styling context.
+// Frames must have positive content rectangles, lie within their page and have
+// nonoverlapping border boxes. Touching edges are allowed. Unsupported input or
+// invalid geometry returns a [LoadError] and no partial catalog.
 //
-// The examples for Load, LoadFS, LoadFile and LoadError are executable. They
-// cover reader input, embedded collections, injected repository I/O and atomic
-// failure diagnostics. Content flow-into rules belong to a separate document;
-// template flow-from bindings identify receivers without styling that content.
+// # Input and stylesheets
 //
-// Catalog descriptions use page-local CSS-pixel geometry and resolved solid
-// paint. Accessors return copies; selection requires no parsing, styling or
-// geometry work. Load retains no DOM/CSSOM or mutable intermediate inputs.
-// Content preparation, page trials and rendering are separate phases.
+// [LoadFS] opens and closes an exact filesystem path. [LoadFile] uses injectable
+// [IO] to search the user configuration templates directory before the working
+// directory. Absolute paths are opened directly; relative paths escaping through
+// .. use only the working directory. Only missing files permit fallback.
+// [LoadFSWithOptions] and [LoadFileWithOptions] accept additional author CSS.
+//
+// The Stylesheets field of [LoadOptions] appends caller-supplied sheets after
+// head CSS, retaining normal specificity, inline-style and importance precedence. No resource fetching
+// or script execution occurs. CSS locations use the supplied stylesheet label;
+// HTML diagnostics preserve original node identity and wrapped causes.
+//
+// # Catalog lifetime and coordinates
+//
+// [Catalog.Lookup] returns an independent template handle without parsing,
+// recascading or geometry work. Catalogs retain compiled values, not DOM/CSSOM
+// state. Accessors return copied descriptions and slices; inspection is safe
+// after input closure and across concurrent readers.
+//
+// Page dimensions and frame border/content rectangles use page-local CSS pixels.
+// A frame's content origin already includes its position and edges. [Paint]
+// contains resolved solid backgrounds and borders. Flowing content is loaded and
+// styled separately; a frame's flow-from selects a channel without restyling it.
 // This package does not use Go's html/template or text/template engines.
 package template

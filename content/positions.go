@@ -12,12 +12,15 @@ import (
 // SourceID qualifies one immutable loaded document. Zero is invalid.
 type SourceID struct{ source *snapshot }
 
+// SourceID returns this document's opaque snapshot identity; nil documents return zero.
 func (d *Document) SourceID() SourceID {
 	if d == nil {
 		return SourceID{}
 	}
 	return SourceID{d.material}
 }
+
+// Valid reports whether the identity refers to a loaded source snapshot.
 func (id SourceID) Valid() bool { return id.source != nil }
 
 // LogicalPosition is an opaque source/build-qualified structural or text
@@ -33,6 +36,9 @@ type LogicalPosition struct {
 	textPosition        bool
 	step                uint64 // fitted discretionary progress at one processed offset
 }
+
+// PositionInfo exposes qualified source, box and processed-paragraph coordinates.
+// Use LogicalPosition.Compare for ordering; Order and Offset alone are not a cursor.
 type PositionInfo struct {
 	Box, Group    Box
 	Source        SourceRef
@@ -41,9 +47,12 @@ type PositionInfo struct {
 	Step          uint64 // backend logical step, not a line count or checkpoint
 }
 
+// Info returns a detached description of this position.
 func (p LogicalPosition) Info() PositionInfo {
 	return PositionInfo{p.box, p.group, p.source, p.order, p.offset, p.edge, p.step}
 }
+
+// Valid reports whether this position belongs to a retained source tree.
 func (p LogicalPosition) Valid() bool { return p.box.Valid() && p.order != 0 }
 
 // IsText distinguishes processed paragraph coordinates from structural edges.
@@ -64,12 +73,17 @@ func (p LogicalPosition) Compare(q LogicalPosition) (int, bool) {
 	return cmp.Compare(p.step, q.step), true
 }
 
+// EventAffinity describes which placed material carries a source annotation.
 type EventAffinity string
 
 const (
-	AffinityVisible    EventAffinity = "first-rendered-content"
-	AffinityFollowing  EventAffinity = "following"
-	AffinityPreceding  EventAffinity = "preceding"
+	// AffinityVisible attaches to the first rendered content of the annotated element.
+	AffinityVisible EventAffinity = "first-rendered-content"
+	// AffinityFollowing attaches an empty element to following content in its block.
+	AffinityFollowing EventAffinity = "following"
+	// AffinityPreceding attaches an empty element to preceding content in its block.
+	AffinityPreceding EventAffinity = "preceding"
+	// AffinityStructural attaches to a structural boundary when the block has no content.
 	AffinityStructural EventAffinity = "structural"
 )
 

@@ -15,7 +15,7 @@ var physicalSides = []string{"top", "right", "bottom", "left"}
 // profileProperties is the deliberately small authoring vocabulary. Reset-only
 // background/border-image properties produced by supported shorthands are not
 // additional authored effects. Unknown properties (including custom properties)
-// must not silently disappear from the eventual compiled description.
+// must not silently disappear from the compiled description.
 var profileProperties = strings.Fields(`
 display position float visibility box-sizing writing-mode direction
 width height top right bottom left margin padding
@@ -28,7 +28,7 @@ border-top-style border-right-style border-bottom-style border-left-style
 border-top-color border-right-color border-bottom-color border-left-color
 color background background-color flow-from flow-into`)
 
-// These are the only values introduced by the reset-only parts of DOM-03's
+// These are the only values introduced by the reset-only parts of the CSS inspector’s
 // supported shorthands. Effective values are checked too, after inheritance.
 var paintResets = strings.Fields(`background-image background-position background-size
 background-repeat background-attachment background-origin background-clip

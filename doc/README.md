@@ -1,27 +1,33 @@
 # Documentation
 
-Start with the guide for the package you want to use:
+## Package usage
 
 | Guide | Contents |
 | --- | --- |
-| [pagelayout](../README.md) | Package selection, template previews and the template/content workflow. |
-| [template](../template/README.md) | Collection authoring, loading, selection, frame geometry, CSS overrides and diagnostics. |
-| [content](../content/README.md) | Styled HTML, routing, registers, source inspection and preparation lifecycle. |
-| [typography preparation](../preparation/typography/README.md) | Explicit fonts and shaping services, intrinsic measurement, two-width layout and retained results. |
-| [pgtmpl](../pgtmpl/README.md) | Command-line checks, browser previews, collection lookup and stylesheet options. |
+| [pagelayout](../README.md) | Plans, page attempts, search, document pagination and selected-page delivery. |
+| [template](../template/README.md) | Loading, selection, compiled geometry, CSS overrides and diagnostics. |
+| [content](../content/README.md) | Source styles, routing, registers, inspection and neutral preparation/fitting. |
+| [typography preparation](../preparation/typography/README.md) | Explicit services, preparation reuse, measurement, layout and exact fitting. |
+| [pgtmpl](../pgtmpl/README.md) | Command-line validation, browser previews, lookup and stylesheet options. |
+
+## Authoring and API references
+
+- [Authoring template collections](TEMPLATES.md) and [complete collection](SKETCH.md).
+- [Flow channels and regions](REGIONS.md).
+- [Template HTML/CSS profile and geometry](TEMPLATE-LOADING.md).
+- [Content profile, routing and source identities](CONTENT-LOADING.md).
+- [Preparation, measurement and fitting](PREPARATION.md).
+- [Pagination, loss, outcomes and delivery](SHIPOUT.md).
 
 ## Examples and expected output
 
-- [Template collections](../examples/README.md): minimal, letterhead and magazine
-  layouts, CSS overrides and invalid inputs.
-- [Content documents](../content/testdata/README.md): channel ownership, source
-  styles, decoded text ranges and error diagnostics.
+- [Template collections](../examples/README.md): simple and multi-frame designs,
+  CSS overrides and invalid inputs.
+- [Content documents](../content/testdata/README.md): ownership, source styles,
+  decoded text ranges and diagnostics.
 - [Preparation inputs](../content/testdata/preparation/README.md): processed text,
-  inline-block boundaries and hyphenation behavior.
+  atomic boundaries and hyphenation policy.
 - [Two-width preview](../preparation/typography/testdata/README.md): nested
   inline-block content rendered with glyph outlines.
-
-## Detailed input references
-
-- [Template HTML and CSS profile](TEMPLATE-LOADING.md#c-validate-source-declarations-and-effective-styles).
-- [Content elements, properties and defaults](CONTENT-LOADING.md#6-adopted-initial-profile).
+- [Pagination samples](../testdata/pagination/README.md): multi-page output,
+  changing frame widths, manual hyphenation and secondary channels.

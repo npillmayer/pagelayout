@@ -37,9 +37,9 @@ type styledTemplate struct {
 	nodes  map[*html.Node]*styledtree.StyNode
 }
 
-// styleTemplateCollection is the private TPL-02 boundary. Its input must be a
+// styleTemplateCollection styles isolated definitions. Its input must be a
 // successfully parsed collection. No partial styled collection escapes a failure.
-// CSS values remain unsized; geometry/profile adaptation belongs to TPL-03.
+// CSS values remain unsized until profile validation and typed adaptation.
 func styleTemplateCollection(source *templateCollection, extra ...Stylesheet) (*styledCollection, error) {
 	styles, err := collectStyles(source, extra...)
 	if err != nil {

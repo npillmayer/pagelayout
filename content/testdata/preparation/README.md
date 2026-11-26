@@ -81,6 +81,7 @@ retaining frozen output, provided the font resources remain valid. Two separate
 preparations of one document have different preparation identities but share
 the same source `Box` handles; do not mix their snapshot/session pairs.
 
-The branches fixture routes its independent branches to `article` and `notes`.
-All fixtures also expose default `main`; expected `branches` lists secondary
-roots only, with the main tree covered by the existing `residual` group entries.
+The branches example routes its independent branches to `article` and `notes`.
+All examples expose default `main`. In `expected.json`, `branches` lists
+secondary roots; `residual` group entries describe the main tree. Include main
+when reading `Document.Channels()` or inspecting the bank.

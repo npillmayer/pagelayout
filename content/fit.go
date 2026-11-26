@@ -10,6 +10,8 @@ import (
 	"github.com/npillmayer/css-box-layout/layout"
 )
 
+// ErrFitInterrupted means fitting stopped before all alternatives were enumerated.
+// An interrupted enumeration cannot establish that no fitting alternative exists.
 var ErrFitInterrupted = errors.New("content fitting interrupted before exhaustion")
 
 // GroupFitRequest borrows only value views and an opaque checkpoint. Geometry
@@ -113,6 +115,7 @@ func NewFitter(p *PreparedSnapshot, s *PreparationSession, root Box) (*Fitter, e
 	return out, nil
 }
 
+// Root returns the source block covered by this fitter, or an invalid Box for a nil fitter.
 func (f *Fitter) Root() Box {
 	if f == nil || f.id == nil {
 		return Box{}
@@ -120,11 +123,15 @@ func (f *Fitter) Root() Box {
 	return f.id.root
 }
 
+// FitContinuation is an immutable checkpoint qualified by fitter and preparation.
+// The zero value requests the beginning of the fitted root; logical positions cannot
+// replace a continuation. Resumption requires the matching live session.
 type FitContinuation struct {
 	id   *fitIdentity
 	core layout.FitContinuation
 }
 
+// Valid reports whether this value contains an exact fitting checkpoint.
 func (c FitContinuation) Valid() bool { return c.id != nil && c.core.Valid() }
 
 // FitPosition is inspection/comparison only, never resumption authority.
@@ -143,12 +150,15 @@ func (f *Fitter) Owns(c FitContinuation) bool {
 	return f != nil && f.id != nil && c.id == f.id && c.Valid()
 }
 
+// FitPositionInfo describes a structural endpoint or paragraph position for inspection.
+// Complete means the entire fitted root has been consumed.
 type FitPositionInfo struct {
 	Next      Box
 	Paragraph layout.ParagraphPosition
 	Complete  bool
 }
 
+// Info returns a copied description of the fitted endpoint.
 func (p FitPosition) Info() FitPositionInfo {
 	if p.id == nil {
 		return FitPositionInfo{}
@@ -160,6 +170,9 @@ func (p FitPosition) Info() FitPositionInfo {
 	}
 	return FitPositionInfo{next, i.Paragraph, i.Complete}
 }
+
+// Compare orders positions from the same fitter. It returns false for different
+// or invalid fitter identities; equal coordinates do not authorize cursor exchange.
 func (p FitPosition) Compare(q FitPosition) (int, bool) {
 	if p.id == nil || p.id != q.id {
 		return 0, false
@@ -167,11 +180,14 @@ func (p FitPosition) Compare(q FitPosition) (int, bool) {
 	return p.core.Compare(q.core)
 }
 
+// FitBoundary is a structural stop qualified by one fitter. Its zero value imposes no stop.
 type FitBoundary struct {
 	id   *fitIdentity
 	core layout.FitBoundary
 }
 
+// Boundary identifies the before/after edge of a box in this fitter. Foreign boxes
+// and unsupported structural cuts return a PreparationError with the original cause.
 func (f *Fitter) Boundary(box Box, edge layout.BoundaryEdge) (FitBoundary, error) {
 	if f == nil || f.id == nil || f.boxes[box.id] != box || !box.Valid() {
 		return FitBoundary{}, fitFailure(f.Root(), ErrInvalidPreparation)
@@ -195,6 +211,10 @@ func (f *Fitter) BoundaryAt(p LogicalPosition) (FitBoundary, error) {
 	return f.Boundary(p.box, p.edge)
 }
 
+// FitRequest supplies receiving dimensions in CSS pixels and an exact starting cursor.
+// Zero Continuation starts at the root; zero Stop permits fitting to the root end.
+// IncludeEmpty permits the core's nonprogressing alternative. MaxSteps zero imposes
+// no core work cap. Dimensions must be finite and nonnegative.
 type FitRequest struct {
 	Width, Height float32
 	Continuation  FitContinuation
@@ -341,8 +361,12 @@ func (r *fitRelay) MeasureInline(req layout.InlineMeasureRequest) (layout.Intrin
 type FragmentID struct{ token *fragmentIdentity }
 type fragmentIdentity struct{ marker byte }
 
+// Valid reports whether this ID identifies a published paragraph occurrence.
 func (id FragmentID) Valid() bool { return id.token != nil }
 
+// FitParagraph describes one placed paragraph occurrence, including an atomic interior.
+// From and To are backend logical positions; X, Y and Extent use receiver-relative
+// CSS pixels. Output is frozen backend data, not a continuation.
 type FitParagraph struct {
 	ID                         FragmentID
 	Group, Owner, ParentAtomic Box
@@ -352,6 +376,9 @@ type FitParagraph struct {
 	Extent                     layout.InlineExtent
 	Output                     layout.FitPayload
 }
+
+// FitContainer describes one container occurrence with its used fragment edges and paint.
+// First and Last control opening/closing edges. Geometry uses parent-content coordinates.
 type FitContainer struct {
 	Box         Box
 	First, Last bool
@@ -372,6 +399,7 @@ type FitFragment struct {
 	paragraphs []FitParagraph
 }
 
+// Root returns the source branch root represented by this fragment.
 func (f *FitFragment) Root() Box {
 	if f == nil {
 		return Box{}
@@ -387,24 +415,33 @@ func (f *FitFragment) Extent() layout.InlineExtent {
 	}
 	return f.extent
 }
+
+// Geometry returns a copied box-geometry map in CSS pixels. RelativeTo identifies
+// the parent content origin; root geometry is relative to the receiver.
 func (f *FitFragment) Geometry() map[Box]layout.LayoutGeometry {
 	if f == nil {
 		return nil
 	}
 	return maps.Clone(f.geometry)
 }
+
+// UsedValues returns a copied map of widths and edges resolved for this fragment.
 func (f *FitFragment) UsedValues() map[Box]layout.UsedValues {
 	if f == nil {
 		return nil
 	}
 	return maps.Clone(f.used)
 }
+
+// Containers returns copied container occurrences with fragment-specific edges and paint.
 func (f *FitFragment) Containers() []FitContainer {
 	if f == nil {
 		return nil
 	}
 	return slices.Clone(f.containers)
 }
+
+// Paragraphs returns copied paragraph occurrences, cloning each backend output payload.
 func (f *FitFragment) Paragraphs() []FitParagraph {
 	if f == nil {
 		return nil
@@ -416,6 +453,8 @@ func (f *FitFragment) Paragraphs() []FitParagraph {
 	return out
 }
 
+// FitAlternative pairs a frozen fragment with its exact remainder and completion facts.
+// Only alternatives returned by Fit are valid; inspect Progress before placing one.
 type FitAlternative struct {
 	fragment                 *FitFragment
 	continuation             FitContinuation
@@ -423,12 +462,23 @@ type FitAlternative struct {
 	progress, complete, stop bool
 }
 
-func (a FitAlternative) Fragment() *FitFragment        { return a.fragment }
+// Fragment returns frozen output that can outlive the fitter and execution session.
+func (a FitAlternative) Fragment() *FitFragment { return a.fragment }
+
+// Continuation returns the exact checkpoint for resuming this alternative.
 func (a FitAlternative) Continuation() FitContinuation { return a.continuation }
-func (a FitAlternative) End() FitPosition              { return a.end }
-func (a FitAlternative) Progress() bool                { return a.progress }
-func (a FitAlternative) Complete() bool                { return a.complete }
-func (a FitAlternative) StopReached() bool             { return a.stop }
+
+// End returns the fitted endpoint for inspection and comparison.
+func (a FitAlternative) End() FitPosition { return a.end }
+
+// Progress reports logical material advancement, including zero-height material.
+func (a FitAlternative) Progress() bool { return a.progress }
+
+// Complete reports exhaustion of the entire source root, not just the receiver.
+func (a FitAlternative) Complete() bool { return a.complete }
+
+// StopReached reports that fitting reached the requested structural stop.
+func (a FitAlternative) StopReached() bool { return a.stop }
 
 func (f *Fitter) freezeFragment(a layout.FitAlternative) (*FitFragment, error) {
 	out := &FitFragment{root: f.Root(), extent: a.Extent(), geometry: map[Box]layout.LayoutGeometry{}, used: map[Box]layout.UsedValues{}}

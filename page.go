@@ -33,18 +33,23 @@ type PageFrame struct {
 // Extent is the furthest allocated frame extent after composing all fragments.
 func (f PageFrame) Extent() layout.InlineExtent { return f.extent }
 
+// Number returns the one-based physical page number, or zero for a nil page.
 func (p *Page) Number() uint64 {
 	if p == nil {
 		return 0
 	}
 	return p.number
 }
+
+// Template returns the catalog ID used for this page, or empty for a nil page.
 func (p *Page) Template() string {
 	if p == nil {
 		return ""
 	}
 	return p.template
 }
+
+// Info returns compiled page dimensions in CSS pixels, plus page paint and source.
 func (p *Page) Info() template.PageInfo {
 	if p == nil {
 		return template.PageInfo{}
@@ -62,6 +67,9 @@ func (f PageFrame) Fragments() []*content.FitFragment {
 	}
 	return out
 }
+
+// Frames returns copied receivers in catalog order, including unused frames.
+// Each receiver exposes independent handles to its frozen branch fragments.
 func (p *Page) Frames() []PageFrame {
 	if p == nil {
 		return nil

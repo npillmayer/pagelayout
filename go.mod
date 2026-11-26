@@ -28,7 +28,7 @@ require (
 	golang.org/x/text v0.33.0 // indirect
 )
 
-// The styling integration uses the sibling development modules, including DOM-01.
+// Local replacements connect the sibling typesetting modules.
 replace github.com/npillmayer/w3c-dom => ../w3c-dom
 
 replace github.com/npillmayer/css-box-layout => ../css-box-layout

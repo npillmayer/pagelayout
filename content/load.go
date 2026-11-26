@@ -29,7 +29,7 @@ func Load(r io.Reader, opts LoadOptions) (*Document, error) {
 	return normalizePartition(p)
 }
 
-// loadSource is the private CONT-01 boundary. Its result is styled source, not a
+// loadSource parses and styles the original document. Its result is source, not a
 // Document or validated layout material. Every invocation owns fresh DOM/CSSOM
 // state. A failure returns no partial source. The caller retains reader ownership.
 func loadSource(r io.Reader, opts LoadOptions) (*styledSource, error) {

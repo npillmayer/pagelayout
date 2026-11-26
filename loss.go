@@ -11,11 +11,16 @@ import (
 	"github.com/npillmayer/pagelayout/content"
 )
 
+// UnitsPerPoint is the fixed precision of finite losses: one million units per point.
 const UnitsPerPoint uint64 = 1_000_000
 
+// Cost and policy errors are returned for invalid inputs or checked arithmetic failure.
 var (
-	ErrInvalidCost   = errors.New("invalid cost")
-	ErrLossOverflow  = errors.New("loss arithmetic overflow")
+	// ErrInvalidCost identifies a negative or non-finite cost or coefficient.
+	ErrInvalidCost = errors.New("invalid cost")
+	// ErrLossOverflow identifies a finite cost that cannot fit in uint64 units.
+	ErrLossOverflow = errors.New("loss arithmetic overflow")
+	// ErrInvalidPolicy identifies inconsistent scoring coefficients or page cost.
 	ErrInvalidPolicy = errors.New("invalid loss policy")
 )
 
@@ -25,15 +30,28 @@ type Loss struct {
 	units   uint64
 	blocked bool
 }
+
+// LossInfo is the exact inspection/JSON representation of a Loss. Units apply only
+// when Blocked is false; blocked ranks after every finite value.
 type LossInfo struct {
 	Units   uint64
 	Blocked bool
 }
 
-func FiniteLoss(units uint64) Loss          { return Loss{units: units} }
-func BlockedLoss() Loss                     { return Loss{blocked: true} }
-func (l Loss) Info() LossInfo               { return LossInfo{l.units, l.blocked} }
+// FiniteLoss constructs a finite cost in integer units, including zero.
+func FiniteLoss(units uint64) Loss { return Loss{units: units} }
+
+// BlockedLoss constructs a cost ranked after every finite cost.
+func BlockedLoss() Loss { return Loss{blocked: true} }
+
+// Info returns exact cost units and the separate blocked flag.
+func (l Loss) Info() LossInfo { return LossInfo{l.units, l.blocked} }
+
+// MarshalJSON encodes LossInfo without converting integer units to floating point.
 func (l Loss) MarshalJSON() ([]byte, error) { return json.Marshal(l.Info()) }
+
+// Compare returns a negative value when l is preferred, zero for equal costs,
+// and a positive value when r is preferred. Every finite value precedes blocked.
 func (l Loss) Compare(r Loss) int {
 	if l.blocked != r.blocked {
 		if l.blocked {
@@ -49,6 +67,8 @@ func (l Loss) Compare(r Loss) int {
 	}
 	return 1
 }
+
+// Add returns the checked sum. Blocked is absorbing; finite overflow returns ErrLossOverflow.
 func (l Loss) Add(r Loss) (Loss, error) {
 	if l.blocked || r.blocked {
 		return BlockedLoss(), nil
@@ -96,15 +116,21 @@ func weightedCount(weight, count uint64) (Loss, error) {
 // representation, checked arithmetic and the positive page lower bound are fixed.
 type LossPolicy struct{ Page, Underfill, OneLineSplit, Carry, MissingMain uint64 }
 
+// DefaultLossPolicy returns the working scoring coefficients in integer units: one
+// point for pages, underfill, carry and missing main, and ten for one-line splits.
 func DefaultLossPolicy() LossPolicy {
 	return LossPolicy{UnitsPerPoint, UnitsPerPoint, 10 * UnitsPerPoint, UnitsPerPoint, UnitsPerPoint}
 }
+
+// Validate requires a strictly positive page cost; all coefficients are unsigned.
 func (p LossPolicy) Validate() error {
 	if p.Page == 0 {
 		return ErrInvalidPolicy
 	}
 	return nil
 }
+
+// MinimumPageLoss returns the validated positive lower bound for one more page.
 func (p LossPolicy) MinimumPageLoss() (Loss, error) {
 	if err := p.Validate(); err != nil {
 		return Loss{}, err
@@ -127,10 +153,16 @@ type FrameAssessment struct {
 	Channel                 string
 	Width, Height, Occupied float64
 }
+
+// PendingTarget identifies an activated, incomplete branch and its channel.
 type PendingTarget struct {
 	ID      BranchID
 	Channel string
 }
+
+// ParagraphFragment supplies line-count facts for one source paragraph in one frame.
+// Paragraph identity must be qualified by source/tree; adjacent pieces in the same
+// frame are coalesced before split penalties are counted.
 type ParagraphFragment struct {
 	Paragraph content.Box
 	Frame     int
@@ -150,6 +182,9 @@ type PageAssessment struct {
 	MainFinishes                 bool
 	MainFinishingFrame           int
 }
+
+// Score contains exact component costs, copied assessment facts and underfill
+// participation. Frame indexes refer to Facts.Frames; area measurements use squared CSS pixels.
 type Score struct {
 	Total, Page, Underfill, Split, Carry, MissingMain Loss
 	Participating, Exempt                             []int

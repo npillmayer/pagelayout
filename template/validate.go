@@ -29,7 +29,7 @@ func (v *sourceValidator) validateDocument() bool {
 		v.report(stageStructure, codeDocumentStructure, c.document, "collection requires an HTML document with head and body")
 		return false
 	}
-	// Only html/body attributes are copied into the future active documents.
+	// Only html/body attributes are copied into the instantiated active documents.
 	v.contextIDs = make(map[string]*html.Node)
 	v.validateElementID(c.html, v.contextIDs)
 	v.validateElementID(c.body, v.contextIDs)
@@ -151,7 +151,7 @@ func (v *sourceValidator) validateTemplate(n *html.Node) *templateSource {
 	return t
 }
 
-// Validate IDs in the future active document, excluding storage template IDs and
+// Validate IDs in the instantiated active document, excluding storage template IDs and
 // head elements. Each definition gets its own copy of the html/body ID context.
 func (v *sourceValidator) validateElementID(n *html.Node, seen map[string]*html.Node) {
 	id, exists := attribute(n, "id")

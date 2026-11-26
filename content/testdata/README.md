@@ -7,7 +7,7 @@ Use the filename as `LoadOptions.SourceName` to label diagnostics.
 
 | Input | Use it to inspect |
 | --- | --- |
-| [routing.html](routing.html) | Two channels, three branches, separate residual content and an inline-block interior. |
+| [routing.html](routing.html) | Main plus two secondary channels, three routed branches and an inline-block interior. |
 | [routing-override.css](routing-override.css) | Changes to routing, source typography, colors and font-relative edges. Apply it to `routing.html` through `LoadOptions.Stylesheets`. |
 | [residual-inline.html](residual-inline.html) | Adjacent residual text after extracting branches, and an emptied but decorated ancestor. |
 | [suppression.html](suppression.html) | Source classifications for display-suppressed, inert and metadata nodes. |
@@ -45,19 +45,21 @@ used geometry.
 ## routing.html
 
 Input: [routing.html](routing.html), without additional CSS. Success, no
-diagnostics. `Channels()` is `[article, notes]`, in first-occurrence order.
-The initial bank has two nonempty registers and three total items.
+diagnostics. `Channels()` is `[main, article, notes]`: main first, then secondary
+names in first-occurrence order. The initial bank has three nonempty registers
+and four total items, including the residual root in main.
 
 ### Ownership and ordering
 
 | Tree | Destination | Root and owned source elements |
 | --- | --- | --- |
-| R | Residual, outside the bank | `body`, `#intro`, `#source`, `#ending`; excludes all three routed branches. |
+| R | `main`, sole item; also returned by `Residual()` | `body`, `#intro`, `#source`, `#ending`; excludes all three routed branches. |
 | A | `article`, first item | `#story-a`, `#paragraph-a`, `#tag` and their text. |
 | N | `notes`, first item | `#note` and its text. |
 | B | `article`, second item | `#story-b`, `#paragraph-b` and their text. |
 
-The branch roots occur globally as `#story-a`, `#note`, `#story-b`. Grouping
+Main has branch order 1. The secondary roots follow as `#story-a` (2), `#note`
+(3), `#story-b` (4). Grouping
 items into registers does not change that source-order metadata. The three
 branches have distinct trees, and R is distinct from each of them. `#source`
 remains only in R as a layout box; its original ancestry is available as style
@@ -128,15 +130,15 @@ The `&amp;`, NBSP and soft-hyphen entities decode once. Preserve the multibyte
 Starting from `initial := document.Bank()`:
 
 1. Taking from `article` returns A and a new bank whose article head is B;
-   `initial` still has A followed by B, and both banks still have N in notes.
+   `initial` still has A followed by B. Both banks retain R in main and N in notes.
 2. Taking article again from the derived bank returns B and removes the article
    register from that derived bank. A further take returns invalid zero Box and
-   `false`. The notes register remains, so that bank's `Len()` is one.
+   `false`. Main and notes remain, so that bank's `Len()` is two.
 3. Prepending the unchanged whole A item to the bank from step 1 restores A, B
    there. It changes neither step 1's bank nor `initial`.
 4. An independently derived bank can consume N while leaving article unchanged.
    Neither derivation commits a new current bank automatically.
-5. `document.Channels()` stays `[article, notes]` even when a derived bank has
+5. `document.Channels()` stays `[main, article, notes]` even when a derived bank has
    drained a register. Inventory is source metadata, not the candidate bank's keys.
 6. Retained Box handles remain valid and inspectable after the public Document
    reference is released. They retain the source snapshot needed by later
@@ -153,7 +155,7 @@ Success. It is appended after the head stylesheet as ordinary author CSS.
 
 | Observation | Expected result |
 | --- | --- |
-| Channel order | `[features, notes]`; no `article` register. |
+| Channel order | `[main, features, notes]`; no `article` register. |
 | Branch membership | A then B in features, N in notes; residual ownership and all six groups unchanged. |
 | Section and descendants' font size | 24px; html/body/intro remain 16px. |
 | Note color | `#006699`: later equal-specificity adjacent-sibling rule wins; still-later `.note` red rule has lower specificity and loses. |
@@ -170,13 +172,14 @@ fed into a template document implicitly.
 ## residual-inline.html
 
 Input: [residual-inline.html](residual-inline.html). Success. Channels are
-`[notes]`; its register holds `#aside` then `#moved`, in separate trees.
+`[main, notes]`. Main holds the residual root; notes holds `#aside` then `#moved`,
+in separate trees.
 
 | Destination | Result |
 | --- | --- |
 | First notes branch | `#aside` and `Routed aside.`; one group owned by `#aside`, source font 20px. |
 | Second notes branch | `#moved` and `Moved from decorated ancestor.`; one group owned by `#moved`, source font 16px. |
-| Residual | `body`, `#split` and `#emptied`; both routed roots are absent. |
+| Main/residual | `body`, `#split` and `#emptied`; both routed roots are absent. |
 
 After filtering, `#split` has one horizontal group containing two text nodes in
 order: `Before ` and ` after.`, each with its own source reference `[0, 7)`.
@@ -194,8 +197,9 @@ available for layout; loading does not measure its height.
 
 ## suppression.html
 
-Input: [suppression.html](suppression.html). Success. Channels are empty and
-the bank has zero registers. The residual contains body and `#visible`, with
+Input: [suppression.html](suppression.html). Success. Channels are `[main]`;
+the bank has one register containing the residual root. It contains body and
+`#visible`, with
 one group owned by `#visible` and text `Visible residual text.`. Defaults are
 serif, 16px, weight 400, normal slant, black, language en, LTR and normal
 whitespace/line-height, with manual hyphenation metadata.
@@ -213,10 +217,10 @@ Formatting-only whitespace can be omitted from normalized groups.
 
 ## empty.html
 
-Input: [empty.html](empty.html). Success with no channels and an empty bank.
-The residual root is body, with one empty inline group owned by body. The group
-has no non-whitespace content, atomics or register item. It has the same default
-source typography as in suppression.html, including language en.
+Input: [empty.html](empty.html). Success with channel `[main]` and one bank item.
+The sole item is the residual body root, with one empty inline group owned by body.
+The group has no non-whitespace content or atomics. It has the same default source
+typography as in suppression.html, including language en.
 No placeholder paragraph text is invented and no line height is measured.
 
 ## Expected errors
@@ -224,7 +228,7 @@ No placeholder paragraph text is invented and no line height is measured.
 | Input | Stage/code | Source information | Publication |
 | --- | --- | --- | --- |
 | [nested-flow_err.html](nested-flow_err.html) | `routing` / `route.nested` | Conflicting child `#inner` (`notes`) and ancestor `#outer` (`article`), original DOM paths and filename. | No Document, bank or valid handles escape, including the earlier valid `#earlier` branch. |
-| [float_err.html](float_err.html) | `profile` / `profile.value` | Property `float`, value `right`, fixture filename and position in its embedded stylesheet; identify `#illustration` if an effective-node diagnostic is also emitted. | No Document or bank; no illustrations register is created. |
+| [float_err.html](float_err.html) | `profile` / `profile.value` | Property `float`, value `right`, input filename and position in its embedded stylesheet; identify `#illustration` if an effective-node diagnostic is also emitted. | No Document or bank; no illustrations register is created. |
 
 The float example uses a DIV placeholder, so the reported error concerns
 `float` rather than an image or table. Numeric source IDs and error prose are

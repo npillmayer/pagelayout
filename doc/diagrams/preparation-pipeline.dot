@@ -1,54 +1,24 @@
-digraph PreparationPipeline {
-  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.45, ranksep=0.45,
-         fontname="Helvetica", fontsize=13, newrank=true,
-         label="Implemented preparation and layout; proposed page fitting", labelloc=t];
+digraph Layout {
+  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.4, ranksep=0.5,
+         fontname="Helvetica", fontsize=14];
   node [shape=box, style="rounded,filled", fillcolor="#f1f5f9", color="#64748b",
         fontname="Helvetica", fontsize=12, margin="0.18,0.12"];
   edge [color="#475569", fontname="Helvetica", fontsize=10];
-
-  subgraph cluster_loading {
-    label="Loading: once per source / style revision";
-    color="#cbd5e1";
-    style=rounded;
-
-    source [label="Style Cont-Doc\nKeep original source ancestry"];
-    structure [label="Extract flow branches\nNormalize box structure and inline groups"];
-    prepare [label="content.Prepare (implemented)\nVisit all horizontal groups\nInclude nested atomic interiors",
-             fillcolor="#dbeafe", color="#2563eb", penwidth=1.5];
-    prepared [label="PreparedSnapshot: immutable metadata\nPreparationSession: executable handles\nOriginal boxes and banks unchanged",
-              fillcolor="#dbeafe", color="#2563eb"];
-
-    source -> structure -> prepare -> prepared;
-  }
-
-  constraints [label="Implemented layout input: width\nProposed fitting: height + continuation",
-               fillcolor="#fff7ed", color="#b45309"];
-
-  subgraph cluster_trial {
-    label="Private trial state";
-    labelloc=b;
-    labeljust=l;
-    color="#d6a15f";
-    style=rounded;
-
-    sizing [label="Resolve used values + intrinsic sizing\nMeasure prepared groups as needed\nChoose auto widths; resolve descendants",
-            fillcolor="#fff7ed", color="#b45309"];
-    atomics [label="Lay out atomic interiors\nUse their prepared groups\nObtain trial-specific dimensions"];
-    paragraphs [label="Lay out receiving paragraphs\nBind current atomic dimensions\nBreak lines and assemble vertical geometry"];
-    fit [label="Fit box fragments and place (proposed)\nCandidate output + exact continuation"];
-
-    sizing -> atomics [label="definite widths"];
-    atomics -> paragraphs [label="realized atomic geometry"];
-    paragraphs -> fit;
-  }
-
-  choose [label="Proposed page coordinator\nAccumulate frame results; choose a page\nCommit all channel advances together",
-          fillcolor="#e0f2fe", color="#0284c7"];
-
-  { rank=same; prepared; constraints; }
-  prepared -> sizing [label="reuse preparation"];
-  constraints -> sizing;
-  fit -> choose;
-  choose -> constraints [label="another candidate / frame / page\nwith the appropriate cursor", style=dashed,
-                         constraint=false];
+  graph [label="Prepare once; execute under receiving constraints", labelloc=t];
+  source [label="Immutable content.Document\nPrivate unsized trees + Box bank"];
+  extract [label="Extract GroupInput\nText, styles, paint, policy, atomics, source events"];
+  preflight [label="Whole-document Preflight\nValidate policy/services without font work"];
+  prepare [label="Prepare each group\nExplicit font and shaping services"];
+  pair [label="PreparedSnapshot + PreparationSession\nPublish together after full success", fillcolor="#dbeafe"];
+  intrinsic [label="MeasureIntrinsic\nWidth bounds"];
+  layout [label="Layout\nComplete subtree at a width"];
+  fit [label="Fit\nFinite-height alternatives + exact remainder"];
+  output [label="Independent frozen output\nUsable after Close with borrowed fonts live", fillcolor="#dcfce7"];
+  source -> extract -> preflight -> prepare -> pair;
+  pair -> intrinsic;
+  pair -> layout;
+  pair -> fit;
+  layout -> output;
+  fit -> output;
+  { rank=same; intrinsic; layout; fit; }
 }

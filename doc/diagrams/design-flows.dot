@@ -1,34 +1,25 @@
-digraph TrialRegisters {
-  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.5, ranksep=0.5,
-         fontname="Helvetica", fontsize=12];
+digraph Layout {
+  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.4, ranksep=0.5,
+         fontname="Helvetica", fontsize=14];
   node [shape=box, style="rounded,filled", fillcolor="#f1f5f9", color="#64748b",
         fontname="Helvetica", fontsize=12, margin="0.18,0.12"];
   edge [color="#475569", fontname="Helvetica", fontsize=10];
-
-  committed [label="Proposed page transaction\nCommitted registers\nheading: [H, ...]     article: [A, B, C, ...]"];
-  snapshot [label="Trial-local cursor snapshot\nUnchanged Box bank + separate preparation/session"];
-  subgraph cluster_trial {
-    label="Candidate page";
-    labeljust=l;
-    color="#64748b";
-    style=rounded;
-    margin=18;
-    heading [label="Heading frame\nProvisional H fragment", fillcolor="#dbeafe"];
-    first [label="Article frame 1\nSize at W1; place A + prefix of B", fillcolor="#dbeafe"];
-    second [label="Article frame 2\nContinue B at W2\nRebind / rebreak suffix as needed", fillcolor="#dbeafe"];
-    { rank=same; heading; first; }
-    first -> second [label="exact continuation"];
-  }
-  decision [label="Candidate placements + proposed cursors\nNo shared register has advanced yet"];
-  accept [label="ACCEPT atomically\nheading: [...]\narticle: [remaining B, C, ...]\nPublish accepted page", fillcolor="#dbeafe", color="#2563eb"];
-  reject [label="REJECT / FAILURE\nheading: [H, ...]\narticle: [A, B, C, ...]\nDiscard candidate", fillcolor="#fff7ed", color="#b45309"];
-
-  committed -> snapshot;
-  snapshot -> heading;
-  snapshot -> first;
-  heading -> decision;
-  second -> decision;
-  decision -> accept;
-  decision -> reject [style=dashed];
-  { rank=same; accept; reject; }
+  graph [label="Speculation preserves input; selection publishes a sequence", labelloc=t];
+  state [label="Immutable entry State\nFIFO banks + exact head continuations", fillcolor="#dbeafe"];
+  a [label="PageAttempt(template A)\nEnumerate and select local arrangement"];
+  b [label="PageAttempt(template B)\nEnumerate and select local arrangement"];
+  ca [label="Frozen page A + successor A"];
+  cb [label="Frozen page B + successor B"];
+  round [label="Complete depth round\nRank loss, then template ordinals"];
+  beam [label="Unfinished beam\n32 paths by default"];
+  best [label="Best complete span\nRetained outside beam", fillcolor="#dcfce7"];
+  select [label="Selected span\nAdvanceSpan or explicit Shipout", fillcolor="#dcfce7"];
+  state -> a -> ca -> round;
+  state -> b -> cb -> round;
+  round -> beam [label="reported heuristic width cuts"];
+  beam -> round [label="extend through eligible templates"];
+  round -> best [label="all related material drained"];
+  best -> select [label="successful search completion"];
+  { rank=same; a; b; }
+  { rank=same; ca; cb; }
 }

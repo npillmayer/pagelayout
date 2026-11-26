@@ -1,39 +1,27 @@
-digraph Pipeline {
-  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.5, ranksep=0.45,
-         fontname="Helvetica", fontsize=12];
+digraph Layout {
+  graph [rankdir=TB, bgcolor="white", pad=0.25, nodesep=0.4, ranksep=0.5,
+         fontname="Helvetica", fontsize=14];
   node [shape=box, style="rounded,filled", fillcolor="#f1f5f9", color="#64748b",
         fontname="Helvetica", fontsize=12, margin="0.18,0.12"];
   edge [color="#475569", fontname="Helvetica", fontsize=10];
-
-  templates [label="Templ-Doc\nPage templates + their CSS"];
-  content [label="Cont-Doc\nContent + its source CSS"];
-  compile [label="Compile EVERY template\nStyle, box, resolve fixed geometry"];
-  boxes [label="Style in original DOM context\nConstruct source-associated boxes"];
-  route [label="Route named branches\nRetain residual main tree\nResidual binding still open"];
-  prepare [label="Prepare horizontal material\nKhipus + unsized atomic subtrees"];
-  catalog [label="Reusable template catalog\nSized page/frame trees by ID",
-           fillcolor="#dbeafe", color="#2563eb"];
-  registers [label="Flow registers\nImplemented: RegisterBank[content.Box]\nUnchanged by preparation",
-             fillcolor="#dbeafe", color="#2563eb"];
-  snapshot [label="Proposed: snapshot ALL channel cursors"];
-  trial [label="Proposed: try candidate page\nLayout attachment; no CSS restyling\nSize, bind atoms, break and fit per frame"];
-  select [shape=diamond, label="Accept candidate?", fillcolor="#fff7ed", color="#b45309"];
-  commit [label="Commit page + all cursor advances\nKeep exact continuations / untouched entries",
-          fillcolor="#dbeafe", color="#2563eb"];
-  pages [label="Accepted page fragments\nCompletion or next page"];
-
+  graph [label="Separate sources, immutable material, selected pages", labelloc=t];
+  templates [label="Template HTML + author CSS"];
+  content [label="Content HTML + author CSS"];
+  catalog [label="template.Load\nCompiled page/frame catalog", fillcolor="#dbeafe"];
+  material [label="content.Load\nSource-styled boxes + persistent channel bank", fillcolor="#dbeafe"];
+  prep [label="content.Prepare\nImmutable snapshot + serialized session"];
+  plan [label="pagelayout.Plan\nOwnership + forced-break spans"];
+  search [label="Pagination.Paginate\nPage attempts + pagespan beam search", fillcolor="#dcfce7"];
+  selected [label="Selected sequences\nFrozen pages + exact completion/retry state"];
+  delivery [label="Sequence.Shipout\nCaller rendering/export", fillcolor="#dcfce7"];
+  templates -> catalog;
+  content -> material;
+  material -> prep;
+  material -> plan;
+  catalog -> search;
+  prep -> search [label="reusable preparation"];
+  plan -> search;
+  search -> selected -> delivery;
   { rank=same; templates; content; }
-  { rank=same; compile; boxes; }
-  { rank=same; catalog; registers; }
-  templates -> compile -> catalog;
-  content -> boxes -> route;
-  route -> registers -> snapshot;
-  route -> prepare;
-  prepare -> trial [label="separate snapshot + session"];
-  catalog -> trial [label="candidate template ID"];
-  snapshot -> trial -> select;
-  select -> trial [label="reject: next candidate\nsame snapshot", style=dashed, constraint=false];
-  select -> commit [label="accept"];
-  commit -> pages;
-  pages -> snapshot [label="material remains\nnew committed state", style=dashed, constraint=false];
+  { rank=same; prep; plan; }
 }

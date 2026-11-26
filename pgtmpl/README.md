@@ -10,7 +10,8 @@ go run ./pgtmpl serve examples/03-magazine.html
 ```
 
 For a standalone command, install with `go install ./pgtmpl`, then use `pgtmpl`
-from your Go executable directory. The examples below use `go run ./pgtmpl`.
+from your Go executable directory. The examples below use `go run ./pgtmpl`; replace that prefix with `pgtmpl`
+when using the installed command.
 
 | Command | Result |
 | --- | --- |

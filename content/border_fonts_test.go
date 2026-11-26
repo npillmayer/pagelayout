@@ -12,8 +12,8 @@ import (
 	"github.com/npillmayer/w3c-dom/styledtree"
 )
 
-// DOM-CONT-02's integration check uses the accepted collection of content
-// fixtures, without implementing CONT-02's material/profile projection yet.
+// These tests check source-font border resolution directly on styled source.
+// Projection tests cover material participation and the effective content profile.
 func TestRoutingFixtureSourceFontBorder(t *testing.T) {
 	for _, tc := range []struct {
 		name        string

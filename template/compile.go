@@ -9,7 +9,7 @@ import (
 	"github.com/npillmayer/w3c-dom/dimen"
 )
 
-// compileTemplates accepts only validated, detached TPL-03 inputs. The catalog
+// compileTemplates accepts only validated, detached geometry inputs. The catalog
 // retains no constraints, DOM, CSSOM or intermediate input storage.
 func compileTemplates(input *validatedCollection) (*Catalog, error) {
 	out := &Catalog{byID: make(map[string]*compiledTemplate)}
@@ -71,7 +71,7 @@ func geometryDiagnostic(source sourceRef, code diagnosticCode, message string, c
 	return diagnostic{stage: stageGeometry, code: code, source: source, message: message, cause: cause}
 }
 
-// TPL-03 restricts effective edges to absolute CSS pixels (margins are zero).
+// The template profile restricts effective edges to absolute CSS pixels and zero margins.
 func absoluteEdges(e layout.EdgeLengths) Edges {
 	return Edges{Top: e.Top.Value, Right: e.Right.Value, Bottom: e.Bottom.Value, Left: e.Left.Value}
 }

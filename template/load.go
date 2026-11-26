@@ -23,7 +23,7 @@ type LoadOptions struct {
 }
 
 // Load reads an HTML page-template collection, styles each definition in
-// isolation, validates the initial CSS profile and compiles all geometry.
+// isolation, validates the supported CSS profile and compiles all geometry.
 // It returns a complete immutable catalog, or nil with a *LoadError. A failure
 // never publishes a partial catalog or changes previously returned catalogs.
 // The reader remains owned by the caller and is not closed.

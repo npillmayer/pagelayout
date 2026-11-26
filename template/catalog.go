@@ -52,7 +52,7 @@ type Paint struct {
 }
 
 // PageInfo describes the page box. Width/Height are positive CSS-pixel sizes;
-// margin, padding and effective borders are zero in the initial profile.
+// margin, padding and effective borders are zero in the supported profile.
 type PageInfo struct {
 	Width, Height float32
 	Paint         Paint

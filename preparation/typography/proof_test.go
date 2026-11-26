@@ -24,7 +24,7 @@ func writeRealProof(path string, results []*Result, proofs [][]*render.Paragraph
 	width += 20
 	height += 115
 	var out strings.Builder
-	fmt.Fprintf(&out, `<svg xmlns="http://www.w3.org/2000/svg" width="%g" height="%g" viewBox="0 0 %g %g"><title>PREP-05: one preparation, two real-font layouts</title><rect width="100%%" height="100%%" fill="#fff"/>`, width, height, width, height)
+	fmt.Fprintf(&out, `<svg xmlns="http://www.w3.org/2000/svg" width="%g" height="%g" viewBox="0 0 %g %g"><title>One preparation, two real-font layouts</title><rect width="100%%" height="100%%" fill="#fff"/>`, width, height, width, height)
 	x := 20.0
 	for n, r := range results {
 		geometry := r.Geometry()

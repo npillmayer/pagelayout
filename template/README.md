@@ -97,7 +97,7 @@ directory. Only a missing file permits fallback; an unreadable or invalid
 collection stops the search. Include the extension: names are file paths, not
 template IDs, and lookup is not recursive.
 
-To supply your own filesystem access, pass an `IO` value with methods
+For file access through your application, pass an `IO` value with methods
 `UserConfigDir() (string, error)` and `DirFS(string) fs.FS`.
 
 ## Add a stylesheet
@@ -152,7 +152,7 @@ to selectors. Keep flowing content in a separate document.
 | Frame geometry | Enough absolute dimensions/insets to resolve both axes. Auto size requires opposing insets. Content width and height must be positive. |
 | Edges and paint | Nonnegative padding and border widths; solid/none/hidden borders and solid background colors. |
 
-Lengths accept `px`, `pt`, `in`, `cm`, `mm` and unitless zero. Percentages and
+Lengths accept `px`, `pt`, `in`, `cm`, `mm`, `pc`, `Q` and unitless zero. Percentages and
 font-relative lengths are not supported for template geometry. Frame border
 boxes must stay within the page and must not overlap; touching edges are allowed.
 Nested frames, floats, transforms and external image resources are unsupported.

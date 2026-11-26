@@ -102,7 +102,7 @@ func TestProjectionAcceptanceSourceStyles(t *testing.T) {
 			if tag.Display.Outer != layout.OuterInline || tag.Display.Inner != layout.InnerFlowRoot || tag.Style.Width.Kind != layout.LenAuto || len(tag.ChildrenNodes) != 1 {
 				t.Fatalf("lost unsized atomic interior: %+v", tag)
 			}
-			// Named roots remain at their original locations until CONT-03.
+			// Named roots remain at their original locations until partitioning.
 			source := p.nodes[projectedID(t, p, "source")]
 			found := 0
 			for _, n := range source.ChildrenNodes {

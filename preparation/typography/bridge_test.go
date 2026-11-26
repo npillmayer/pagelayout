@@ -401,7 +401,7 @@ func TestBridgeManualDiscoveryRemainsLazy(t *testing.T) {
 			}
 			g := p.Groups()[0]
 			err = session.WithGroup(p, g.Group, g.Owner, func(h content.GroupHandle) error {
-				// Direct facade check, alongside PREP-03's public bridge tests.
+				// Check the facade directly, alongside public measurement tests.
 				_, err := h.(*preparedGroup).paragraph.MeasureIntrinsic(khipu.MeasureRequest{})
 				return err
 			})

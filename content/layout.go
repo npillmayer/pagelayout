@@ -36,6 +36,7 @@ type LayoutResult struct {
 	groups   []GroupInfo
 }
 
+// Root returns the source root whose complete geometry this result describes.
 func (r *LayoutResult) Root() Box {
 	if r == nil {
 		return Box{}

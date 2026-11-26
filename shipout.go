@@ -23,9 +23,12 @@ type DeliveryError struct {
 	Cause error
 }
 
+// Error formats the delivery page number and original cause.
 func (e *DeliveryError) Error() string {
 	return fmt.Sprintf("page delivery at %d: %v", e.Page, e.Cause)
 }
+
+// Unwrap exposes ErrDelivery and the original consumer or cancellation cause.
 func (e *DeliveryError) Unwrap() []error { return []error{ErrDelivery, e.Cause} }
 
 // DeliveryReport records calls made by one Shipout invocation. Its zero value

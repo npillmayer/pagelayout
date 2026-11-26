@@ -19,7 +19,7 @@ import (
 // Slices are independently owned; only immutable Box handles retain the source.
 // TextStyle remains the DOM snapshot (including line-height and hyphens); no
 // typography conversion or policy admission happens here. Paint is also supplied
-// separately so a later shaping bridge need not use color as a style boundary.
+// separately so shaping does not need color as a style boundary.
 type GroupInput struct {
 	// Events maps source annotations to processed bytes without inserting material.
 	Events []GroupEvent

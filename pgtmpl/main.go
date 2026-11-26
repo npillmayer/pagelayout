@@ -1,4 +1,3 @@
-// pgtmpl is a CLI for checking and previewing page-template collections.
 package main
 
 import (
