@@ -240,9 +240,9 @@ an owning range inside a ligature and retained rendering after narrower-width
 completion. The [client example](../../../typography/glyphing/paragraph/prefix_example_test.go)
 demonstrates selecting a shorter prefix.
 
-These are paragraph-boundary proofs, not whole-page fixture results. Manual
-fragment/source mapping, CSS fragment edges/geometry and content/event integration
-remain later gates; working scoring and limit expectations are unchanged.
+These are paragraph-boundary proofs, not whole-page fixture results. CSS fragment
+edges/geometry and content/event integration remain later gates; working scoring
+and limit expectations are unchanged.
 
 ## Manual continuation evidence
 
@@ -254,6 +254,17 @@ with nonempty original provenance. Accepted FF/KP prefixes, changed-width and
 repeated resumes, source conservation, suffix atomic rebinding and rejection of
 changed consumed atomics are checked. Lazy-service failure publishes no plan;
 retry and concurrent reuse preserve old output. Lifetime checks keep frozen
-replacement output usable after collecting working handles. TYPE-SHIP-02 still
-owns manual fragments and coverage in typography; these tests do not establish
-page fitting, page loss or span search.
+replacement output usable after collecting working handles.
+
+TYPE-SHIP-02
+[manual prefix tests](../../../typography/glyphing/paragraph/prefix_manual_test.go),
+[lifetime tests](../../../typography/glyphing/paragraph/prefix_manual_lifetime_test.go)
+and [real-font proof](../../../typography/integration/prefix_manual_render_test.go)
+now exercise the typography selection/checkpoint API. Original source partitions
+and replacement-local clusters stay separate; rendered halves supply indivisible
+ReplacementCoverage, while silent output retains logical carry without rendered
+coverage. Repeated width changes, source-adjacent owning ranges, provider/shaper
+failures, retained atomic geometry and rendering after preparation collection
+are checked. The [example](../../../typography/glyphing/paragraph/prefix_manual_example_test.go)
+shows manual resumption. These proofs do not establish page fitting, page loss
+or span search; the content/event/interior bridge remains SHIP-04.

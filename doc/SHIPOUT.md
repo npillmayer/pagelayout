@@ -154,6 +154,20 @@ If anything, the pagespan optimization could be handled by a pool of workers.
 
 ## Design discussion: pagination and shipout
 
+TYPE-SHIP-02 implementation update (2026-11-26): typography now accepts manual
+paragraph checkpoints and finite-height prefix selection through the existing
+trial API. Exact selected replacement tails, original source splits and consumed
+atomic geometry survive equal/changed-width resumes; later authored alternatives
+can shape lazily without base re-preparation. ReplacementCoverage reports each
+rendered pre/post half as one indivisible original source partition, never using
+replacement-local cluster offsets as original positions. Silent output retains
+logical carry but has no rendered coverage. Failed services publish no trial and
+permit retry. Lifetime and real-font tests retain rendering after working handles
+are collected. Automatic continuation remains unsupported; StartFlow keeps its
+separate `none` profile. BOX-SHIP-03 is next. HTML/event mapping and atomic
+interiors remain adapter-owned; page fitting/search and working scoring/limits
+are unchanged. Author remarks are preserved.
+
 KHIPU-SHIP-01 implementation update (2026-11-26): khipu now certifies manual
 (`ExplicitHyphenation`) prefixes and first-fit resumes with the exact selected
 post-break replacement, including empty spelling and zero-width material.
@@ -161,9 +175,8 @@ Accepted geometry, alternatives and consumed atomic advances remain fixed;
 later authored opportunities may discover replacement pairs lazily. Failed
 services publish no plan and leave earlier checkpoints/output reusable. Source
 conservation, repeated changed-width resumes and release of working handles
-are tested. Automatic continuation remains unsupported. Typography still admits
-only `none` through its fragment/checkpoint surface; TYPE-SHIP-02 integrates
-manual fragments and source coverage next. Scoring and numerical limits remain
+are tested. Automatic continuation remains unsupported. Typography admits
+`none` and `manual` through its fragment/checkpoint surface after TYPE-SHIP-02. Scoring and numerical limits remain
 working hypotheses; author remarks are unchanged.
 
 TYPE-SHIP-01 implementation update (2026-11-26): typography now supplies all
@@ -172,8 +185,8 @@ selection of a matching frozen fragment, checkpoint and accepted atomic geometry
 Logical byte/knot progress and rendered cluster coverage remain separate; source
 ranges inside ligatures attach to the whole cluster, independently of bidi visual
 order. Selected output survives changed-width suffixes and release of preparation.
-Manual continuation, used CSS fragment geometry, the content bridge and page/search
-execution remain subsequent slices. Scoring and numerical limits remain working
+Used CSS fragment geometry, the content bridge and page/search execution remain
+subsequent slices. Scoring and numerical limits remain working
 hypotheses. Existing author remarks are unchanged.
 
 BOX-SHIP-02 implementation update (2026-11-25): css-box-layout now enumerates
@@ -1250,8 +1263,9 @@ content fragment, not be silently discarded or emitted as an artificial cut.
 
 Paragraph fitting initially uses explicit FirstFit, normal line height and the
 existing bridge's bottom-margin-edge atomic alignment. Retain admitted `none`
-and `manual` hyphenation policies; manual checkpoints require the planned sibling
-work. Existing unsupported preparation cases remain explicit. Oversized lines
+and `manual` hyphenation policies; KHIPU-SHIP-01 and TYPE-SHIP-02 implement the
+paragraph checkpoint/prefix contracts. SHIP-04 still connects the content bridge.
+Existing unsupported preparation cases remain explicit. Oversized lines
 or atomics are non-fit for that configuration; unsupported fragmentation is an
 error. Do not clip, shrink or change source policy to manufacture a fit. Real
 zero-height items can advance logical material; marker handling/page numbering
