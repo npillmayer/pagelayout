@@ -1,7 +1,8 @@
 # Pagination and shipout implementation plan
 
 Recorded on 2026-11-25 against the current implementation and the decisions in
-[SHIPOUT.md](SHIPOUT.md). This is a plan, not a report of implemented pagination.
+[SHIPOUT.md](SHIPOUT.md). The slice statuses below record delivered implementation
+and acceptance evidence; proposed extensions remain separate.
 **SHIP-00 is complete as a contract-and-fixture slice; DOM-SHIP-01 is implemented
 in w3c-dom; SHIP-01 is implemented in content; BOX-SHIP-01 is implemented
 in css-box-layout; SHIP-02 source planning, SHIP-03 state/loss/outcome contracts,
@@ -15,8 +16,10 @@ implemented.** Page construction includes placement-dependent activation,
 FIFO queues and transitive draining, with exact remainders, frozen pages and
 factual loss. Search selects one complete span with explicit truncation and
 interruption reporting. Document pagination preserves earlier selections on later
-failure and separately delivers only selected frozen pages. SHIP-09's broader
-end-to-end and search-quality proofs remain planned.
+failure and separately delivers only selected frozen pages. **SHIP-09 is complete:**
+real-font document/GC proofs, an annotated multi-page SVG, finite beam-width
+comparisons, dependency audits, executable usage and sibling regressions now
+cover the initial milestone. See the [evidence guide](../testdata/pagination/README.md#real-font-document-proofs).
 Scoring and numerical execution limits remain working hypotheses.
 
 The author's initial remarks, scattered remarks and closing answers remain in
@@ -161,7 +164,7 @@ real backend, as noted in the detailed steps.
 | 14 | SHIP-06 — complete | pagelayout root/content, typography adapter; css-box-layout composition support | SHIP-05 | Multi-channel local arrangements, anchors and draining. |
 | 15 | SHIP-07 — complete | pagelayout root | SHIP-03, SHIP-06 | Deterministic beam search, eligibility and search outcomes. |
 | 16 | SHIP-08 — complete | pagelayout root/content | SHIP-07 | Span transitions, selected output and shipout handoff. |
-| 17 | SHIP-09 | pagelayout, sibling regression checks | SHIP-08 | Real-font, lifetime, search-quality and end-to-end proofs. |
+| 17 | SHIP-09 — complete | pagelayout tests/docs, sibling regression checks | SHIP-08 | Real-font, lifetime, search-quality and end-to-end proofs. |
 
 BOX-SHIP-02 and TYPE-SHIP-01 use the contracts pinned in SHIP-00 and test doubles;
 they must not import one another. The SHIP-07 search algorithm can likewise be
@@ -1081,7 +1084,7 @@ completed), unselected incumbents, cancellation, copied handles and closed execu
 Gentium none/manual tests in `page_realfont_test.go` deliver and render selected
 output after session close and GC. No sibling changes were required. Scoring,
 eligibility policy and numerical caps remain **working hypotheses**; the broader
-visual, lifetime and search-quality gate remains SHIP-09.
+visual, lifetime and search-quality gate is completed by SHIP-09 below.
 
 **Implemented scope:** add document orchestration around completed pagespan search. Select a
 whole span and publish its frozen sequence with its final exact state. Advance
@@ -1110,7 +1113,63 @@ remain valid. Consumer errors preserve their causes and do not alter the plan.
 
 ### SHIP-09 — Real-font, lifetime and search-quality proofs
 
-**Work:** extend the existing preparation real-font approach using pinned local
+**Status: implemented (2026-11-26).** `shipout_realfont_test.go` drives two
+separate HTML documents through the complete public pipeline, each producing five
+pages across two spans. The font is the local Gentium Plus fixture, checked by
+SHA-256. The atomic document preserves an accepted 50px interior while rebinding
+the suffix interior to 80px at the new receiver width. The manual document carries
+the shaped right half of `co&shy;operate` across the page boundary. Source byte
+coverage is continuous, source colors survive, owner events activate once, and
+notes/figures drain transitively before future-span main content. Eligibility is
+explicitly constrained for these integration cases, not presented as an optimal
+template policy.
+
+Competing widths and an injected failed fitting service leave retained prefixes,
+atomic geometry, source state and later retry unchanged. Group preparation counts
+remain six/four. The none fixture performs no further shaping; manual performs
+exactly two legitimate lazy replacement shapes for its one opportunity, without
+repeating base encoding or discovery. A real oversized atomic terminates as
+infeasible after one round, publishing no pages.
+
+Only frozen pages leave the real-font helper. Weak references establish collection
+of the paginator, session, preparation factory/hyphenator, backend/adapter, group
+wrappers, streams and rejected shaped paragraphs; subsequent rendering is identical.
+Test-only scheduler checks watch complete/unfinished paths, candidates and local
+enumeration collectors. Existing bridge and sibling private-lifetime checks cover
+prepared paragraphs, trial/collector/checkpoint internals. Borrowed font resources
+remain intentionally live; these output-only proofs do not conflate them with
+execution ownership or intentionally retained resumable states.
+
+The retained outlines are rendered in
+[shipout-proof.svg](../testdata/pagination/shipout-proof.svg), rasterized and visually
+inspected. [proof-expected.json](../testdata/pagination/proof-expected.json) records
+page/template/span sequences, all loss components and source-qualified fragment
+ranges/geometry. It is a pinned-metrics regression baseline; independent tests
+also assert conservation, geometry, activation and factual carry charges.
+The test-only writer does no layout or shaping and is not a public renderer.
+
+`search_quality_test.go` compares beam widths 8/32/128 with independent exhaustive
+traversal on three finite graphs and actual core/page enumeration. The
+[recorded observations](../testdata/pagination/search-quality.json) include attempts,
+local alternatives, peak frontier/pending/round-retained paths, safe and width cuts,
+completed loss and repeated breakpoint vectors. One graph loses the cheaper path
+at widths 8 and 32 (loss 10 versus exhaustive/128 loss 2). Actual page enumeration
+uses 90/234/258 attempts and 132/276/300 local alternatives versus exhaustive
+258/300, with the same selected loss 3. Forty repeated unfinished vectors are
+observed; they remain distinct paths. No merging, automatic widening/retry or
+wall-clock threshold was introduced. These small observations do not establish
+representative document performance or settle the working scoring/eligibility/cap
+hypotheses.
+
+`ExamplePagination_Paginate` supplies executable font-to-delivery usage after
+session close; the root README describes its use and viewing/reproducing the proof.
+Dependency audits now include root pagination and the neutral typography/khipu
+production graphs. Pagelayout ordinary/race/build/vet checks and ordinary sibling
+regressions in w3c-dom, css-box-layout, typography, khipu and tytui pass. No sibling
+or production implementation changes were needed. The section 7 families map to
+the [executable evidence table](../testdata/pagination/README.md#acceptance-evidence-map).
+
+**Delivered scope:** extend the existing preparation real-font approach using pinned local
 test fixtures and test-only concrete font/render adapters. Produce a small
 multi-page visual proof showing template/frame boundaries, fragments and source
 identities, accompanied by machine-checked page sequences and loss breakdowns.
@@ -1219,9 +1278,10 @@ Useful completion checkpoints are:
    including manual continuation within the declared profile, failure reporting
    and lifetime proofs. Record any still-provisional scoring calibration openly.
 
-The next implementation task is **SHIP-09**: real-font, lifetime, search-quality
-and end-to-end proofs.
+The initial pagination milestone is complete for the declared restricted profile.
 SHIP-00, DOM-SHIP-01, SHIP-01,
 BOX-SHIP-01, SHIP-02, SHIP-03, BOX-SHIP-02, TYPE-SHIP-01, KHIPU-SHIP-01,
-TYPE-SHIP-02, BOX-SHIP-03, SHIP-04, SHIP-05, SHIP-06, SHIP-07 and SHIP-08 are complete.
-Public span transitions and delivery are implemented; the broader proof gate remains planned.
+TYPE-SHIP-02, BOX-SHIP-03, SHIP-04, SHIP-05, SHIP-06, SHIP-07, SHIP-08 and SHIP-09
+are complete. Scoring/eligibility/numerical-limit calibration, representative
+document performance, floats, merging, concurrency and broader fragmentation
+remain separate decisions/work. No next extension is authorized by this status.

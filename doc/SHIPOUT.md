@@ -154,6 +154,34 @@ If anything, the pagespan optimization could be handled by a pool of workers.
 
 ## Design discussion: pagination and shipout
 
+SHIP-09 implementation update (2026-11-26): the initial pagination milestone now
+has real-font document, lifetime and finite search-quality evidence. Two five-page
+documents exercise changing widths, accepted/suffix atomic interiors, manual
+right-half carry, source styles, owning-anchor deferral and transitive draining
+through `Paginate` and `Shipout`. Pinned Gentium outlines are retained in an
+[annotated SVG](../testdata/pagination/shipout-proof.svg), with checked page/loss/
+source records. Independent conservation and geometry assertions accompany the
+visual inspection. Preparation counts distinguish unchanged base work from the
+manual fixture's required lazy replacement shaping. Failed competitors preserve
+earlier output; an oversized atomic reports infeasibility without empty pages.
+
+Output-only weak-reference checks release execution factories, sessions, group
+wrappers, streams, rejected paragraph output, search paths and local enumeration
+collectors, then render retained pages again. Existing bridge and sibling lifetime
+checks cover their private trials/preparations/checkpoints. Stable borrowed font
+resources intentionally remain live.
+
+Widths 8, 32 and 128 are compared with an independent exhaustive reference using
+work counts, not timing. The finite cases include a cheaper completion lost at
+widths 8/32, safe bound pruning and repeated breakpoint vectors retained as distinct
+paths. Actual page enumeration also matches the public search API and exhaustive
+selected result. The [evidence guide](../testdata/pagination/README.md#beam-width-quality-and-work-counts)
+records exact counts and metric definitions. No state merging or new search policy
+was introduced. These small cases do not settle calibration or representative
+document performance; scoring, eligibility and numerical limits remain working
+hypotheses. Executable usage, dependency audits and sibling regressions pass.
+The test-only proof writer is not a production renderer. Author remarks are preserved.
+
 SHIP-08 implementation update (2026-11-26): `Pagination.Paginate` now selects
 successive complete spans and preserves earlier selections on later failure.
 `DocumentResult` exposes copied successful span reports, the last search report,
@@ -177,7 +205,7 @@ Cancellation after a successful final call still reports the cancellation and
 records all calls complete. Delivery survives session closure while borrowed
 rendering resources remain live. Tests cover two-span selection, empty documents,
 later-span failures, delivery failures/cancellation and real-font retained output.
-No sibling changes were required. SHIP-09 remains the broader proof gate.
+No sibling changes were required. SHIP-09 above completes the broader proof gate.
 Eligibility, scoring and numerical limits remain working hypotheses; the author's
 remarks are unchanged.
 
@@ -1208,7 +1236,7 @@ above and below identify the current contract.
 | Scoring | Working hypotheses, including entry-state participation, final-main-tail exemption and coefficients. | Validate/calibrate the explicit scoring expectations; do not silently promote them. |
 | Search | Settled default-32 beam, ties, safe strict bound and outcome distinctions. | Implement the scheduler; numerical execution caps remain working hypotheses. |
 | Eligibility | Existing all-templates-in-order/optional-filter working baseline. | Define the predicate API and validate fixtures. |
-| Span publication and output | Settled atomic selection, exact transition, separate delivery and lifetime contract; implemented through SHIP-08. | Broader real-font/lifetime and end-to-end proofs in SHIP-09. |
+| Span publication and output | Settled atomic selection, exact transition, separate delivery and lifetime contract; implemented through SHIP-08 and proved in SHIP-09. | Broader profiles and production output consumers are separate work. |
 | Deferred | Concurrency, state merging, floats and broader profiles. | No implementation required for the initial milestone. |
 
 The [implementation plan](SHIPOUT-PLAN.md) assigns remaining declarations and
@@ -1502,9 +1530,9 @@ does not. Full execution details and evidence are in [SHIPOUT-PLAN.md](SHIPOUT-P
 | Markers/anchors | Affinity, suppression, strict ownership, propagation and activation settled. | Source/normalization/preparation mapping in DOM-SHIP-01, BOX-SHIP-01 and SHIP-01/02. |
 | Fitting | Initial profile, edge/margin rules and enumeration contract settled. | Structural/paragraph APIs and implementations in BOX/TYPE/KHIPU-SHIP slices. |
 | Loss | Algebra, uint64 units, quantization and error handling settled. | Scoring participation, occupancy, penalties/weights remain working hypotheses; validate the recorded expectations in SHIP-03/06/09. |
-| Search | Tie/beam policy and interrupted-incumbent behavior settled; SHIP-07 implements execution, config, reports and checks. | Numerical-cap calibration and broader search-quality proofs remain open. |
+| Search | Tie/beam policy and interrupted-incumbent behavior settled; SHIP-07 implements execution, config, reports and checks; SHIP-09 supplies finite width/exhaustive comparisons. | Numerical-cap calibration and representative document performance remain open. |
 | Eligibility | All-templates-in-order/optional-deterministic-filter working baseline retained; SHIP-07 implements Eligible and its fixtures. | Calibration of eligibility policies remains open; no mandatory channel participation. |
-| Output | Atomic span selection, separate delivery and lifetime contracts settled; SHIP-08 implements document transitions and selected-page delivery. | Broader lifetime and end-to-end proofs in SHIP-09. |
+| Output | Atomic span selection, separate delivery and lifetime contracts settled; SHIP-08 implements document transitions/delivery, and SHIP-09 supplies real-font and output-only lifetime evidence. | Broader profiles and production output consumers are separate work. |
 | Deferred | Floats, concurrent workers, state merging, broader fragmentation and automatic hyphenation remain deferred. | No additional abstraction is implied by SHIP-00. |
 
 ## Comments to the questions you presented

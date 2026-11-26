@@ -1,0 +1,294 @@
+[
+  {
+    "Case": "late-cheap-completion",
+    "Width": 8,
+    "Attempts": 360,
+    "LocalAlternatives": 0,
+    "PeakFrontier": 8,
+    "PeakPending": 40,
+    "PeakRetained": 41,
+    "RepeatedVectors": 0,
+    "SafeCuts": 0,
+    "WidthCuts": 32,
+    "Complete": true,
+    "Loss": 10,
+    "Sequence": [
+      "t00",
+      "t00"
+    ]
+  },
+  {
+    "Case": "late-cheap-completion",
+    "Width": 32,
+    "Attempts": 1320,
+    "LocalAlternatives": 0,
+    "PeakFrontier": 32,
+    "PeakPending": 40,
+    "PeakRetained": 41,
+    "RepeatedVectors": 0,
+    "SafeCuts": 0,
+    "WidthCuts": 8,
+    "Complete": true,
+    "Loss": 10,
+    "Sequence": [
+      "t00",
+      "t00"
+    ]
+  },
+  {
+    "Case": "late-cheap-completion",
+    "Width": 128,
+    "Attempts": 1640,
+    "LocalAlternatives": 0,
+    "PeakFrontier": 40,
+    "PeakPending": 40,
+    "PeakRetained": 41,
+    "RepeatedVectors": 0,
+    "SafeCuts": 0,
+    "WidthCuts": 0,
+    "Complete": true,
+    "Loss": 2,
+    "Sequence": [
+      "t39",
+      "t00"
+    ]
+  },
+  {
+    "Case": "late-cheap-completion",
+    "Width": 0,
+    "Attempts": 1640,
+    "LocalAlternatives": 0,
+    "PeakFrontier": 0,
+    "PeakPending": 0,
+    "PeakRetained": 0,
+    "RepeatedVectors": 0,
+    "SafeCuts": 0,
+    "WidthCuts": 0,
+    "Complete": true,
+    "Loss": 2,
+    "Sequence": [
+      "t39",
+      "t00"
+    ]
+  },
+  {
+    "Case": "repeated-vectors",
+    "Width": 8,
+    "Attempts": 36,
+    "LocalAlternatives": 0,
+    "PeakFrontier": 8,
+    "PeakPending": 9,
+    "PeakRetained": 12,
+    "RepeatedVectors": 10,
+    "SafeCuts": 0,
+    "WidthCuts": 1,
+    "Complete": true,
+    "Loss": 3,
+    "Sequence": [
+      "a",
+      "a",
+      "a"
+    ]
+  },
+  {
+    "Case": "repeated-vectors",
+    "Width": 32,
+    "Attempts": 39,
+    "LocalAlternatives": 0,
+    "PeakFrontier": 9,
+    "PeakPending": 9,
+    "PeakRetained": 12,
+    "RepeatedVectors": 10,
+    "SafeCuts": 0,
+    "WidthCuts": 0,
+    "Complete": true,
+    "Loss": 3,
+    "Sequence": [
+      "a",
+      "a",
+      "a"
+    ]
+  },
+  {
+    "Case": "repeated-vectors",
+    "Width": 128,
+    "Attempts": 39,
+    "LocalAlternatives": 0,
+    "PeakFrontier": 9,
+    "PeakPending": 9,
+    "PeakRetained": 12,
+    "RepeatedVectors": 10,
+    "SafeCuts": 0,
+    "WidthCuts": 0,
+    "Complete": true,
+    "Loss": 3,
+    "Sequence": [
+      "a",
+      "a",
+      "a"
+    ]
+  },
+  {
+    "Case": "repeated-vectors",
+    "Width": 0,
+    "Attempts": 39,
+    "LocalAlternatives": 0,
+    "PeakFrontier": 0,
+    "PeakPending": 0,
+    "PeakRetained": 0,
+    "RepeatedVectors": 0,
+    "SafeCuts": 0,
+    "WidthCuts": 0,
+    "Complete": true,
+    "Loss": 3,
+    "Sequence": [
+      "a",
+      "a",
+      "a"
+    ]
+  },
+  {
+    "Case": "strict-bound",
+    "Width": 8,
+    "Attempts": 6,
+    "LocalAlternatives": 0,
+    "PeakFrontier": 1,
+    "PeakPending": 2,
+    "PeakRetained": 4,
+    "RepeatedVectors": 0,
+    "SafeCuts": 1,
+    "WidthCuts": 0,
+    "Complete": true,
+    "Loss": 3,
+    "Sequence": [
+      "a"
+    ]
+  },
+  {
+    "Case": "strict-bound",
+    "Width": 32,
+    "Attempts": 6,
+    "LocalAlternatives": 0,
+    "PeakFrontier": 1,
+    "PeakPending": 2,
+    "PeakRetained": 4,
+    "RepeatedVectors": 0,
+    "SafeCuts": 1,
+    "WidthCuts": 0,
+    "Complete": true,
+    "Loss": 3,
+    "Sequence": [
+      "a"
+    ]
+  },
+  {
+    "Case": "strict-bound",
+    "Width": 128,
+    "Attempts": 6,
+    "LocalAlternatives": 0,
+    "PeakFrontier": 1,
+    "PeakPending": 2,
+    "PeakRetained": 4,
+    "RepeatedVectors": 0,
+    "SafeCuts": 1,
+    "WidthCuts": 0,
+    "Complete": true,
+    "Loss": 3,
+    "Sequence": [
+      "a"
+    ]
+  },
+  {
+    "Case": "strict-bound",
+    "Width": 0,
+    "Attempts": 9,
+    "LocalAlternatives": 0,
+    "PeakFrontier": 0,
+    "PeakPending": 0,
+    "PeakRetained": 0,
+    "RepeatedVectors": 0,
+    "SafeCuts": 0,
+    "WidthCuts": 0,
+    "Complete": true,
+    "Loss": 3,
+    "Sequence": [
+      "a"
+    ]
+  },
+  {
+    "Case": "actual-pages",
+    "Width": 8,
+    "Attempts": 90,
+    "LocalAlternatives": 132,
+    "PeakFrontier": 8,
+    "PeakPending": 36,
+    "PeakRetained": 42,
+    "RepeatedVectors": 40,
+    "SafeCuts": 0,
+    "WidthCuts": 28,
+    "Complete": true,
+    "Loss": 3,
+    "Sequence": [
+      "t0",
+      "t0",
+      "t0"
+    ]
+  },
+  {
+    "Case": "actual-pages",
+    "Width": 32,
+    "Attempts": 234,
+    "LocalAlternatives": 276,
+    "PeakFrontier": 32,
+    "PeakPending": 36,
+    "PeakRetained": 42,
+    "RepeatedVectors": 40,
+    "SafeCuts": 0,
+    "WidthCuts": 4,
+    "Complete": true,
+    "Loss": 3,
+    "Sequence": [
+      "t0",
+      "t0",
+      "t0"
+    ]
+  },
+  {
+    "Case": "actual-pages",
+    "Width": 128,
+    "Attempts": 258,
+    "LocalAlternatives": 300,
+    "PeakFrontier": 36,
+    "PeakPending": 36,
+    "PeakRetained": 42,
+    "RepeatedVectors": 40,
+    "SafeCuts": 0,
+    "WidthCuts": 0,
+    "Complete": true,
+    "Loss": 3,
+    "Sequence": [
+      "t0",
+      "t0",
+      "t0"
+    ]
+  },
+  {
+    "Case": "actual-pages",
+    "Width": 0,
+    "Attempts": 258,
+    "LocalAlternatives": 300,
+    "PeakFrontier": 0,
+    "PeakPending": 0,
+    "PeakRetained": 0,
+    "RepeatedVectors": 0,
+    "SafeCuts": 0,
+    "WidthCuts": 0,
+    "Complete": true,
+    "Loss": 3,
+    "Sequence": [
+      "t0",
+      "t0",
+      "t0"
+    ]
+  }
+]

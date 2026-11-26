@@ -1,0 +1,16 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Real-font proof receivers</title><style>
+.page { width:220px; height:130px; background:white; }
+.frame { position:fixed; left:15px; top:28px; height:40px; }
+.narrow { width:100px; flow-from:main; }
+.manual { width:32px; flow-from:main; }
+.wide { width:160px; flow-from:main; }
+.notes { width:160px; flow-from:notes; }
+.figures { width:160px; flow-from:figures; }
+</style></head><body>
+<template id="narrow" data-type="page"><div class="page"><div class="frame narrow"></div></div></template>
+<template id="manual" data-type="page"><div class="page"><div class="frame manual"></div></div></template>
+<template id="wide" data-type="page"><div class="page"><div class="frame wide"></div></div></template>
+<template id="notes" data-type="page"><div class="page"><div class="frame notes"></div></div></template>
+<template id="figures" data-type="page"><div class="page"><div class="frame figures"></div></div></template>
+</body></html>

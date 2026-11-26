@@ -9,6 +9,7 @@ checked at their contract boundary. SHIP-05/06 exercise single- and multi-channe
 page construction, activation, draining and frozen rendering. SHIP-07 executes
 the search graph cases and compares real page fixtures with exhaustive search.
 SHIP-08 drives successive spans and separately delivers selected frozen pages.
+SHIP-09 adds real-font document/lifetime proofs and measured beam-width comparisons.
 
 Keep template and content documents separate. The template collection can already
 be checked with:
@@ -31,6 +32,132 @@ passing catalog load does not prove content routing, fitting or pagination.
 | [scoring-expected.json](scoring-expected.json) | Supply the stated page facts directly to the evaluator. | Participating frames, components, exact integer loss and arithmetic failures. Scoring cases are working hypotheses. |
 | [search-expected.json](search-expected.json) | Supply the finite graph as a fake Page attempt. | Selected sequence, loss, retained frontier, pruning, completion/failure and interrupted-incumbent behavior. |
 | [protocol-expected.json](protocol-expected.json) | Construct the stated identity, session, failure or delivery scenario. | Atomic publication, error category/cause, state stability and output lifetime. |
+
+## Real-font document proofs
+
+Open [shipout-proof.svg](shipout-proof.svg) for two five-page examples. They use
+the separate [proof template collection](templates/proof.html) with
+[atomic content](content/proof-atomics.html) and
+[manual-hyphenation content](content/proof-manual.html). Font outlines are embedded
+in the SVG; opening it requires no installed font. Annotation labels use a generic
+sans-serif font. Blue/orange/green outlines identify main/notes/figures; dashed
+boxes identify paragraph occurrences. Full source/tree/box identities, processed
+byte intervals and all page-loss components are in
+[proof-expected.json](proof-expected.json).
+
+From the module root, run the checks or reproduce the visual artifact:
+
+```sh
+go test . -run 'TestShipout.*Real|TestSelectedPagesReleaseSearchWorkspaces' -count=1 -v
+PAGELAYOUT_SHIP_PROOF=testdata/pagination/shipout-proof.svg go test . -run '^TestShipoutRealFontDocumentProof$' -count=1
+```
+
+The font is the local sibling `opentype/testdata/fonts/GentiumPlus-R.ttf`, pinned
+by SHA-256 `fa09788adcc651d77eba7d96f8cc3a600d6484c58e3b4ff79c2b2464dbfea6f8`.
+Its existing sibling license/provenance applies; no font is downloaded or copied
+into this module. Only tests/examples select the concrete font/render adapters.
+
+Both documents pass through `Load`, `Prepare`, `Plan`, `NewPagination`, competing
+`PageAttempt`s, `Paginate` and `Sequence.Shipout`. The deterministic eligibility
+filter chooses a narrow opening, a wider continuation, then notes and figures
+on separate drain pages before the next main span. This filter deliberately tests
+deferral and transitions; it is not a claim about unfiltered optimal layout.
+
+| Source | Selected templates | Span losses, in integer units |
+| --- | --- | --- |
+| Atomics | narrow, wide, notes, figures; wide | 26,144,384; 1,000,000 |
+| Manual | manual, wide, notes, figures; wide | 27,214,794; 1,000,000 |
+
+Independent assertions check these sequence/activation facts, source conservation,
+geometry and factual carry charges. The detailed JSON is a regression baseline
+for pinned-font metrics and working scoring, not an independent typography oracle.
+The atomic interiors are 50px then 80px wide; the first stays unchanged when the
+suffix is fitted at a new width. Manual `co-` / `operate` retains nonempty shaped
+right-half carry with source coverage on both pages and only one owner activation.
+The rendering recipe uses the supported hyphen insertion/original-text paint
+mapping; arbitrary generated replacement-text paint mappings are outside this proof.
+An oversized 300px atomic is infeasible after one round, with no published page.
+
+Preparation runs once per group: six groups for atomics and four for manual.
+Atomics use six factories/seven shape calls throughout repeated attempts. Manual
+uses four base factories/shapes, then two lazy replacement factories/shapes for
+its one authored opportunity. The test allows this required work and rejects
+repeated base encoding or repeated discovery for that fixture.
+
+Only frozen pages leave the real-font helper. Weak-reference checks prove release
+of the paginator, session, preparer, factory/hyphenator, fitting adapter, group
+wrappers, streams and rejected shaped paragraphs. Rendering afterward must match
+the earlier proofs exactly, while borrowed font resources remain live. Separate
+root tests watch search paths, candidate wrappers and local enumeration collectors.
+Existing bridge/typography/khipu lifetime tests watch their private preparations,
+trials, collectors and checkpoints. Retaining an exact resumable State is a
+different ownership case; these output-only checks deliberately retain no State.
+
+The SVG was rasterized and visually inspected alongside these assertions. It is
+a proof artifact, not a production renderer or a substitute for conservation checks.
+To intentionally refresh the JSON after reviewing changed expectations, set
+`PAGELAYOUT_UPDATE_SHIP_PROOF=1` for that focused test. Normal tests never rewrite it.
+
+## Beam-width quality and work counts
+
+`TestSearchQualityWidthsAndExhaustiveReference` compares widths 8, 32 and 128 with
+an independent depth-first reference that performs no beam/bound pruning or
+merging. [search-quality.json](search-quality.json) records the full observations:
+
+| Case | Widths 8 / 32 / 128: attempts | Exhaustive attempts | Completed loss: 8 / 32 / 128 / exhaustive |
+| --- | --- | ---: | --- |
+| Late cheap completion | 360 / 1,320 / 1,640 | 1,640 | 10 / 10 / 2 / 2 |
+| Repeated vectors | 36 / 39 / 39 | 39 | 3 / 3 / 3 / 3 |
+| Strict lower bound | 6 / 6 / 6 | 9 | 3 / 3 / 3 / 3 |
+| Actual page enumeration | 90 / 234 / 258 | 258 | 3 / 3 / 3 / 3 |
+
+The actual-page case enumerates six equal-geometry templates over five synthetic
+lines, with two-line receivers. It evaluates 132 / 276 / 300 local arrangements
+(300 exhaustively), observes 40 repeated unfinished breakpoint vectors, and
+discards 28 / 4 / 0 paths by width. It has a peak of 42 round-retained paths even
+with a beam of 8: the complete next round is formed before pruning. Public
+`PaginationSearch` outcomes and work counters are cross-checked against the
+instrumented scheduler. No additional instrumentation API is added to production.
+
+Metric definitions:
+
+- `LocalAlternatives`: complete, activation-valid arrangements assessed locally,
+  including losers; zero for finite graphs, which have no box fitter.
+- `PeakFrontier`: unfinished paths retained after a round's pruning (initial path
+  included); `PeakPending`: unfinished successors before that pruning.
+- `PeakRetained`: parent frontier plus pending successors plus the best completion
+  during a round. It excludes transient local alternatives and shared ancestor
+  output prefixes, and is not a heap-byte estimate.
+- `RepeatedVectors`: repeated logical breakpoint vectors among generated unfinished
+  successors in one round, before pruning. It is not continuation equivalence.
+- `SafeCuts` and `WidthCuts` distinguish proof-preserving bounds from heuristic
+  truncation. Width zero denotes the exhaustive report only; its frontier/repetition
+  metrics are not applicable and stored as zero.
+
+Run `go test . -run '^TestSearchQualityWidthsAndExhaustiveReference$' -count=1`.
+`PAGELAYOUT_UPDATE_SEARCH_QUALITY=1` explicitly refreshes the observed report;
+the independent optimality/quality assertions still run. These finite observations
+demonstrate both successful pruning and a quality loss under truncation. They do
+not calibrate the default beam, establish representative document performance,
+justify merging, or settle scoring/eligibility/limit hypotheses. No timing threshold
+is used and no merging, widening or automatic retry is implemented.
+
+## Acceptance evidence map
+
+The implementation-plan matrix is exercised by these existing and added checks.
+Sibling suites are run as regressions; no sibling source changes are required by
+these proof additions.
+
+| Matrix families | Executable evidence |
+| --- | --- |
+| Default main; marker provenance; forced breaks; ownership errors | `content/ship_source_test.go`, `content/positions_test.go`, root `plan_test.go`; core `provenance_test.go` and DOM checked-break tests. |
+| Structural splits; geometry/margins; atomics | Core `fit_test.go`, `fit_geometry_test.go`, `fit_composition_test.go`; bridge `fit_test.go`; root real-font atomic and oversized cases. |
+| Paragraph prefixes; manual carry; bidi/source mapping | Typography `prefix_fit_test.go`, `prefix_manual_test.go`, integration render proofs; khipu manual checkpoint/continuation tests; bridge `fit_lifetime_test.go`; root manual proof. |
+| Local choice; owning placement; authored FIFO; transitive drain | Root `page_test.go`, `page_channels_test.go`, `document_test.go`, and the two real-font documents. |
+| Loss arithmetic; scoring facts | Root `loss_test.go`, page fixtures and the detailed proof-loss baseline. |
+| Search reference; failure reporting; transactions | Root `search_graph_test.go`, `search_test.go`, `search_quality_test.go`, `document_test.go`, `shipout_test.go`; bridge failure/retry tests. |
+| Lifetime; real fonts/quality | Root `shipout_realfont_test.go`, `page_realfont_test.go`, `search_quality_test.go`; bridge `lifetime_test.go`, `fit_lifetime_test.go`; typography and khipu private-lifetime checks. |
+| Dependency boundaries; usage | Expanded `preparation/typography/dependencies_test.go`; executable `ExamplePagination_Paginate`. |
 
 ## Document pagination and delivery evidence
 
@@ -55,7 +182,7 @@ claimed. It also checks rejection of unselected incumbents, cancellation before/
 after calls, independent handles, zero-page delivery and closed-session output.
 Gentium none/manual cases in `page_realfont_test.go` paginate and deliver selected
 output after session close and GC, comparing frozen render proofs. The broader
-multi-page visual, lifetime and search-quality gate remains SHIP-09.
+multi-page visual, lifetime and search-quality evidence is documented above.
 
 ## Multi-channel page evidence
 

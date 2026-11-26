@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Changing-width atomic proof</title>
+<style>body { font-size:20px; hyphens:none; color:#234567; }
+.atomic { display:inline-block; width:50%; padding:1px; background:#e8f0fa; }
+.note { flow-into:notes; color:#9a3412; }
+.figure { flow-into:figures; color:#166534; }
+.chapter { break-before:page; }</style></head>
+<body><p><span class="atomic">One</span> <span class="atomic">Two</span> <a href="#note" data-flow-anchor>Note</a>.</p>
+<p class="chapter">Next.</p>
+<aside id="note" class="note">Note <a href="#figure" data-flow-anchor>F</a>.</aside>
+<figure id="figure" class="figure">Figure.</figure></body></html>

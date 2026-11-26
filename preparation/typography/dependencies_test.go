@@ -13,7 +13,8 @@ import (
 func TestDependencyBoundaries(t *testing.T) {
 	for _, tc := range []struct{ packages, forbidden []string }{
 		{[]string{"."}, []string{"github.com/npillmayer/opentype", "github.com/npillmayer/fontfind", "tytui", "github.com/npillmayer/typography/glyphing/adapter", "github.com/npillmayer/typography/render"}},
-		{[]string{"../../content", "../../template", "github.com/npillmayer/css-box-layout/layout"}, []string{"github.com/npillmayer/typography", "github.com/npillmayer/khipu", "github.com/npillmayer/opentype", "github.com/npillmayer/fontfind", "tytui"}},
+		{[]string{"../..", "../../content", "../../template", "github.com/npillmayer/css-box-layout/layout"}, []string{"github.com/npillmayer/typography", "github.com/npillmayer/khipu", "github.com/npillmayer/opentype", "github.com/npillmayer/fontfind", "tytui"}},
+		{[]string{"github.com/npillmayer/typography/glyphing/paragraph", "github.com/npillmayer/typography/render", "github.com/npillmayer/khipu"}, []string{"github.com/npillmayer/pagelayout", "github.com/npillmayer/css-box-layout", "github.com/npillmayer/w3c-dom", "github.com/npillmayer/opentype", "github.com/npillmayer/fontfind", "tytui"}},
 	} {
 		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 		args := append([]string{"list", "-deps"}, tc.packages...)

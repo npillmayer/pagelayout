@@ -352,6 +352,21 @@ before and after calls. If cancellation arrives during the final successful call
 the error still reports cancellation while `Complete()` is true: all calls finished.
 An empty selection makes no consumer calls.
 
+For a complete font-to-delivery example, see
+[`ExamplePagination_Paginate`](shipout_example_test.go). It selects a local font,
+loads separate content and templates, paginates two spans, closes preparation,
+and inspects frozen output during delivery. Run it from the module directory:
+
+```sh
+go test . -run '^ExamplePagination_Paginate$' -v
+```
+
+The [annotated multi-page sample](testdata/pagination/shipout-proof.svg) shows
+changing receiver widths, inline atomic interiors, manual hyphenation and deferred
+notes/figures. Labels identify original source nodes and processed paragraph byte
+ranges; colors distinguish channels. See the
+[fixture guide](testdata/pagination/README.md#real-font-document-proofs) to reproduce it.
+
 ## Evaluate page loss and compare choices
 
 `AssessPage(policy, facts)` evaluates supplied frame occupancy, pending targets

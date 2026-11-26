@@ -1,0 +1,962 @@
+[
+  {
+    "Name": "atomics",
+    "FontSHA": "fa09788adcc651d77eba7d96f8cc3a600d6484c58e3b4ff79c2b2464dbfea6f8",
+    "Pages": [
+      {
+        "Number": 1,
+        "Template": "narrow",
+        "Span": 1,
+        "Score": {
+          "Total": {
+            "Units": 11001188,
+            "Blocked": false
+          },
+          "Page": {
+            "Units": 1000000,
+            "Blocked": false
+          },
+          "Underfill": {
+            "Units": 1188,
+            "Blocked": false
+          },
+          "Split": {
+            "Units": 10000000,
+            "Blocked": false
+          },
+          "Carry": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "MissingMain": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Participating": [
+            0
+          ],
+          "Exempt": null,
+          "AreaDenominator": 4000,
+          "Facts": {
+            "Frames": [
+              {
+                "Channel": "main",
+                "Width": 100,
+                "Height": 40,
+                "Occupied": 38.62109375
+              }
+            ],
+            "MainRemaining": true,
+            "PendingAtEntry": null,
+            "PendingAfter": null,
+            "Fragments": [
+              {
+                "Paragraph": {},
+                "Frame": 0,
+                "Lines": 1,
+                "Split": true
+              },
+              {
+                "Paragraph": {},
+                "Frame": 0,
+                "Lines": 1,
+                "Split": false
+              }
+            ],
+            "MainFinishes": false,
+            "MainFinishingFrame": 0
+          }
+        },
+        "Activated": null,
+        "Pending": null,
+        "Groups": [
+          {
+            "Tree": 1,
+            "Box": 15830696648419845578,
+            "Source": {
+              "Name": "proof-atomics.html",
+              "NodeID": 13,
+              "Path": "/html[1]/body[1]/p[1]"
+            },
+            "From": 0,
+            "To": 4,
+            "Lines": 1,
+            "Atomic": false,
+            "X": 0,
+            "Y": 0,
+            "Width": 100,
+            "Height": 38.621094
+          },
+          {
+            "Tree": 1,
+            "Box": 12149951068071755273,
+            "Source": {
+              "Name": "proof-atomics.html",
+              "NodeID": 14,
+              "Path": "/html[1]/body[1]/p[1]/span[1]"
+            },
+            "From": 0,
+            "To": 3,
+            "Lines": 1,
+            "Atomic": true,
+            "X": 1,
+            "Y": 1,
+            "Width": 50,
+            "Height": 29.296875
+          }
+        ]
+      },
+      {
+        "Number": 2,
+        "Template": "wide",
+        "Span": 1,
+        "Score": {
+          "Total": {
+            "Units": 12000000,
+            "Blocked": false
+          },
+          "Page": {
+            "Units": 1000000,
+            "Blocked": false
+          },
+          "Underfill": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Split": {
+            "Units": 10000000,
+            "Blocked": false
+          },
+          "Carry": {
+            "Units": 1000000,
+            "Blocked": false
+          },
+          "MissingMain": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Participating": [
+            0
+          ],
+          "Exempt": [
+            0
+          ],
+          "AreaDenominator": 6400,
+          "Facts": {
+            "Frames": [
+              {
+                "Channel": "main",
+                "Width": 160,
+                "Height": 40,
+                "Occupied": 38.62109375
+              }
+            ],
+            "MainRemaining": true,
+            "PendingAtEntry": null,
+            "PendingAfter": [
+              {
+                "ID": 2,
+                "Channel": "notes"
+              }
+            ],
+            "Fragments": [
+              {
+                "Paragraph": {},
+                "Frame": 0,
+                "Lines": 1,
+                "Split": true
+              },
+              {
+                "Paragraph": {},
+                "Frame": 0,
+                "Lines": 1,
+                "Split": false
+              }
+            ],
+            "MainFinishes": true,
+            "MainFinishingFrame": 0
+          }
+        },
+        "Activated": [
+          2
+        ],
+        "Pending": [
+          2
+        ],
+        "Groups": [
+          {
+            "Tree": 1,
+            "Box": 15830696648419845578,
+            "Source": {
+              "Name": "proof-atomics.html",
+              "NodeID": 13,
+              "Path": "/html[1]/body[1]/p[1]"
+            },
+            "From": 4,
+            "To": 13,
+            "Lines": 1,
+            "Atomic": false,
+            "X": 0,
+            "Y": 0,
+            "Width": 160,
+            "Height": 38.621094
+          },
+          {
+            "Tree": 1,
+            "Box": 12149951070278785763,
+            "Source": {
+              "Name": "proof-atomics.html",
+              "NodeID": 17,
+              "Path": "/html[1]/body[1]/p[1]/span[2]"
+            },
+            "From": 0,
+            "To": 3,
+            "Lines": 1,
+            "Atomic": true,
+            "X": 1,
+            "Y": 1,
+            "Width": 80,
+            "Height": 29.296875
+          }
+        ]
+      },
+      {
+        "Number": 3,
+        "Template": "notes",
+        "Span": 1,
+        "Score": {
+          "Total": {
+            "Units": 2071598,
+            "Blocked": false
+          },
+          "Page": {
+            "Units": 1000000,
+            "Blocked": false
+          },
+          "Underfill": {
+            "Units": 71598,
+            "Blocked": false
+          },
+          "Split": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Carry": {
+            "Units": 1000000,
+            "Blocked": false
+          },
+          "MissingMain": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Participating": [
+            0
+          ],
+          "Exempt": null,
+          "AreaDenominator": 6400,
+          "Facts": {
+            "Frames": [
+              {
+                "Channel": "notes",
+                "Width": 160,
+                "Height": 40,
+                "Occupied": 29.296875
+              }
+            ],
+            "MainRemaining": false,
+            "PendingAtEntry": [
+              {
+                "ID": 2,
+                "Channel": "notes"
+              }
+            ],
+            "PendingAfter": [
+              {
+                "ID": 3,
+                "Channel": "figures"
+              }
+            ],
+            "Fragments": [
+              {
+                "Paragraph": {},
+                "Frame": 0,
+                "Lines": 1,
+                "Split": false
+              }
+            ],
+            "MainFinishes": false,
+            "MainFinishingFrame": 0
+          }
+        },
+        "Activated": [
+          2,
+          3
+        ],
+        "Pending": [
+          3
+        ],
+        "Groups": [
+          {
+            "Tree": 2,
+            "Box": 30898426865,
+            "Source": {
+              "Name": "proof-atomics.html",
+              "NodeID": 27,
+              "Path": "/html[1]/body[1]/aside[1]"
+            },
+            "From": 0,
+            "To": 7,
+            "Lines": 1,
+            "Atomic": false,
+            "X": 0,
+            "Y": 0,
+            "Width": 160,
+            "Height": 29.296875
+          }
+        ]
+      },
+      {
+        "Number": 4,
+        "Template": "figures",
+        "Span": 1,
+        "Score": {
+          "Total": {
+            "Units": 1071598,
+            "Blocked": false
+          },
+          "Page": {
+            "Units": 1000000,
+            "Blocked": false
+          },
+          "Underfill": {
+            "Units": 71598,
+            "Blocked": false
+          },
+          "Split": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Carry": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "MissingMain": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Participating": [
+            0
+          ],
+          "Exempt": null,
+          "AreaDenominator": 6400,
+          "Facts": {
+            "Frames": [
+              {
+                "Channel": "figures",
+                "Width": 160,
+                "Height": 40,
+                "Occupied": 29.296875
+              }
+            ],
+            "MainRemaining": false,
+            "PendingAtEntry": [
+              {
+                "ID": 3,
+                "Channel": "figures"
+              }
+            ],
+            "PendingAfter": null,
+            "Fragments": [
+              {
+                "Paragraph": {},
+                "Frame": 0,
+                "Lines": 1,
+                "Split": false
+              }
+            ],
+            "MainFinishes": false,
+            "MainFinishingFrame": 0
+          }
+        },
+        "Activated": [
+          2,
+          3
+        ],
+        "Pending": null,
+        "Groups": [
+          {
+            "Tree": 3,
+            "Box": 37519518332,
+            "Source": {
+              "Name": "proof-atomics.html",
+              "NodeID": 33,
+              "Path": "/html[1]/body[1]/figure[1]"
+            },
+            "From": 0,
+            "To": 7,
+            "Lines": 1,
+            "Atomic": false,
+            "X": 0,
+            "Y": 0,
+            "Width": 160,
+            "Height": 29.296875
+          }
+        ]
+      },
+      {
+        "Number": 5,
+        "Template": "wide",
+        "Span": 2,
+        "Score": {
+          "Total": {
+            "Units": 1000000,
+            "Blocked": false
+          },
+          "Page": {
+            "Units": 1000000,
+            "Blocked": false
+          },
+          "Underfill": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Split": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Carry": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "MissingMain": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Participating": [
+            0
+          ],
+          "Exempt": [
+            0
+          ],
+          "AreaDenominator": 6400,
+          "Facts": {
+            "Frames": [
+              {
+                "Channel": "main",
+                "Width": 160,
+                "Height": 40,
+                "Occupied": 29.296875
+              }
+            ],
+            "MainRemaining": true,
+            "PendingAtEntry": null,
+            "PendingAfter": null,
+            "Fragments": [
+              {
+                "Paragraph": {},
+                "Frame": 0,
+                "Lines": 1,
+                "Split": false
+              }
+            ],
+            "MainFinishes": true,
+            "MainFinishingFrame": 0
+          }
+        },
+        "Activated": [
+          2,
+          3
+        ],
+        "Pending": null,
+        "Groups": [
+          {
+            "Tree": 1,
+            "Box": 15830696650626876062,
+            "Source": {
+              "Name": "proof-atomics.html",
+              "NodeID": 24,
+              "Path": "/html[1]/body[1]/p[2]"
+            },
+            "From": 0,
+            "To": 5,
+            "Lines": 1,
+            "Atomic": false,
+            "X": 0,
+            "Y": 0,
+            "Width": 160,
+            "Height": 29.296875
+          }
+        ]
+      }
+    ],
+    "SpanLoss": [
+      26144384,
+      1000000
+    ],
+    "BasePreparations": 6
+  },
+  {
+    "Name": "manual",
+    "FontSHA": "fa09788adcc651d77eba7d96f8cc3a600d6484c58e3b4ff79c2b2464dbfea6f8",
+    "Pages": [
+      {
+        "Number": 1,
+        "Template": "manual",
+        "Span": 1,
+        "Score": {
+          "Total": {
+            "Units": 12071598,
+            "Blocked": false
+          },
+          "Page": {
+            "Units": 1000000,
+            "Blocked": false
+          },
+          "Underfill": {
+            "Units": 71598,
+            "Blocked": false
+          },
+          "Split": {
+            "Units": 10000000,
+            "Blocked": false
+          },
+          "Carry": {
+            "Units": 1000000,
+            "Blocked": false
+          },
+          "MissingMain": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Participating": [
+            0
+          ],
+          "Exempt": null,
+          "AreaDenominator": 1280,
+          "Facts": {
+            "Frames": [
+              {
+                "Channel": "main",
+                "Width": 32,
+                "Height": 40,
+                "Occupied": 29.296875
+              }
+            ],
+            "MainRemaining": true,
+            "PendingAtEntry": null,
+            "PendingAfter": [
+              {
+                "ID": 2,
+                "Channel": "notes"
+              }
+            ],
+            "Fragments": [
+              {
+                "Paragraph": {},
+                "Frame": 0,
+                "Lines": 1,
+                "Split": true
+              }
+            ],
+            "MainFinishes": false,
+            "MainFinishingFrame": 0
+          }
+        },
+        "Activated": [
+          2
+        ],
+        "Pending": [
+          2
+        ],
+        "Groups": [
+          {
+            "Tree": 1,
+            "Box": 15830696648419845573,
+            "Source": {
+              "Name": "proof-manual.html",
+              "NodeID": 13,
+              "Path": "/html[1]/body[1]/p[1]"
+            },
+            "From": 0,
+            "To": 4,
+            "Lines": 1,
+            "Atomic": false,
+            "X": 0,
+            "Y": 0,
+            "Width": 32,
+            "Height": 29.296875
+          }
+        ]
+      },
+      {
+        "Number": 2,
+        "Template": "wide",
+        "Span": 1,
+        "Score": {
+          "Total": {
+            "Units": 12000000,
+            "Blocked": false
+          },
+          "Page": {
+            "Units": 1000000,
+            "Blocked": false
+          },
+          "Underfill": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Split": {
+            "Units": 10000000,
+            "Blocked": false
+          },
+          "Carry": {
+            "Units": 1000000,
+            "Blocked": false
+          },
+          "MissingMain": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Participating": [
+            0
+          ],
+          "Exempt": [
+            0
+          ],
+          "AreaDenominator": 6400,
+          "Facts": {
+            "Frames": [
+              {
+                "Channel": "main",
+                "Width": 160,
+                "Height": 40,
+                "Occupied": 29.296875
+              }
+            ],
+            "MainRemaining": true,
+            "PendingAtEntry": [
+              {
+                "ID": 2,
+                "Channel": "notes"
+              }
+            ],
+            "PendingAfter": [
+              {
+                "ID": 2,
+                "Channel": "notes"
+              }
+            ],
+            "Fragments": [
+              {
+                "Paragraph": {},
+                "Frame": 0,
+                "Lines": 1,
+                "Split": true
+              }
+            ],
+            "MainFinishes": true,
+            "MainFinishingFrame": 0
+          }
+        },
+        "Activated": [
+          2
+        ],
+        "Pending": [
+          2
+        ],
+        "Groups": [
+          {
+            "Tree": 1,
+            "Box": 15830696648419845573,
+            "Source": {
+              "Name": "proof-manual.html",
+              "NodeID": 13,
+              "Path": "/html[1]/body[1]/p[1]"
+            },
+            "From": 4,
+            "To": 11,
+            "Lines": 1,
+            "Atomic": false,
+            "X": 0,
+            "Y": 0,
+            "Width": 160,
+            "Height": 29.296875
+          }
+        ]
+      },
+      {
+        "Number": 3,
+        "Template": "notes",
+        "Span": 1,
+        "Score": {
+          "Total": {
+            "Units": 2071598,
+            "Blocked": false
+          },
+          "Page": {
+            "Units": 1000000,
+            "Blocked": false
+          },
+          "Underfill": {
+            "Units": 71598,
+            "Blocked": false
+          },
+          "Split": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Carry": {
+            "Units": 1000000,
+            "Blocked": false
+          },
+          "MissingMain": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Participating": [
+            0
+          ],
+          "Exempt": null,
+          "AreaDenominator": 6400,
+          "Facts": {
+            "Frames": [
+              {
+                "Channel": "notes",
+                "Width": 160,
+                "Height": 40,
+                "Occupied": 29.296875
+              }
+            ],
+            "MainRemaining": false,
+            "PendingAtEntry": [
+              {
+                "ID": 2,
+                "Channel": "notes"
+              }
+            ],
+            "PendingAfter": [
+              {
+                "ID": 3,
+                "Channel": "figures"
+              }
+            ],
+            "Fragments": [
+              {
+                "Paragraph": {},
+                "Frame": 0,
+                "Lines": 1,
+                "Split": false
+              }
+            ],
+            "MainFinishes": false,
+            "MainFinishingFrame": 0
+          }
+        },
+        "Activated": [
+          2,
+          3
+        ],
+        "Pending": [
+          3
+        ],
+        "Groups": [
+          {
+            "Tree": 2,
+            "Box": 23173820150,
+            "Source": {
+              "Name": "proof-manual.html",
+              "NodeID": 20,
+              "Path": "/html[1]/body[1]/aside[1]"
+            },
+            "From": 0,
+            "To": 7,
+            "Lines": 1,
+            "Atomic": false,
+            "X": 0,
+            "Y": 0,
+            "Width": 160,
+            "Height": 29.296875
+          }
+        ]
+      },
+      {
+        "Number": 4,
+        "Template": "figures",
+        "Span": 1,
+        "Score": {
+          "Total": {
+            "Units": 1071598,
+            "Blocked": false
+          },
+          "Page": {
+            "Units": 1000000,
+            "Blocked": false
+          },
+          "Underfill": {
+            "Units": 71598,
+            "Blocked": false
+          },
+          "Split": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Carry": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "MissingMain": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Participating": [
+            0
+          ],
+          "Exempt": null,
+          "AreaDenominator": 6400,
+          "Facts": {
+            "Frames": [
+              {
+                "Channel": "figures",
+                "Width": 160,
+                "Height": 40,
+                "Occupied": 29.296875
+              }
+            ],
+            "MainRemaining": false,
+            "PendingAtEntry": [
+              {
+                "ID": 3,
+                "Channel": "figures"
+              }
+            ],
+            "PendingAfter": null,
+            "Fragments": [
+              {
+                "Paragraph": {},
+                "Frame": 0,
+                "Lines": 1,
+                "Split": false
+              }
+            ],
+            "MainFinishes": false,
+            "MainFinishingFrame": 0
+          }
+        },
+        "Activated": [
+          2,
+          3
+        ],
+        "Pending": null,
+        "Groups": [
+          {
+            "Tree": 3,
+            "Box": 29794911617,
+            "Source": {
+              "Name": "proof-manual.html",
+              "NodeID": 26,
+              "Path": "/html[1]/body[1]/figure[1]"
+            },
+            "From": 0,
+            "To": 7,
+            "Lines": 1,
+            "Atomic": false,
+            "X": 0,
+            "Y": 0,
+            "Width": 160,
+            "Height": 29.296875
+          }
+        ]
+      },
+      {
+        "Number": 5,
+        "Template": "wide",
+        "Span": 2,
+        "Score": {
+          "Total": {
+            "Units": 1000000,
+            "Blocked": false
+          },
+          "Page": {
+            "Units": 1000000,
+            "Blocked": false
+          },
+          "Underfill": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Split": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Carry": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "MissingMain": {
+            "Units": 0,
+            "Blocked": false
+          },
+          "Participating": [
+            0
+          ],
+          "Exempt": [
+            0
+          ],
+          "AreaDenominator": 6400,
+          "Facts": {
+            "Frames": [
+              {
+                "Channel": "main",
+                "Width": 160,
+                "Height": 40,
+                "Occupied": 29.296875
+              }
+            ],
+            "MainRemaining": true,
+            "PendingAtEntry": null,
+            "PendingAfter": null,
+            "Fragments": [
+              {
+                "Paragraph": {},
+                "Frame": 0,
+                "Lines": 1,
+                "Split": false
+              }
+            ],
+            "MainFinishes": true,
+            "MainFinishingFrame": 0
+          }
+        },
+        "Activated": [
+          2,
+          3
+        ],
+        "Pending": null,
+        "Groups": [
+          {
+            "Tree": 1,
+            "Box": 15830696650626876062,
+            "Source": {
+              "Name": "proof-manual.html",
+              "NodeID": 17,
+              "Path": "/html[1]/body[1]/p[2]"
+            },
+            "From": 0,
+            "To": 5,
+            "Lines": 1,
+            "Atomic": false,
+            "X": 0,
+            "Y": 0,
+            "Width": 160,
+            "Height": 29.296875
+          }
+        ]
+      }
+    ],
+    "SpanLoss": [
+      27214794,
+      1000000
+    ],
+    "BasePreparations": 4
+  }
+]
