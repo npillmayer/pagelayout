@@ -19,8 +19,8 @@ func (l WorkLimits) valid() bool    { return l.LocalSteps > 0 && l.SpanAttempts 
 
 // PaginationConfig binds immutable inputs to a borrowed serialized session.
 // Nil Policy/Limits select defaults; BeamWidth zero selects the settled 32.
-// Fitter is required for page construction/search; nil permits inspection and
-// searching an already complete span. Eligible is nil to consider all templates.
+// Fitter is required for page construction; nil permits inspection and search
+// through complete or certified empty spans. Eligible is nil for all templates.
 type PaginationConfig struct {
 	Plan      *SpanPlan
 	Catalog   *template.Catalog

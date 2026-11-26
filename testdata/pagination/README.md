@@ -8,7 +8,7 @@ The source table is exercised by SHIP-01/02 tests against content loading and
 checked at their contract boundary. SHIP-05/06 exercise single- and multi-channel
 page construction, activation, draining and frozen rendering. SHIP-07 executes
 the search graph cases and compares real page fixtures with exhaustive search.
-Public span transitions and delivery remain later runtime gates.
+SHIP-08 drives successive spans and separately delivers selected frozen pages.
 
 Keep template and content documents separate. The template collection can already
 be checked with:
@@ -31,6 +31,31 @@ passing catalog load does not prove content routing, fitting or pagination.
 | [scoring-expected.json](scoring-expected.json) | Supply the stated page facts directly to the evaluator. | Participating frames, components, exact integer loss and arithmetic failures. Scoring cases are working hypotheses. |
 | [search-expected.json](search-expected.json) | Supply the finite graph as a fake Page attempt. | Selected sequence, loss, retained frontier, pruning, completion/failure and interrupted-incumbent behavior. |
 | [protocol-expected.json](protocol-expected.json) | Construct the stated identity, session, failure or delivery scenario. | Atomic publication, error category/cause, state stability and output lifetime. |
+
+## Document pagination and delivery evidence
+
+`document_test.go` runs `transitive.html` with `receivers.html` through `Paginate`:
+span 1 selects `[note-first, figures-only]` (3,840,278 units), then span 2 selects
+`[note-first]` (1,000,000 units). Pages are numbered 1, 2, 3. The main root and
+exact opaque continuation survive the public `AdvanceSpan` transition; later
+searches never revisit earlier selections. These costs retain their working-
+hypothesis status.
+
+The `later-span-failure` protocol is exercised with backend failure, infeasibility,
+cancellation and limits: earlier selected reports remain available, completion is
+false, and the unsuccessful span's entry permits an explicit retry. Empty documents
+and initial empty spans produce no page. Certified empty main ranges still process
+structural owners before terminal draining, including a notes-only receiver.
+Painted/spaced boxes, definite-width boxes and atomics are not treated as empty.
+
+`shipout_test.go` exercises `delivery-failure`: pages 1–3 are selected, page 2's
+consumer fails, completed deliveries are `[1]`, failed/next page is 2 and page 3
+is not called. The original error and selection survive. No external rollback is
+claimed. It also checks rejection of unselected incumbents, cancellation before/
+after calls, independent handles, zero-page delivery and closed-session output.
+Gentium none/manual cases in `page_realfont_test.go` paginate and deliver selected
+output after session close and GC, comparing frozen render proofs. The broader
+multi-page visual, lifetime and search-quality gate remains SHIP-09.
 
 ## Multi-channel page evidence
 
@@ -57,8 +82,8 @@ reports copied queue obstructions without skipping or fitting that head.
 coverage and manual hyphenation, including a narrow-to-wide main chain. Frozen
 rendering survives session close and collection. `content/compose_test.go` and
 the sibling core's `fit_composition_test.go` separately check immutable sibling
-placement and the explicit intermediate-bounds option. These page tests do not
-implement sequence search or public span delivery. Numerical loss expectations
+placement and the explicit intermediate-bounds option. Document driving and
+delivery are exercised separately above. Numerical loss expectations
 remain working hypotheses.
 
 ## Single-channel page evidence
@@ -226,8 +251,8 @@ leaves later-span material untouched. Cross-span FIFO blocking is infeasible
 under the current policies. Eligibility/parity, width truncation vs proof,
 late failures, copied selected/incumbent handles, identity, limits and retry are
 also checked. `page_realfont_test.go` retains selected Gentium none/manual
-rendering after session close and GC. These tests select one pagespan; they do
-not implement document delivery or claim optimization over alternate local cuts.
+rendering after session close and GC. The search tests select one pagespan and do
+not claim optimization over alternate local cuts; document delivery is covered above.
 
 Each graph declares template order, initial state, completed states, positive
 minimum page cost and one edge per feasible state/template pair. Missing edges

@@ -260,6 +260,10 @@ func TestMultiChannelRealFontEventsAndFrozenRendering(t *testing.T) {
 			if !reflect.DeepEqual(proofs, pageProofs(t, selectedPage)) {
 				t.Fatal("search changed the local frozen result")
 			}
+			document, err := run.Paginate(ctx, initial)
+			if err != nil || !document.Complete() || len(document.Spans()) != 1 || !document.State().DocumentComplete() {
+				t.Fatal("real-font document pagination", document, err)
+			}
 			if err := session.Close(); err != nil {
 				t.Fatal(err)
 			}
@@ -271,6 +275,17 @@ func TestMultiChannelRealFontEventsAndFrozenRendering(t *testing.T) {
 			}
 			if !reflect.DeepEqual(proofs, pageProofs(t, selectedPage)) {
 				t.Fatal("selected search output changed after session close")
+			}
+			calls := 0
+			delivered, err := document.Spans()[0].Selected().Shipout(ctx, func(p *page.Page) error {
+				calls++
+				if p.Number() != 1 || !reflect.DeepEqual(proofs, pageProofs(t, p)) {
+					t.Fatal("delivered frozen output changed after session close")
+				}
+				return nil
+			})
+			if err != nil || !delivered.Complete() || calls != 1 || len(delivered.CompletedPages()) != 1 {
+				t.Fatal("real-font delivery", delivered, err)
 			}
 		})
 	}

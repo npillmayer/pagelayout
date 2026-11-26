@@ -34,22 +34,28 @@ func (r *Pagination) PaginationSearch(ctx context.Context, input State) (SearchR
 	if r.busy {
 		return fail(content.ErrSessionBusy)
 	}
+	r.busy = true
+	defer func() { r.busy = false }()
+	return r.paginationSearch(ctx, input)
+}
+
+// paginationSearch runs under the public search/document execution guard.
+func (r *Pagination) paginationSearch(ctx context.Context, input State) (SearchReport, error) {
+	fail := func(cause error) (SearchReport, error) {
+		return finishSearch(SearchFailed, nil, false, paginationError(InvalidRequest, DiagnosticLocation{}, cause))
+	}
 	if err := ctx.Err(); err != nil {
 		return finishSearch(SearchCancelled, nil, false, err)
+	}
+	var err error
+	input, err = r.drainEmptyMain(ctx, input)
+	if err != nil {
+		return finishSearch(searchErrorOutcome(err), nil, false, err)
 	}
 	complete := input.SpanComplete()
 	if !complete && nilFittingBackend(r.backend) {
 		return fail(fmt.Errorf("fitting backend required"))
 	}
-	if !complete {
-		for channel, cursor := range input.data.cursors {
-			if !r.fitters[cursor.head].Owns(input.data.fits[channel].continuation) {
-				return fail(fmt.Errorf("logical position without fitting checkpoint"))
-			}
-		}
-	}
-	r.busy = true
-	defer func() { r.busy = false }()
 	search := beamSearch[State]{
 		templates: r.catalog.IDs(), width: r.context.beam,
 		limits: r.context.limits, minimum: FiniteLoss(r.context.policy.Page),
@@ -77,7 +83,7 @@ func (r *Pagination) PaginationSearch(ctx context.Context, input State) (SearchR
 		},
 	}
 	search.start(input)
-	err := search.run(ctx)
+	err = search.run(ctx)
 	var sequence *Sequence
 	if best := search.incumbent; best != nil {
 		sequence = &Sequence{final: best.state, loss: best.rank.Loss}
@@ -243,18 +249,26 @@ func (b *beamSearch[S]) round(ctx context.Context) error {
 }
 
 func (b *beamSearch[S]) outcome(err error) SearchOutcome {
+	if err != nil {
+		return searchErrorOutcome(err)
+	}
 	switch {
-	case errors.Is(err, ErrCancelled), errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
-		return SearchCancelled
-	case errors.Is(err, ErrLimit):
-		return SearchLimited
-	case err != nil:
-		return SearchFailed
 	case b.incumbent != nil:
 		return SearchComplete
 	case b.stats.WidthPruned > 0:
 		return SearchHeuristicExhausted
 	default:
 		return SearchInfeasible
+	}
+}
+
+func searchErrorOutcome(err error) SearchOutcome {
+	switch {
+	case errors.Is(err, ErrCancelled), errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
+		return SearchCancelled
+	case errors.Is(err, ErrLimit):
+		return SearchLimited
+	default:
+		return SearchFailed
 	}
 }

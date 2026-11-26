@@ -9,12 +9,14 @@ BOX-SHIP-02 structural finite-height fitting, TYPE-SHIP-01 paragraph-prefix
 fitting for `none`, KHIPU-SHIP-01 manual discretionary continuation and
 TYPE-SHIP-02 manual paragraph-prefix fitting and BOX-SHIP-03 used fragment
 geometry/atomics/paint facts, SHIP-04 content/typography fitting, SHIP-05
-single-channel Page attempts, SHIP-06 multi-channel arrangements and SHIP-07
-deterministic pagespan beam search are
+single-channel Page attempts, SHIP-06 multi-channel arrangements, SHIP-07
+deterministic pagespan beam search and SHIP-08 span transitions/shipout handoff are
 implemented.** Page construction includes placement-dependent activation,
 FIFO queues and transitive draining, with exact remainders, frozen pages and
 factual loss. Search selects one complete span with explicit truncation and
-interruption reporting. Public span transitions and delivery remain subsequent work.
+interruption reporting. Document pagination preserves earlier selections on later
+failure and separately delivers only selected frozen pages. SHIP-09's broader
+end-to-end and search-quality proofs remain planned.
 Scoring and numerical execution limits remain working hypotheses.
 
 The author's initial remarks, scattered remarks and closing answers remain in
@@ -158,7 +160,7 @@ real backend, as noted in the detailed steps.
 | 13 | SHIP-05 — complete | pagelayout root | SHIP-02, SHIP-03, SHIP-04 | Single-channel Page attempt and two-template proof. |
 | 14 | SHIP-06 — complete | pagelayout root/content, typography adapter; css-box-layout composition support | SHIP-05 | Multi-channel local arrangements, anchors and draining. |
 | 15 | SHIP-07 — complete | pagelayout root | SHIP-03, SHIP-06 | Deterministic beam search, eligibility and search outcomes. |
-| 16 | SHIP-08 | pagelayout root | SHIP-07 | Span transitions, selected output and shipout handoff. |
+| 16 | SHIP-08 — complete | pagelayout root/content | SHIP-07 | Span transitions, selected output and shipout handoff. |
 | 17 | SHIP-09 | pagelayout, sibling regression checks | SHIP-08 | Real-font, lifetime, search-quality and end-to-end proofs. |
 
 BOX-SHIP-02 and TYPE-SHIP-01 use the contracts pinned in SHIP-00 and test doubles;
@@ -429,7 +431,7 @@ supply actual opaque checkpoints and multi-channel page construction; SHIP-07
 supplies pagespan search. Initial state preserves source registers without
 inferring fit or manufacturing metadata-only pages. Candidates pair completed
 page data, loss and exact successors; their separate frozen Page handles retain
-rendering without execution. General delivery remains a later slice.
+rendering without execution. SHIP-08 below supplies general selected-page delivery.
 
 **Work:** introduce root-level pagination initialization and opaque immutable
 state. Bind the bank, per-head continuation, pending/activation facts, current
@@ -842,8 +844,8 @@ late errors, retry, cancellation, limits and session/identity checks. Real Genti
 proofs cover none/manual, percentage atomics, source conservation and rendering
 after execution/session collection while a successor is retained. No sibling
 changes were necessary for SHIP-05. SHIP-06 adds secondary activation, FIFO
-placement and draining below. SHIP-07 supplies search; public span driving
-remains SHIP-08. Initial main is the existing sole residual-tree bank item;
+placement and draining below. SHIP-07 supplies search; SHIP-08 supplies public
+span driving. Initial main is the existing sole residual-tree bank item;
 no new queue or content representation was introduced.
 
 **Work:** implement one-template page construction over main and its ordered
@@ -912,7 +914,7 @@ late failure/retry. Real Gentium tests activate through ligature coverage and
 manual continuation and retain frozen rendering after session closure/GC.
 Content/core tests pin copied composition and deferred-bounds validation.
 Scoring and numerical execution limits remain **working hypotheses**. SHIP-07
-supplies search; public span driving/delivery remain SHIP-08.
+supplies search; SHIP-08 supplies public span driving/delivery.
 
 **Work:** extend local enumeration to whole-page combinations across channels.
 Preserve each channel's frame-chain and queue order. Main/secondary progress,
@@ -995,7 +997,7 @@ changed widths, transitive draining and cross-span FIFO obstruction. It verifies
 eligibility/parity, reentry, explicit attempts, all public outcome categories,
 completed-incumbent isolation, state identity, retry and output lifetime.
 Real Gentium none/manual tests retain selected rendering after session close/GC.
-No sibling changes were needed. Public transitions/delivery remain SHIP-08.
+No sibling changes were needed. SHIP-08 below supplies public transitions/delivery.
 
 **Work:** implement the settled search policy independently of fitting details.
 Start with a fake deterministic Page attempt and known graphs, then integrate
@@ -1031,7 +1033,57 @@ optimality across committed pagespans.
 
 ### SHIP-08 — Span transitions and shipout handoff
 
-**Work:** add document orchestration around completed pagespan search. Select a
+**Status: implemented (2026-11-26).** `Pagination.Paginate(ctx, state)` selects
+successive complete spans and returns a `DocumentResult`. `Spans()` contains only
+the successful selections made by this invocation; `LastSearch()` preserves the
+last search report, including an explicitly unselected interrupted incumbent.
+`Complete()` distinguishes whole-document completion from later-span failure,
+infeasibility or interruption. The returned `State()` is the final drained state
+on completion or the unsuccessful span's unchanged entry on failure. Retrying
+that state is explicit and cannot reconsider earlier selections. Limits restart
+for each span, and the complete orchestration rejects callback reentry.
+Interruption between searches can retain the preceding drained boundary and
+its successful `LastSearch`; resuming still advances without reselection.
+
+`AdvanceSpan` validates complete transitive draining, session/context identity
+and exact fitting-checkpoint authority. It retains the main root and opaque
+continuation, future queues and next page number. `State.DocumentComplete()`
+provides terminal-draining inspection without live execution. Passing an already
+drained boundary to `Paginate` advances without selecting it again. Search keeps
+the immutable page predecessor sharing introduced in SHIP-07.
+
+At search entry, a certified empty main remainder advances through the existing
+structural fitter without a physical page or page cost. `PreparedSnapshot.EmptyRange`
+conservatively checks the relevant source interval for text, atomics, paint,
+spacing and nonzero definite widths; it never manufactures a continuation. The
+zero-extent structural fit carries empty owning annotations and honors the local
+work cap. Targets activate before terminal draining, including with notes-only
+receivers. Nonempty or unproved material still uses normal Page attempts. Direct
+PageAttempt remains the explicit receiver-fitting operation; this empty-span
+normalization belongs to search/document orchestration.
+
+`Sequence.Shipout(ctx, PageConsumer)` delivers independent frozen `Page` handles
+in order. Only successful selections are accepted; unselected incumbents and zero
+sequences are rejected before any consumer call. `DeliveryReport` records successful
+page calls, a consumer's failing page and the next undelivered page. `DeliveryError`
+matches `ErrDelivery` and preserves the original cause. Cancellation is checked
+before/after synchronous calls, so a cancellation following the last successful
+call can coexist with delivery `Complete() == true`. Failed calls may have partial
+external effects. There is no rollback or automatic retry; a fresh explicit Shipout
+starts the selected span again. Delivery needs no live execution session.
+
+Evidence: `document_test.go` selects the two transitive fixture spans, proves
+exact boundary continuation and page numbers 1–3, preserves future material and
+earlier selections on later failure, and covers explicit retry and empty spans.
+`shipout_test.go` exercises the delivery-failure protocol (page 2 fails, only page 1
+completed), unselected incumbents, cancellation, copied handles and closed execution.
+`content/empty_test.go` checks conservative, source-qualified range certification.
+Gentium none/manual tests in `page_realfont_test.go` deliver and render selected
+output after session close and GC. No sibling changes were required. Scoring,
+eligibility policy and numerical caps remain **working hypotheses**; the broader
+visual, lifetime and search-quality gate remains SHIP-09.
+
+**Implemented scope:** add document orchestration around completed pagespan search. Select a
 whole span and publish its frozen sequence with its final exact state. Advance
 to the next span using that state and next page number; do not reset numbering
 or revisit the selected span for later parity. A main branch may continue across
@@ -1167,8 +1219,9 @@ Useful completion checkpoints are:
    including manual continuation within the declared profile, failure reporting
    and lifetime proofs. Record any still-provisional scoring calibration openly.
 
-The next implementation task is **SHIP-08**: span transitions and shipout handoff.
+The next implementation task is **SHIP-09**: real-font, lifetime, search-quality
+and end-to-end proofs.
 SHIP-00, DOM-SHIP-01, SHIP-01,
 BOX-SHIP-01, SHIP-02, SHIP-03, BOX-SHIP-02, TYPE-SHIP-01, KHIPU-SHIP-01,
-TYPE-SHIP-02, BOX-SHIP-03, SHIP-04, SHIP-05, SHIP-06 and SHIP-07 are complete.
-Public span transitions, delivery and broader end-to-end proofs remain planned.
+TYPE-SHIP-02, BOX-SHIP-03, SHIP-04, SHIP-05, SHIP-06, SHIP-07 and SHIP-08 are complete.
+Public span transitions and delivery are implemented; the broader proof gate remains planned.

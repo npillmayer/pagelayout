@@ -219,9 +219,10 @@ const (
 
 // Sequence is a completed span, not a partial search path.
 type Sequence struct {
-	pages []*Candidate
-	final State
-	loss  Loss
+	pages    []*Candidate
+	final    State
+	loss     Loss
+	selected bool
 }
 
 func (s *Sequence) Pages() []*Candidate {
@@ -319,6 +320,7 @@ func finishSearch(outcome SearchOutcome, complete *Sequence, heuristic bool, err
 		if err != nil || complete == nil {
 			return invalid()
 		}
+		complete.selected = true
 		report.selected = complete
 	case SearchInfeasible:
 		if heuristic || err != nil || complete != nil {
@@ -334,6 +336,9 @@ func finishSearch(outcome SearchOutcome, complete *Sequence, heuristic bool, err
 		}
 		if err == nil {
 			return invalid()
+		}
+		if complete != nil {
+			complete.selected = false
 		}
 		report.incumbent = complete
 	default:

@@ -1,8 +1,8 @@
 # pagelayout
 
 Load HTML/CSS page templates and content, inspect their flow channels, and
-prepare content, compile ownership/span plans, construct pages across channels
-and select a template sequence for one pagespan.
+prepare content, compile ownership/span plans, paginate across channels and
+deliver selected frozen pages to a consumer.
 
 A **page template** describes a page and its receiving **frames**. A frame's
 `flow-from` names the channel it receives. In a separate content document,
@@ -13,7 +13,7 @@ from its own document; a template's styles do not restyle the content.
 
 | Package | Use it to |
 | --- | --- |
-| `pagelayout` | Validate owning links and page spans; construct pages and select a pagespan sequence with exact channel remainders and inspectable loss. |
+| `pagelayout` | Validate owning links and page spans; paginate with exact channel remainders and inspectable loss; deliver selected pages. |
 | [`template`](template/README.md) | Load and validate collections; select templates and inspect page dimensions, frame rectangles, paint and flow chains. |
 | [`content`](content/README.md) | Load styled HTML, inspect source material and take whole branches from persistent channel registers. Prepare material and fit fragments with an explicit backend. |
 | [`preparation/typography`](preparation/typography/README.md) | Supply fonts and shaping services, prepare paragraphs once, measure intrinsic widths, lay out complete subtrees or fit resumable fragments. |
@@ -143,8 +143,8 @@ change the state.
 
 A missing head continuation means that head's beginning. Completed branches
 leave their registers together with their cursors; partial branches retain their
-original handles. State advancement is private: source positions alone cannot
-supply a resumable fitter checkpoint.
+original handles. Use candidate successors and `AdvanceSpan` to advance state:
+source positions alone cannot supply a resumable fitter checkpoint.
 
 ## Construct a page
 
@@ -205,8 +205,9 @@ pending items behind them; these facts do not prove that every template fails.
 
 Forced main breaks stop the current span inside its retained head. Related
 targets must drain before the span is complete; progressing drain pages may omit
-a main receiver. Future-span branches remain untouched. Public span transitions
-and document delivery are not yet available.
+a main receiver. Future-span branches remain untouched. Use `AdvanceSpan` on
+the drained state to enter the next span without resetting page numbering or
+the main continuation. `State.DocumentComplete()` identifies terminal draining.
 A page that finishes its span is still `Constructed`; `SpanComplete` describes
 an already-complete input.
 
@@ -247,6 +248,11 @@ case pagelayout.SearchHeuristicExhausted:
 }
 ```
 
+For an empty source range, search advances its structural continuation and
+owning annotations without making a blank page. Painted or spaced boxes and
+atomics still require ordinary fitting. A zero-page selection has zero loss and
+preserves the next page number.
+
 The search considers templates in catalog order. After each complete depth round,
 it keeps at most `BeamWidth` unfinished paths (32 by default), ordered by summed
 loss and lexicographic template ordinals. Complete paths occupy no beam slot.
@@ -285,6 +291,66 @@ errors with no selected sequence; a completed incumbent remains inspectable.
 Selected pages and copied sequence inspection survive session closure while
 borrowed rendering resources stay valid. The search does not advance to the next
 span or send output to a consumer.
+
+## Paginate a document and deliver pages
+
+`Paginate` selects successive complete spans from the supplied state. It keeps
+each earlier selection when a later span fails or cannot be completed:
+
+```go
+document, searchErr := run.Paginate(ctx, run.InitialState())
+for _, span := range document.Spans() {
+    sequence := span.Selected()
+    delivery, err := sequence.Shipout(ctx, func(page *pagelayout.Page) error {
+        // Render/export the page using its compiled frames and frozen fragments.
+        fmt.Println("page", page.Number(), page.Template())
+        return nil
+    })
+    if err != nil {
+        fmt.Println("completed", delivery.CompletedPages(),
+            "failed", delivery.FailedPage(), "next", delivery.NextPage())
+        return err
+    }
+}
+if searchErr != nil {
+    return searchErr // earlier selected spans remain available
+}
+if !document.Complete() {
+    fmt.Println("unfinished span", document.State().Info().Span,
+        "outcome", document.LastSearch().Outcome())
+}
+```
+
+This example explicitly delivers earlier selections even if a later span failed.
+Check `Complete()` before delivery if your application requires the whole document
+to succeed first. `Spans()` contains only selections made by this invocation;
+`LastSearch()` also exposes an unsuccessful search and any unselected incumbent.
+On failure, `State()` is the entry to the unfinished span. Pass it to `Paginate`
+for an explicit retry without searching or delivering earlier spans again.
+Interruption between searches can leave `State()` at the preceding drained
+boundary and `LastSearch()` at its successful report; retry still advances exactly.
+An already-drained input advances to the next span; an already-complete document
+returns no new selections. Search limits apply separately to each span.
+
+For manual span driving, call `PaginationSearch`, retain its selected sequence,
+then call `AdvanceSpan(sequence.FinalState())` unless `DocumentComplete()` is true.
+The transition requires complete transitive draining, a matching live session
+and the exact main checkpoint. It preserves the source root and next page number.
+
+`Sequence.Shipout` accepts only a successfully selected sequence. It calls the
+consumer synchronously in page order, supplying independent frozen `Page` handles;
+it rejects unselected incumbents. It requires no live preparation session. Retain
+borrowed font/rendering resources as long as the consumer needs them.
+
+`DeliveryReport.CompletedPages()` lists successful calls. `FailedPage()` is the
+page whose consumer returned an error, or zero; `NextPage()` is the first page
+not successfully delivered, or zero. A failed call may already have written some
+output. `DeliveryError` preserves its cause through `errors.Is`/`errors.As` and
+matches `ErrDelivery`. No rollback, retry or hidden delivery cursor is provided;
+calling `Shipout` again starts the selected sequence again. Cancellation is checked
+before and after calls. If cancellation arrives during the final successful call,
+the error still reports cancellation while `Complete()` is true: all calls finished.
+An empty selection makes no consumer calls.
 
 ## Evaluate page loss and compare choices
 

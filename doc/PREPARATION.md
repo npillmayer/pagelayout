@@ -178,8 +178,9 @@ Whole-group layout and partial fitting remain separate contracts. Typography's
 supply paragraph-level pieces. `content.NewFitter`/`content.Fit` and
 `preparation/typography.Fit` now connect structural fragments and exact paragraph
 continuations. `Pagination.PageAttempt` composes transactional multi-channel pages,
-and `PaginationSearch` selects one complete pagespan. Public span transitions and
-delivery remain in the shipout plan.
+and `PaginationSearch` selects one complete pagespan. `Paginate` selects successive
+spans with exact transitions; `Sequence.Shipout` separately delivers selected
+frozen pages, even after execution closes while borrowed rendering resources live.
 
 ## 5. Group enumeration and the preparation driver
 

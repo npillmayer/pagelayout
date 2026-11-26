@@ -146,7 +146,7 @@ func (x *pageEnumeration) fill(ci, fi, hi int, cursor fitCursor, parts []*conten
 				continue
 			}
 			fragment := choice.Fragment()
-			hits, err := x.fragmentAnchors(head, fragment)
+			hits, err := x.r.fragmentAnchors(x.input, head, fragment)
 			if err != nil {
 				return pageExecutionError(where, err)
 			}
@@ -314,16 +314,16 @@ func (x *pageEnumeration) assess() error {
 	return nil
 }
 
-func (x *pageEnumeration) fragmentAnchors(head content.Box, f *content.FitFragment) ([]content.SourceRef, error) {
-	branch := x.r.context.branches[head].ID
+func (r *Pagination) fragmentAnchors(state State, head content.Box, f *content.FitFragment) ([]content.SourceRef, error) {
+	branch := r.context.branches[head].ID
 	var out []content.SourceRef
-	for _, a := range x.r.context.plan.anchors {
-		if a.OwnerBranch == branch && a.Span == x.input.data.span && !a.Position.IsText() && f.ContainsBoundary(a.Position) {
+	for _, a := range r.context.plan.anchors {
+		if a.OwnerBranch == branch && a.Span == state.data.span && !a.Position.IsText() && f.ContainsBoundary(a.Position) {
 			out = append(out, a.Source)
 		}
 	}
 	for _, p := range f.Paragraphs() {
-		input, ok := x.r.prepared.Input(p.Group)
+		input, ok := r.prepared.Input(p.Group)
 		if !ok {
 			return nil, content.ErrPreparationProtocol
 		}
@@ -338,8 +338,8 @@ func (x *pageEnumeration) fragmentAnchors(head content.Box, f *content.FitFragme
 			if !slices.Contains(input.Events, e) {
 				return nil, fmt.Errorf("%w: foreign rendered event", content.ErrPreparationProtocol)
 			}
-			for _, a := range x.r.context.plan.anchors {
-				if a.OwnerBranch == branch && a.Span == x.input.data.span && a.Source == e.Source && a.Position.IsText() {
+			for _, a := range r.context.plan.anchors {
+				if a.OwnerBranch == branch && a.Span == state.data.span && a.Source == e.Source && a.Position.IsText() {
 					out = append(out, e.Source)
 				}
 			}

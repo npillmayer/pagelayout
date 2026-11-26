@@ -10,6 +10,8 @@
 // owning material activates targets; FIFO queues and transitive draining are
 // preserved. Planning itself neither consumes banks nor activates targets or
 // creates pages. PaginationSearch selects one complete pagespan by deterministic
-// beam search and reports truncation/interruption explicitly. Span transitions
-// and document delivery remain separate work.
+// beam search and reports truncation/interruption explicitly. Paginate selects
+// successive spans with exact transitions and retains earlier selections on
+// later failure. Sequence.Shipout delivers selected frozen pages separately,
+// reporting completed calls and failures without automatic retry or rollback.
 package pagelayout

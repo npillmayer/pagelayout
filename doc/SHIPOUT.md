@@ -154,6 +154,33 @@ If anything, the pagespan optimization could be handled by a pool of workers.
 
 ## Design discussion: pagination and shipout
 
+SHIP-08 implementation update (2026-11-26): `Pagination.Paginate` now selects
+successive complete spans and preserves earlier selections on later failure.
+`DocumentResult` exposes copied successful span reports, the last search report,
+the exact final or retry state and explicit document completion.
+Interrupted incumbents remain unselected. `AdvanceSpan` validates transitive
+draining and exact checkpoint authority, preserving the same main root,
+future queues and next page number. It never revisits earlier selections for
+parity. `State.DocumentComplete()` inspects terminal draining after execution closes.
+
+Empty main spans are certified from immutable prepared/source values and advanced
+through the structural fitter at search entry, carrying exact continuations and
+empty owning annotations without emitting a page or charging page cost. Paint,
+spacing, atomics and nonempty/unproved ranges still require ordinary fitting.
+An empty owner can activate a target even when the chosen receiver is secondary-only.
+
+`Sequence.Shipout` separately delivers only selected frozen pages, in order, to
+a synchronous `PageConsumer`. It reports completed calls, a consumer's failing
+page and the next undelivered page, preserving original errors. A failed page
+may have partial external effects; there is no rollback or implicit retry.
+Cancellation after a successful final call still reports the cancellation and
+records all calls complete. Delivery survives session closure while borrowed
+rendering resources remain live. Tests cover two-span selection, empty documents,
+later-span failures, delivery failures/cancellation and real-font retained output.
+No sibling changes were required. SHIP-09 remains the broader proof gate.
+Eligibility, scoring and numerical limits remain working hypotheses; the author's
+remarks are unchanged.
+
 SHIP-07 implementation update (2026-11-26): `PaginationSearch` now selects one
 complete current pagespan with the settled default-32 unfinished beam. Complete
 depth rounds extend all retained paths through catalog-ordered eligible templates;
@@ -172,8 +199,8 @@ zero pages/loss. Success selects an immutable Sequence with its exact drained
 final state; errors may retain a completed incumbent, explicitly unselected.
 Stats distinguish completed rounds, attempts, NoFit edges, completions and both
 pruning kinds. Finite graph and exhaustive page-fixture tests cover the policy,
-and real-font proofs retain selected rendering after session closure. Public span
-transitions/delivery remain SHIP-08. Eligibility, scoring and numerical limits
+and real-font proofs retain selected rendering after session closure. SHIP-08
+supplies public span transitions/delivery. Eligibility, scoring and numerical limits
 retain their working-hypothesis status. Author remarks are unchanged.
 
 SHIP-06 implementation update (2026-11-26): `PageAttempt` now selects complete
@@ -193,7 +220,7 @@ Entry participation, once-per-target carry, missing-main and secondary-only
 draining follow the existing factual scorer. Tests cover exact transitive losses,
 FIFO obstruction, several/partial heads per frame, empty/split owners, margins,
 late failures and real-font none/manual rendering after session closure.
-SHIP-07 supplies search; public span delivery remains SHIP-08. Scoring and numerical caps
+SHIP-07 supplies search; SHIP-08 supplies public span delivery. Scoring and numerical caps
 remain working hypotheses. Author remarks are unchanged.
 
 SHIP-05 implementation update (2026-11-26): `Pagination.PageAttempt` now builds
@@ -204,7 +231,7 @@ original head and matching fitting checkpoint. Stops inside main and empty
 material are handled without metadata-only pages. The typography-neutral output
 contract supplies line counts; real-font tests retain none/manual rendering and
 atomic interiors after session/execution collection. SHIP-06 extends this to
-secondary placement and activation; SHIP-07 supplies search and public span delivery remains later work.
+secondary placement and activation; SHIP-07 supplies search and SHIP-08 supplies public span delivery.
 The scoring formulas and numerical caps remain working hypotheses. Author remarks
 are unchanged.
 
@@ -1160,8 +1187,9 @@ resources without abandoned search workspaces. Closing preparation prevents
 resumption but not rendering while borrowed font resources remain valid.
 A selected span publishes its sequence and exact final state together. Shipout
 consumes selected pages separately; report delivery progress on failure rather
-than promising rollback of external effects. Concrete payload/consumer types
-remain implementation work. These rules also apply to sequential evaluation.
+than promising rollback of external effects. `Page`, `Sequence.Shipout` and
+`DeliveryReport` now provide the concrete output/consumer contract. These rules
+also apply to sequential evaluation.
 
 ### Decisions after SHIP-00
 
@@ -1180,7 +1208,7 @@ above and below identify the current contract.
 | Scoring | Working hypotheses, including entry-state participation, final-main-tail exemption and coefficients. | Validate/calibrate the explicit scoring expectations; do not silently promote them. |
 | Search | Settled default-32 beam, ties, safe strict bound and outcome distinctions. | Implement the scheduler; numerical execution caps remain working hypotheses. |
 | Eligibility | Existing all-templates-in-order/optional-filter working baseline. | Define the predicate API and validate fixtures. |
-| Span publication and output | Settled atomic selection, exact transition, separate delivery and lifetime contract. | Implement frozen payloads/consumer declarations and lifetime proofs. |
+| Span publication and output | Settled atomic selection, exact transition, separate delivery and lifetime contract; implemented through SHIP-08. | Broader real-font/lifetime and end-to-end proofs in SHIP-09. |
 | Deferred | Concurrency, state merging, floats and broader profiles. | No implementation required for the initial milestone. |
 
 The [implementation plan](SHIPOUT-PLAN.md) assigns remaining declarations and
@@ -1315,8 +1343,8 @@ Implementation status: DOM-SHIP-01 now supplies checked break-before metadata,
 parsing and cascade resolution in w3c-dom, preserving all Level 3 keyword values.
 The content loader's narrower admission/normalization and source marker mapping
 are implemented by SHIP-01/02. SHIP-05/06 supply multi-channel finite-height page
-construction and draining. SHIP-07 supplies sequence search; public span
-transitions/delivery remain subsequent work.
+construction and draining. SHIP-07 supplies sequence search; SHIP-08 supplies
+public span transitions and separate selected-page delivery.
 
 **Settled initial profile:** admit `break-before: auto`, and normalize `page`,
 `left`, `right`, `recto` and `verso` to the same forced page boundary. Resolve
@@ -1459,6 +1487,13 @@ remains valid; that failing page may already have external partial effects. Late
 span failure similarly preserves earlier selected spans with explicit incomplete-
 document status. Do not send speculative pages or interrupted incumbents to output.
 
+**Implemented in SHIP-08:** `Paginate` and `AdvanceSpan` provide the exact
+document transitions; `Sequence.Shipout` and `DeliveryReport` provide the separate
+handoff. `Spans()` retains successful selections even on later failure; resume
+explicitly from `DocumentResult.State()`. Empty selections deliver nothing.
+Search/document operations require a live matching session; frozen-page delivery
+does not. Full execution details and evidence are in [SHIPOUT-PLAN.md](SHIPOUT-PLAN.md#ship-08--span-transitions-and-shipout-handoff).
+
 ### Remaining implementation decisions
 
 | Area | Status after SHIP-00 | Remaining work |
@@ -1469,7 +1504,7 @@ document status. Do not send speculative pages or interrupted incumbents to outp
 | Loss | Algebra, uint64 units, quantization and error handling settled. | Scoring participation, occupancy, penalties/weights remain working hypotheses; validate the recorded expectations in SHIP-03/06/09. |
 | Search | Tie/beam policy and interrupted-incumbent behavior settled; SHIP-07 implements execution, config, reports and checks. | Numerical-cap calibration and broader search-quality proofs remain open. |
 | Eligibility | All-templates-in-order/optional-deterministic-filter working baseline retained; SHIP-07 implements Eligible and its fixtures. | Calibration of eligibility policies remains open; no mandatory channel participation. |
-| Output | Atomic span selection, separate delivery and lifetime contracts settled. | Concrete frozen payload/consumer declarations and proofs in SHIP-08/09. |
+| Output | Atomic span selection, separate delivery and lifetime contracts settled; SHIP-08 implements document transitions and selected-page delivery. | Broader lifetime and end-to-end proofs in SHIP-09. |
 | Deferred | Floats, concurrent workers, state merging, broader fragmentation and automatic hyphenation remain deferred. | No additional abstraction is implied by SHIP-00. |
 
 ## Comments to the questions you presented

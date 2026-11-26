@@ -288,6 +288,14 @@ usable. Extract a `FitFragment` to retain render data without a continuation;
 resumption requires the matching live session. No fit selects pages or consumes
 a register bank.
 
+`prepared.EmptyRange(root, from, to)` conservatively certifies that an interval
+within a covered block root contains no text, atomics, paint, spacing or nonzero
+definite width. Obtain source-qualified endpoints from `TreeBounds` or positioned
+events. False includes invalid, foreign and unproved ranges. Inspection works
+after session close and executes no backend. True is not a continuation: callers
+must still traverse the structural fitter and process owning annotations before
+advancing the material. The root paginator uses this to avoid empty-span pages.
+
 For use with the page constructor, frozen paragraph payloads also implement
 `ParagraphOutput.LineCount() uint64`. Report lines in that occurrence, including
 zero for empty material. The page constructor combines this fact with exact
